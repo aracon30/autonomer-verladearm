@@ -146,6 +146,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         <li data-step="scan">Punktwolke aufnehmen</li>
         <li data-step="detect">Domöffnung erkennen</li>
         <li data-step="move">Arm fährt über den Dom</li>
+        <li data-step="measure2">Auslass nachmessen (Markierungsscheibe)</li>
         <li data-step="lower">Auslass eintauchen</li>
         <li data-step="retract">Zurück in Parkposition</li>
       </ol>
@@ -161,6 +162,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         <dt>ErrorCode</dt><dd id="v-err">–</dd>
         <dt>Servo J1/J2/J3</dt><dd id="v-joints">–</dd>
         <dt>Eintauchtiefe</dt><dd id="v-depth">–</dd>
+        <dt>Korrektur X/Y</dt><dd id="v-corr">–</dd>
         <dt>Tankform</dt><dd id="v-tank">–</dd>
         <dt>Messpunkte</dt><dd id="v-pts">–</dd>
         <dt>Rechenzeit</dt><dd id="v-ms">–</dd>
@@ -182,6 +184,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         <li><span class="sw" style="background:var(--signal)"></span>Domöffnung, Rohrführung</li>
         <li><span class="sw" style="background:var(--steel)"></span>Freies Drehgelenk J4 (dunkel: Servos J1–J3)</li>
         <li><span class="sw" style="background:var(--clutter);opacity:.5"></span>Sperrbereich (Hindernis)</li>
+        <li><span class="sw" style="background:var(--ink)"></span>Markierungsscheibe am Auslass (Nachmessen)</li>
         <li><span class="sw" style="background:var(--steel);opacity:.6"></span>Tank (Form aus der Messung, Fahrzeug aus dem Radius geschätzt)</li>
       </ul>
       <p class="note">Armmaße, Servowerte und Sperrbereiche kommen aus der Anlagenkonfiguration. Die Achsregelung übernimmt die SPS.</p>
@@ -206,8 +209,8 @@ ul.legend li{display:flex;align-items:center;gap:8px}
 
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const D = reduced
-    ? { scan: 0.2, detect: 0.2, move: 0.2, lower: 0.2, hold: 2.0, retract: 0.2, errHold: 3.0 }
-    : { scan: 1.8, detect: 0.9, move: 2.4, lower: 1.4, hold: 1.6, retract: 2.2, errHold: 3.0 };
+    ? { scan: 0.2, detect: 0.2, move: 0.2, measure2: 1.5, adjust: 0.2, lower: 0.2, hold: 2.0, retract: 0.2, errHold: 3.0 }
+    : { scan: 1.8, detect: 0.9, move: 2.4, measure2: 2.0, adjust: 1.0, lower: 1.4, hold: 1.6, retract: 2.6, errHold: 3.0 };
 
   // ---- Farben aus den CSS-Tokens ----
   const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -386,6 +389,13 @@ ul.legend li{display:flex;align-items:center;gap:8px}
   scene.add(nozzle);
   const UP = new THREE.Vector3(0, 1, 0);
   let armPts = null;
+  // Markierungsscheibe am Auslass (für das Nachmessen, von oben immer sichtbar)
+  const markerMat = new THREE.MeshStandardMaterial({ roughness: 0.9 });
+  const markerDisc = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.025, 48), markerMat);
+  markerDisc.visible = false;
+  scene.add(markerDisc);
+  let marker = null;
+  function setMarker(m) { marker = m && m.radius ? m : null; markerDisc.visible = !!marker; }
   const obstacleMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.28, depthWrite: false });
   const obstacleGroup = new THREE.Group();
   scene.add(obstacleGroup);
@@ -420,6 +430,10 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     alongAxis(joints[2], v[3], v[2], v[3]);                       // J3 quer zum Ausleger
     alongAxis(joints[3], v[5], v[4], v[5]);                       // J4 frei
     alongAxis(nozzle, v[6], v[6], v[5]);
+    if (marker) {
+      markerDisc.position.copy(v[6]).add(new THREE.Vector3(0, marker.offset, 0));
+      markerDisc.scale.set(marker.radius, 1, marker.radius);
+    }
   }
   function setGround(z) {
     groundY = z;
@@ -447,6 +461,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     tankMat.color = C.steel;
     cabMat.color = C.muted;
     obstacleMat.color = C.clutter;
+    markerMat.color = C.ink;
     if (current) colorPoints(phase === "scan" ? false : current.result.ok);
   }
 
@@ -460,29 +475,34 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     return r.json();
   }
 
-  function loadFrame(f) {
-    current = f;
-    const n = Math.min(f.points.length / 3, MAX);
+  function setPoints(flat) {
+    const n = Math.min(flat.length / 3, MAX);
     pts = new Float32Array(n * 3);
     // Scanreihenfolge: Zeile für Zeile entlang der Sensorachse
     order = Array.from({ length: n }, (_, i) => i).sort((a, b) =>
-      (f.points[a * 3 + 1] - f.points[b * 3 + 1]) || (f.points[a * 3] - f.points[b * 3]));
+      (flat[a * 3 + 1] - flat[b * 3 + 1]) || (flat[a * 3] - flat[b * 3]));
     const pos = ptGeo.attributes.position.array;
     for (let k = 0; k < n; k++) {
       const i = order[k];
-      const v = toView(f.points[i * 3], f.points[i * 3 + 1], f.points[i * 3 + 2]);
+      const v = toView(flat[i * 3], flat[i * 3 + 1], flat[i * 3 + 2]);
       pos[k * 3] = v.x; pos[k * 3 + 1] = v.y; pos[k * 3 + 2] = v.z;
-      pts[k * 3] = f.points[i * 3]; pts[k * 3 + 1] = f.points[i * 3 + 1]; pts[k * 3 + 2] = f.points[i * 3 + 2];
+      pts[k * 3] = flat[i * 3]; pts[k * 3 + 1] = flat[i * 3 + 1]; pts[k * 3 + 2] = flat[i * 3 + 2];
     }
     ptGeo.attributes.position.needsUpdate = true;
     ptGeo.setDrawRange(0, 0);
     ptGeo.computeBoundingSphere();
+  }
+
+  function loadFrame(f) {
+    current = f;
+    setPoints(f.points);
     const s = f.sensor_mm || [0, 0, 0];
     sensor.position.copy(toView(s[0] / 1000, s[1] / 1000, s[2] / 1000));
     traverse.position.copy(sensor.position).add(new THREE.Vector3(0, 0.1, 0));
     if (f.arm) {
       setGround(f.arm.ground_z);
       drawObstacles(f.arm.obstacles);
+      setMarker(f.arm.marker);
       if (!armPts) drawArm(f.arm.park);
     }
     colorPoints(false);
@@ -548,13 +568,13 @@ ul.legend li{display:flex;align-items:center;gap:8px}
       set("v-dia", fmt(r.diameter_mm) + " mm");
       set("v-conf", fmt(r.confidence, 2));
     } else {
-      for (const id of ["v-target", "v-normal", "v-dia", "v-conf", "v-joints", "v-depth"]) set(id, "–");
+      for (const id of ["v-target", "v-normal", "v-dia", "v-conf", "v-joints", "v-depth", "v-corr"]) set(id, "–");
     }
   }
   const set = (id, t) => (document.getElementById(id).textContent = t);
 
   // ---- Ablaufsteuerung ----
-  const STEP_LABEL = { scan: "Aufnahme", detect: "Erkennung", move: "Anfahrt", lower: "Eintauchen", hold: "In Position", retract: "Rückfahrt", error: "Fehler", idle: "Bereit" };
+  const STEP_LABEL = { scan: "Aufnahme", detect: "Erkennung", move: "Anfahrt", measure2: "Nachmessen", adjust: "Korrektur", lower: "Eintauchen", hold: "In Position", retract: "Rückfahrt", error: "Fehler", idle: "Bereit" };
   let t0 = 0, busy = false, nextFrame = null, shown = false;
 
   function setStatus(state, text, msg = "") {
@@ -563,8 +583,9 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     set("msg", msg);
   }
   function setSteps(active, failed = false) {
-    const keys = ["scan", "detect", "move", "lower", "retract"];
-    const idx = keys.indexOf(active === "hold" ? "lower" : active === "error" ? "detect" : active);
+    const keys = ["scan", "detect", "move", "measure2", "lower", "retract"];
+    const alias = { hold: "lower", error: "detect", adjust: "measure2" };
+    const idx = keys.indexOf(alias[active] || active);
     document.querySelectorAll("#steps li").forEach((li, i) => {
       li.className = active === "idle" ? "" : i < idx ? "done" : i === idx ? (failed ? "fail" : "active") : "";
     });
@@ -661,6 +682,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     set("s-act", up && g.AxesHomed ? [g.ActualJ1, g.ActualJ2, g.ActualJ3].map(v => v.toFixed(1).replace(".", ",")).join(" / ") + " °" : "–");
     if (s && s.arm_pts) {
       if (!armPts) setGround(s.ground_z);
+      setMarker(s.marker);
       drawObstacles(s.obstacles);
       drawArm(s.arm_pts);
     }
@@ -770,19 +792,61 @@ ul.legend li{display:flex;align-items:center;gap:8px}
       }
     } else if (phase === "move") {
       drawArm(samplePath(current.arm.move, ease(Math.min(1, t / D.move))));
-      if (t >= D.move) enter("lower");
+      if (t >= D.move) enter(current.arm.adjust ? "measure2" : "lower");
+    } else if (phase === "measure2") {
+      // Job 2: Sensor misst Markierungsscheibe und Dom im selben Bild
+      if (!shown) {
+        shown = true;
+        if (current.points2) {
+          setPoints(current.points2);
+          ptGeo.setDrawRange(0, pts.length / 3);
+          colorPoints(true);
+        }
+        const c = current.arm.correction_mm;
+        const fmt = v => (v >= 0 ? "+" : "") + v.toFixed(1).replace(".", ",");
+        set("v-corr", c.map(fmt).join(" / ") + " mm");
+        setStatus("busy", "Auslass nachgemessen",
+          "Scheibe steht " + Math.round(Math.hypot(c[0], c[1])) + " mm neben der Dommitte (Getriebespiel), Arm korrigiert");
+      }
+      beam.visible = t < D.measure2 * 0.5 && pts.length > 0;
+      if (beam.visible) updateBeam(Math.floor((t / (D.measure2 * 0.5)) * pts.length / 3));
+      markerMat.emissive = C.signal;
+      markerMat.emissiveIntensity = 0.6 * Math.abs(Math.sin(t * 6));
+      if (t >= D.measure2) {
+        markerMat.emissiveIntensity = 0;
+        beam.visible = false;
+        enter("adjust");
+      }
+    } else if (phase === "adjust") {
+      drawArm(samplePath(current.arm.adjust, ease(Math.min(1, t / D.adjust))));
+      if (t >= D.adjust) {
+        setStatus("ok", "Über der Dommitte", "Korrektur ausgeführt, Auslass taucht ein");
+        enter("lower");
+      }
     } else if (phase === "lower") {
       drawArm(samplePath(current.arm.insert, ease(Math.min(1, t / D.lower))));
       if (t >= D.lower) enter("hold");
     } else if (phase === "hold") {
       if (t >= D.hold) enter("retract");
     } else if (phase === "retract") {
-      const u1 = ease(Math.min(1, t / (D.retract * 0.4)));
-      const u2 = ease(Math.max(0, Math.min(1, (t - D.retract * 0.4) / (D.retract * 0.6))));
-      drawArm(u2 > 0 ? samplePath(current.arm.move, 1 - u2) : samplePath(current.arm.insert, 1 - u1));
+      // rückwärts: aus dem Dom, Korrektur zurück (falls vorhanden), Anfahrt zurück
+      const r = t / D.retract, a1 = 0.35, a2 = current.arm.adjust ? 0.45 : 0.35;
+      const seg = (lo, hi) => ease(Math.max(0, Math.min(1, (r - lo) / (hi - lo))));
+      if (r < a1) drawArm(samplePath(current.arm.insert, 1 - seg(0, a1)));
+      else if (r < a2) drawArm(samplePath(current.arm.adjust, 1 - seg(a1, a2)));
+      else drawArm(samplePath(current.arm.move, 1 - seg(a2, 1)));
       if (t >= D.retract) finish();
     } else if (phase === "error") {
       if (t >= D.errHold) finish();
+    }
+    // beim Nachmessen und Eintauchen auf den Dom heranfahren (solange nicht selbst gedreht)
+    if (!userMoved) {
+      const close = current && current.result && current.result.ok &&
+        ["measure2", "adjust", "lower", "hold"].includes(phase);
+      const focus = close ? toView(...current.result.target_mm.map(v => v / 1000)) : VIEW_TARGET;
+      controls.target.lerp(focus, 0.04);
+      const scale = Math.max(1, 1.25 / camera.aspect) * (close ? 0.38 : 1);
+      camera.position.lerp(controls.target.clone().addScaledVector(VIEW_OFFSET, scale), 0.04);
     }
     controls.update();
     renderer.render(scene, camera);

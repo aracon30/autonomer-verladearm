@@ -82,6 +82,12 @@ button:hover:not(:disabled){filter:brightness(1.05)}
 label.toggle{display:flex;align-items:center;gap:6px;font-size:.95rem;cursor:pointer}
 input[type="checkbox"]{accent-color:var(--signal);width:1.05rem;height:1.05rem}
 :focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.sig{display:grid;grid-template-columns:repeat(auto-fill,minmax(7.5rem,1fr));gap:6px 12px}
+.sig span{display:flex;align-items:center;gap:6px;font-size:.88rem;font-family:var(--f-mono)}
+.sig i{width:10px;height:10px;border-radius:50%;flex:none;background:var(--rule)}
+.sig span[data-on="1"] i{background:var(--signal)}
+.sig span[data-on="1"][data-kind="good"] i{background:var(--ok)}
+.sig span[data-on="1"][data-kind="bad"] i{background:var(--err)}
 ul.legend{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:.88rem}
 ul.legend li{display:flex;align-items:center;gap:8px}
 .sw{width:12px;height:12px;flex:none}
@@ -112,6 +118,24 @@ ul.legend li{display:flex;align-items:center;gap:8px}
       <div class="status" id="status" data-state="idle"><span class="lamp"></span><span id="statustext">Warte auf erste Messung</span></div>
       <p class="msg" id="msg"></p>
     </section>
+    <section id="signals" hidden>
+      <h2>SPS-Signale (OPC UA, nur lesend)</h2>
+      <p class="msg" id="conn">Verbinde …</p>
+      <div class="sig">
+        <span id="s-conn" data-kind="good"><i></i>Verbindung</span>
+        <span id="s-Ready" data-kind="good"><i></i>Ready</span>
+        <span id="s-Trigger"><i></i>Trigger</span>
+        <span id="s-Busy"><i></i>Busy</span>
+        <span id="s-Done" data-kind="good"><i></i>Done</span>
+        <span id="s-Error" data-kind="bad"><i></i>Error</span>
+      </div>
+      <dl>
+        <dt>HeartbeatPLC / PC</dt><dd id="s-hb">–</dd>
+        <dt>ProductId</dt><dd id="s-prod">–</dd>
+        <dt>InterfaceVersion</dt><dd id="s-ver">–</dd>
+      </dl>
+      <p class="note">Messungen löst die SPS aus. Die Ansicht schreibt nichts in den DB_Vision.</p>
+    </section>
     <section>
       <h2>Ablauf</h2>
       <ol class="steps" id="steps">
@@ -135,7 +159,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         <dt>Rechenzeit</dt><dd id="v-ms">–</dd>
       </dl>
     </section>
-    <section>
+    <section id="ctl">
       <h2>Bedienung</h2>
       <div class="controls">
         <button id="trigger" type="button">Messung auslösen</button>
@@ -168,8 +192,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
   };
   const embedded = document.getElementById("embedded-frames");
   const FRAMES = embedded ? JSON.parse(embedded.textContent) : null;
-  let frameIdx = 0;
-  document.getElementById("mode").textContent = FRAMES ? "Aufgezeichnete Messungen" : "Live";
+  let frameIdx = 0, MODE = FRAMES ? "demo" : "standalone";
 
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const D = reduced
@@ -414,15 +437,17 @@ ul.legend li{display:flex;align-items:center;gap:8px}
 
   async function startMeasurement() {
     if (busy) return;
+    if (MODE === "opcua" && !queued) return;
     busy = true;
     document.getElementById("trigger").disabled = true;
-    setStatus("busy", "Messung läuft …");
+    setStatus("busy", MODE === "opcua" ? "Neues Ergebnis #" + queued.id : "Messung läuft …");
     try {
-      const f = nextFrame ? await nextFrame : await fetchFrame();
-      nextFrame = null;
+      let f;
+      if (MODE === "opcua") { f = queued; queued = null; }
+      else { f = nextFrame ? await nextFrame : await fetchFrame(); nextFrame = null; }
       loadFrame(f);
       ring.visible = normalArrow.visible = tank.visible = false;
-      beam.visible = true;
+      beam.visible = pts.length > 0;
       enter("scan");
     } catch (e) {
       nextFrame = null;
@@ -437,7 +462,45 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     setSteps("idle");
     busy = false;
     document.getElementById("trigger").disabled = false;
+    if (MODE === "opcua") { if (queued) startMeasurement(); return; }
     if (document.getElementById("auto").checked) setTimeout(startMeasurement, delay);
+  }
+
+  // ---- OPC UA: DB_Vision mitlesen ----
+  let queued = null, lastResultId = null;
+  const lamp = (id, on) => (document.getElementById(id).dataset.on = on ? "1" : "0");
+  function renderSignals(s) {
+    const g = s && s.signals ? s.signals : {};
+    const up = !!(s && s.connected);
+    lamp("s-conn", up);
+    for (const k of ["Ready", "Trigger", "Busy", "Done", "Error"]) lamp("s-" + k, up && g[k]);
+    set("conn", !s ? "Viewer-Server nicht erreichbar" :
+      up ? s.url : "Keine Verbindung zu " + s.url + (s.error ? " (" + s.error + ")" : ""));
+    set("s-hb", up ? g.HeartbeatPLC + " / " + g.HeartbeatPC : "–");
+    set("s-prod", up ? g.ProductId : "–");
+    set("s-ver", up ? g.InterfaceVersion : "–");
+    if (!busy && !queued) {
+      if (!up) setStatus("err", "SPS nicht verbunden", "Die Ansicht verbindet sich automatisch neu.");
+      else if (!g.Ready) setStatus("idle", "Vision-Dienst nicht bereit", "Ready = FALSE: Dienst gestoppt oder SPS-Heartbeat ausgefallen.");
+      else if (g.Trigger || g.Busy) setStatus("busy", "SPS hat eine Messung angefordert", "");
+      else if (lastResultId === 0 || lastResultId === null) setStatus("idle", "Warte auf die erste Messung der SPS", "");
+    }
+  }
+  async function poll() {
+    let s = null;
+    try {
+      s = await (await fetch("/api/state", { cache: "no-store" })).json();
+      const rid = s.connected ? s.signals.ResultId : null;
+      if (rid != null && rid !== lastResultId) {
+        lastResultId = rid;
+        if (rid > 0) {
+          queued = await (await fetch("/api/frame", { cache: "no-store" })).json();
+          if (!busy) startMeasurement();
+        }
+      }
+    } catch (e) { s = null; }
+    renderSignals(s);
+    setTimeout(poll, 150);
   }
 
   const ease = t => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
@@ -471,7 +534,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         beam.visible = false;
         enter("detect");
         // nächste Messung schon vorbereiten, während der Arm fährt
-        if (!FRAMES) nextFrame = fetchFrame().catch(() => null).then(f => f || fetchFrame());
+        if (MODE === "standalone") nextFrame = fetchFrame().catch(() => null).then(f => f || fetchFrame());
       }
     } else if (phase === "detect") {
       if (!shown) {
@@ -490,7 +553,8 @@ ul.legend li{display:flex;align-items:center;gap:8px}
           normalArrow.setDirection(nv);
           ring.visible = normalArrow.visible = true;
           setStatus("ok", "Domöffnung erkannt",
-            "Ø " + Math.round(r.diameter_mm) + " mm, Confidence " + r.confidence.toFixed(2).replace(".", ","));
+            "Ø " + Math.round(r.diameter_mm) + " mm, Confidence " + r.confidence.toFixed(2).replace(".", ",")
+            + (current.note ? ". " + current.note : ""));
         } else {
           setStatus("err", "Fehler " + r.error_code, ERRORS[r.error_code] || r.message || "");
           enter("error");
@@ -563,7 +627,20 @@ ul.legend li{display:flex;align-items:center;gap:8px}
   document.getElementById("auto").addEventListener("change", e => { if (e.target.checked && !busy) startMeasurement(); });
 
   requestAnimationFrame(tick);
-  startMeasurement();
+
+  async function init() {
+    if (!FRAMES) {
+      try { MODE = (await (await fetch("/api/state", { cache: "no-store" })).json()).mode || "standalone"; }
+      catch (e) { MODE = "standalone"; }
+    }
+    set("mode", { demo: "Aufgezeichnete Messungen", standalone: "Live · eigene Messung", opcua: "Live · OPC UA" }[MODE]);
+    if (MODE === "opcua") {
+      document.getElementById("signals").hidden = false;
+      document.getElementById("ctl").hidden = true;
+      poll();
+    } else startMeasurement();
+  }
+  init();
 })();
 </script>
 </body>

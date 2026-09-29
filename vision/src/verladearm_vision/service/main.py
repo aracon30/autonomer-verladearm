@@ -8,6 +8,10 @@ Beispiele:
 import argparse
 import asyncio
 import logging
+import os
+from pathlib import Path
+
+import numpy as np
 
 from verladearm_vision.acquisition import FileSource
 from verladearm_vision.calibration import SensorToArm
@@ -25,14 +29,30 @@ def build_source(cfg: dict):
     raise ValueError(f"Unbekannte Quelle: {kind}")  # hier später echte Sensortreiber ergänzen
 
 
+def save_snapshot(path: Path, points: np.ndarray):
+    """Letzte Punktwolke für die Live-Ansicht ablegen (atomar, nie halbe Dateien)."""
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(path.name + ".tmp")
+        with open(tmp, "wb") as f:
+            np.save(f, points.astype(np.float32))
+        os.replace(tmp, path)
+    except OSError as e:
+        log.warning("Snapshot nicht gespeichert: %s", e)
+
+
 def build_measure(cfg: dict):
     source = build_source(cfg["source"])
     det_cfg = DetectorConfig(**cfg.get("detection", {}))
     transform = SensorToArm(cfg["calibration"]["matrix"])
+    snapshot = (cfg.get("snapshot") or {}).get("path")
 
     def measure(product_id: int) -> MeasureResult:
+        points = source.grab()
+        if snapshot:
+            save_snapshot(Path(snapshot), points)
         try:
-            opening = detect_opening(source.grab(), det_cfg)
+            opening = detect_opening(points, det_cfg)
         except DetectionError as e:
             log.warning("Erkennung: %s (Code %d)", e, e.code)
             return MeasureResult(ok=False, error_code=e.code, message=str(e))

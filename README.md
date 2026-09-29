@@ -42,6 +42,18 @@ python -m verladearm_vision.viewer   # dann http://127.0.0.1:8000 öffnen
 
 Mit `--host 0.0.0.0` ist die Ansicht im Netzwerk erreichbar, z. B. auf dem Tablet an der Verladestation.
 
+Die Ansicht kann auch mitlesen, was der Vision-Dienst an die SPS liefert (drei Terminals):
+
+```bash
+python tools/plc_simulator.py                 # oder echte SPS, siehe plc.url
+python -m verladearm_vision.service.main
+python -m verladearm_vision.viewer --opcua
+```
+
+Mit `--opcua` liest die Ansicht `DB_Vision` per OPC UA (nur lesend) und zeigt Handshake-Signale,
+Heartbeats und jedes neue Ergebnis. Die zugehörige Punktwolke legt der Vision-Dienst unter
+`snapshot.path` ab (Standard `data/last_measurement.npy`).
+
 ## Struktur
 
 | Ordner | Inhalt |

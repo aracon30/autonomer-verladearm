@@ -23,6 +23,10 @@ calibration:
     - [0, 0, 1, 0]
     - [0, 0, 0, 1]
 
+snapshot:
+  # Letzte Punktwolke für die Live-Ansicht (python -m verladearm_vision.viewer --opcua). Leer = aus.
+  path: data/last_measurement.npy
+
 plc:
   url: opc.tcp://127.0.0.1:4840/        # Simulator; für die SPS deren IP eintragen
   namespace_uri: http://www.siemens.com/simatic-s7-opcua

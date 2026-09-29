@@ -1,26 +1,36 @@
 """Live-Ansicht im Browser: Punktwolke, Erkennung und schematische Armbewegung.
 
-Beispiel:
-    python -m verladearm_vision.viewer --config vision/config/default.yaml
-    -> http://127.0.0.1:8000 im Browser öffnen
+Zwei Betriebsarten:
+    python -m verladearm_vision.viewer            eigene Messungen aus der konfigurierten Quelle
+    python -m verladearm_vision.viewer --opcua    liest DB_Vision per OPC UA mit (nur lesend) und
+                                                  zeigt, was der Vision-Dienst an die SPS liefert
+-> http://127.0.0.1:8000 im Browser öffnen
 """
 
 import argparse
+import asyncio
 import json
 import logging
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib import resources
+from pathlib import Path
 
 import numpy as np
+from asyncua import Client
 
 from verladearm_vision.calibration import SensorToArm
 from verladearm_vision.config import load_config
 from verladearm_vision.detection import DetectionError, DetectorConfig, detect_opening
+from verladearm_vision.plc import VARIABLES
 from verladearm_vision.service.main import build_source
 
 log = logging.getLogger("verladearm.viewer")
+
+# Handshake-Signale aus DB_Vision, die die Seite live anzeigt
+SIGNALS = ("Ready", "Trigger", "Busy", "Done", "Error", "ErrorCode", "ResultId", "ProductId",
+           "HeartbeatPLC", "HeartbeatPC", "InterfaceVersion")
 
 
 class FrameProducer:
@@ -56,22 +66,114 @@ class FrameProducer:
             result = {"ok": False, "error_code": e.code, "message": str(e)}
         detect_ms = (time.perf_counter() - t0) * 1000
 
-        # Für die Anzeige ausdünnen und in Armbasis-Koordinaten umrechnen
-        shown = points
-        if len(shown) > self.max_points:
-            shown = shown[self.rng.choice(len(shown), self.max_points, replace=False)]
-        shown = shown @ self.transform.T[:3, :3].T + self.transform.T[:3, 3]
+        frame = points_for_view(points, self.transform, self.max_points, self.rng)
+        frame.update(id=frame_id, detect_ms=round(detect_ms, 1), result=result)
+        return frame
+
+    def state(self) -> dict:
+        return {"mode": "standalone"}
+
+
+def points_for_view(points, transform: SensorToArm, max_points: int, rng) -> dict:
+    """Für die Anzeige ausdünnen und in Armbasis-Koordinaten umrechnen."""
+    shown = points
+    if len(shown) > max_points:
+        shown = shown[rng.choice(len(shown), max_points, replace=False)]
+    shown = shown @ transform.T[:3, :3].T + transform.T[:3, 3]
+    return {
+        "n_points": len(points),
+        "sensor_mm": [round(float(x), 1) for x in transform.point(np.zeros(3)) * 1000],
+        "points": np.round(shown, 3).ravel().tolist(),
+    }
+
+
+class PlcMonitor:
+    """Liest DB_Vision zyklisch per OPC UA mit. Schreibt nie, beeinflusst den Ablauf also nicht.
+
+    Die Ergebniswerte kommen aus dem Datenbaustein, die Punktwolke aus dem Snapshot, den der
+    Vision-Dienst vor dem Setzen von Done ablegt (Konfiguration snapshot.path).
+    """
+
+    def __init__(self, cfg: dict, max_points: int = 20000, poll_s: float = 0.1):
+        plc = cfg["plc"]
+        self.url = plc["url"]
+        self.namespace_uri = plc["namespace_uri"]
+        self.node_template = plc["node_template"]
+        self.poll_s = poll_s
+        snapshot = (cfg.get("snapshot") or {}).get("path")
+        self.snapshot = Path(snapshot) if snapshot else None
+        self.transform = SensorToArm(cfg["calibration"]["matrix"])
+        self.max_points = max_points
+        self.rng = np.random.default_rng()
+        self.lock = threading.Lock()
+        self.values: dict = {}
+        self.connected = False
+        self.error = ""
+        self.updated = 0.0
+
+    def start(self):
+        threading.Thread(target=lambda: asyncio.run(self._run()), daemon=True).start()
+
+    async def _run(self):
+        while True:
+            try:
+                async with Client(url=self.url) as client:
+                    ns = await client.get_namespace_index(self.namespace_uri)
+                    names = list(VARIABLES)
+                    nodes = [
+                        client.get_node(self.node_template.format(ns=ns, name=n)) for n in names
+                    ]
+                    log.info("OPC UA verbunden mit %s", self.url)
+                    while True:
+                        values = await client.read_values(nodes)
+                        with self.lock:
+                            self.values = dict(zip(names, values, strict=True))
+                            self.connected, self.error = True, ""
+                            self.updated = time.time()
+                        await asyncio.sleep(self.poll_s)
+            except Exception as e:  # Verbindung verloren: anzeigen und neu verbinden
+                with self.lock:
+                    self.connected, self.error = False, f"{type(e).__name__}: {e}"
+                log.warning("OPC UA: %s, neuer Versuch in 2 s", self.error)
+                await asyncio.sleep(2.0)
+
+    def state(self) -> dict:
+        with self.lock:
+            v = dict(self.values)
+            connected, error = self.connected, self.error
         return {
-            "id": frame_id,
-            "n_points": len(points),
-            "detect_ms": round(detect_ms, 1),
-            "sensor_mm": [round(float(x), 1) for x in self.transform.point(np.zeros(3)) * 1000],
-            "points": np.round(shown, 3).ravel().tolist(),
-            "result": result,
+            "mode": "opcua",
+            "url": self.url,
+            "connected": connected,
+            "error": error,
+            "signals": {k: v.get(k) for k in SIGNALS},
         }
 
+    def next_frame(self) -> dict:
+        with self.lock:
+            v = dict(self.values)
+        if not v:
+            raise RuntimeError("Noch keine Daten von der SPS")
+        ok = not v["Error"]
+        result = {"ok": ok, "error_code": int(v["ErrorCode"])}
+        if ok:
+            result.update(
+                target_mm=[round(float(v[k]), 1) for k in ("TargetX", "TargetY", "TargetZ")],
+                normal=[round(float(v[k]), 4) for k in ("NormalX", "NormalY", "NormalZ")],
+                diameter_mm=round(float(v["DiameterMm"]), 1),
+                confidence=round(float(v["Confidence"]), 3),
+            )
+        frame = {"id": int(v["ResultId"]), "detect_ms": None, "result": result}
+        if self.snapshot and self.snapshot.exists():
+            frame.update(points_for_view(np.load(self.snapshot), self.transform,
+                                         self.max_points, self.rng))
+        else:
+            frame.update(points=[], n_points=0, note="Keine Punktwolke: snapshot.path im "
+                         "Vision-Dienst setzen und denselben Pfad hier konfigurieren.")
+        return frame
 
-def make_handler(producer: FrameProducer):
+
+def make_handler(producer):
     page = resources.files("verladearm_vision.viewer").joinpath("index.html").read_bytes()
 
     class Handler(BaseHTTPRequestHandler):
@@ -86,6 +188,8 @@ def make_handler(producer: FrameProducer):
         def do_GET(self):
             if self.path in ("/", "/index.html"):
                 self._send(page, "text/html; charset=utf-8")
+            elif self.path == "/api/state":
+                self._send(json.dumps(producer.state()).encode(), "application/json")
             elif self.path == "/api/frame":
                 try:
                     frame = producer.next_frame()
@@ -108,10 +212,19 @@ def main():
     parser.add_argument("--host", default="127.0.0.1", help="0.0.0.0 = im Netzwerk erreichbar")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--max-points", type=int, default=20000, help="Punkte je Bild im Browser")
+    parser.add_argument(
+        "--opcua", action="store_true", help="DB_Vision per OPC UA mitlesen statt selbst zu messen"
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(message)s")
-    producer = FrameProducer(load_config(args.config), args.max_points)
+    logging.getLogger("asyncua").setLevel(logging.WARNING)
+    cfg = load_config(args.config)
+    if args.opcua:
+        producer = PlcMonitor(cfg, args.max_points)
+        producer.start()
+    else:
+        producer = FrameProducer(cfg, args.max_points)
     server = ThreadingHTTPServer((args.host, args.port), make_handler(producer))
     log.info("Live-Ansicht: http://%s:%d", args.host, args.port)
     try:

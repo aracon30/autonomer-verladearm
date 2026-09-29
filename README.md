@@ -34,6 +34,14 @@ python tools/plc_simulator.py
 python -m verladearm_vision.service.main
 ```
 
+Live-Ansicht im Browser (Punktwolke, Erkennung, schematische Armbewegung):
+
+```bash
+python -m verladearm_vision.viewer   # dann http://127.0.0.1:8000 öffnen
+```
+
+Mit `--host 0.0.0.0` ist die Ansicht im Netzwerk erreichbar, z. B. auf dem Tablet an der Verladestation.
+
 ## Struktur
 
 | Ordner | Inhalt |
@@ -41,7 +49,7 @@ python -m verladearm_vision.service.main
 | `docs/` | Lastenheft, Schnittstelle, Architekturentscheidungen |
 | `hardware/` | Stückliste, Halterungen, Elektro |
 | `plc/` | Schnittstellen-DB für TIA Portal |
-| `vision/src/verladearm_vision/` | acquisition, detection, calibration, plc, service |
+| `vision/src/verladearm_vision/` | acquisition, detection, calibration, plc, service, viewer |
 | `vision/config/` | Konfiguration |
 | `vision/tests/` | Tests |
 | `tools/` | SPS-Simulator, Testdatengenerator |

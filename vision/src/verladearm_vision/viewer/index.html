@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Verladearm Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Leitwarten-HMI: 3D-Szene links als Hauptfläche, rechts ein Messprotokoll-Streifen wie am Bedienpanel.
+   Farben aus dem Lastenheft (Signalgelb, Tinte, Stahlblau). */
+:root{
+  --bg:#EEF1F4; --panel:#FFFFFF; --ink:#1C2430; --muted:#5B6875; --rule:#D3D9E0;
+  --scene:#E4E9EE; --grid:#C3CCD5;
+  --signal:#E8A900; --signal-ink:#3A2A00;
+  --steel:#4E6E8E; --point:#8494A5; --surface:#2F7D8C; --clutter:#C0572B;
+  --ok:#2E7D4F; --err:#B3261E;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Source Sans 3","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F141A; --panel:#161C23; --ink:#E4E8EC; --muted:#9AA6B2; --rule:#2B3540;
+    --scene:#121820; --grid:#28323D;
+    --signal:#F2B705; --signal-ink:#1A1300;
+    --steel:#7FA3C7; --point:#6D7B89; --surface:#4FB3C4; --clutter:#E07A4A;
+    --ok:#5CC08A; --err:#F2766B; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F141A; --panel:#161C23; --ink:#E4E8EC; --muted:#9AA6B2; --rule:#2B3540;
+  --scene:#121820; --grid:#28323D;
+  --signal:#F2B705; --signal-ink:#1A1300;
+  --steel:#7FA3C7; --point:#6D7B89; --surface:#4FB3C4; --clutter:#E07A4A;
+  --ok:#5CC08A; --err:#F2766B; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+.app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 21rem;gap:12px;
+  padding-inline:16px;padding-block:12px}
+.stage{position:relative;min-width:0;min-height:0;background:var(--scene);border:1px solid var(--rule);overflow:hidden}
+.stage canvas{display:block;width:100%;height:100%;touch-action:none}
+.stripe{position:absolute;left:0;right:0;top:0;height:6px;
+  background:repeating-linear-gradient(135deg,var(--signal) 0 12px,var(--ink) 12px 24px)}
+.overlay{position:absolute;left:12px;top:18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;pointer-events:none}
+.chip{font-family:var(--f-display);font-weight:600;font-size:.85rem;letter-spacing:.04em;text-transform:uppercase;
+  padding:.2rem .55rem;border:1.5px solid var(--ink);background:var(--panel);color:var(--ink)}
+.chip.live{border-color:var(--signal)}
+.hint{position:absolute;right:12px;bottom:10px;font-size:.8rem;color:var(--muted);pointer-events:none}
+aside{min-width:0;overflow:auto;background:var(--panel);border:1px solid var(--rule);display:flex;flex-direction:column}
+aside header{padding:14px 16px 10px;border-bottom:2px solid var(--ink)}
+h1{margin:0;font-family:var(--f-display);font-weight:700;font-size:1.6rem;line-height:1.1;text-wrap:balance}
+.sub{margin:.2rem 0 0;color:var(--muted);font-size:.9rem}
+section{padding:12px 16px;border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:8px}
+h2{margin:0;font-family:var(--f-display);font-weight:600;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.status{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:600;font-size:1.15rem}
+.lamp{width:14px;height:14px;border-radius:50%;background:var(--muted);flex:none;box-shadow:0 0 0 3px var(--rule)}
+.status[data-state="ok"] .lamp{background:var(--ok)}
+.status[data-state="err"] .lamp{background:var(--err)}
+.status[data-state="busy"] .lamp{background:var(--signal)}
+.msg{margin:0;font-size:.9rem;color:var(--muted);min-height:1.3em}
+ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:4px;counter-reset:s}
+ol.steps li{counter-increment:s;display:flex;align-items:center;gap:10px;font-size:.95rem;color:var(--muted)}
+ol.steps li::before{content:counter(s);flex:none;width:1.5rem;height:1.5rem;display:grid;place-items:center;
+  border:1.5px solid var(--rule);font-family:var(--f-mono);font-size:.75rem}
+ol.steps li.done{color:var(--ink)}
+ol.steps li.done::before{border-color:var(--ink)}
+ol.steps li.active{color:var(--ink);font-weight:600}
+ol.steps li.active::before{background:var(--signal);border-color:var(--signal);color:var(--signal-ink)}
+ol.steps li.fail::before{background:var(--err);border-color:var(--err);color:var(--panel)}
+dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:baseline}
+dt{color:var(--muted);font-size:.88rem}
+dd{margin:0;text-align:right;font-family:var(--f-mono);font-size:.88rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font-family:var(--f-display);font-weight:600;font-size:1rem;letter-spacing:.03em;
+  padding:.45rem .9rem;border:1.5px solid var(--ink);background:var(--signal);color:var(--signal-ink);cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+button:hover:not(:disabled){filter:brightness(1.05)}
+label.toggle{display:flex;align-items:center;gap:6px;font-size:.95rem;cursor:pointer}
+input[type="checkbox"]{accent-color:var(--signal);width:1.05rem;height:1.05rem}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+ul.legend{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:.88rem}
+ul.legend li{display:flex;align-items:center;gap:8px}
+.sw{width:12px;height:12px;flex:none}
+.note{font-size:.82rem;color:var(--muted);margin:0}
+@media (max-width:760px){
+  .app{height:auto;grid-template-columns:1fr}
+  .stage{height:62svh;min-height:320px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage" id="stage">
+    <div class="stripe"></div>
+    <div class="overlay">
+      <span class="chip live" id="mode">Live</span>
+      <span class="chip" id="stagechip">Bereit</span>
+    </div>
+    <span class="hint">Ziehen = drehen · Scrollen = zoomen</span>
+  </div>
+  <aside>
+    <header>
+      <h1>Verladearm Live</h1>
+      <p class="sub">3D-Sensor → Domöffnung → Zielkoordinate → Arm</p>
+    </header>
+    <section aria-live="polite">
+      <h2>Messung</h2>
+      <div class="status" id="status" data-state="idle"><span class="lamp"></span><span id="statustext">Warte auf erste Messung</span></div>
+      <p class="msg" id="msg"></p>
+    </section>
+    <section>
+      <h2>Ablauf</h2>
+      <ol class="steps" id="steps">
+        <li data-step="scan">Punktwolke aufnehmen</li>
+        <li data-step="detect">Domöffnung erkennen</li>
+        <li data-step="move">Arm fährt über den Dom</li>
+        <li data-step="lower">Lanze einführen</li>
+        <li data-step="retract">Zurück in Parkposition</li>
+      </ol>
+    </section>
+    <section>
+      <h2>Ergebnis an SPS (DB_Vision)</h2>
+      <dl>
+        <dt>ResultId</dt><dd id="v-id">–</dd>
+        <dt>Target X/Y/Z</dt><dd id="v-target">–</dd>
+        <dt>Normale</dt><dd id="v-normal">–</dd>
+        <dt>DiameterMm</dt><dd id="v-dia">–</dd>
+        <dt>Confidence</dt><dd id="v-conf">–</dd>
+        <dt>ErrorCode</dt><dd id="v-err">–</dd>
+        <dt>Messpunkte</dt><dd id="v-pts">–</dd>
+        <dt>Rechenzeit</dt><dd id="v-ms">–</dd>
+      </dl>
+    </section>
+    <section>
+      <h2>Bedienung</h2>
+      <div class="controls">
+        <button id="trigger" type="button">Messung auslösen</button>
+        <label class="toggle"><input type="checkbox" id="auto" checked> Automatik</label>
+      </div>
+    </section>
+    <section>
+      <h2>Legende</h2>
+      <ul class="legend">
+        <li><span class="sw" style="background:var(--point)"></span>Rohpunkte vom Sensor</li>
+        <li><span class="sw" style="background:var(--surface)"></span>Tankoberfläche (Ebene)</li>
+        <li><span class="sw" style="background:var(--clutter)"></span>Störpunkte (Geländer, Arm …)</li>
+        <li><span class="sw" style="background:var(--signal)"></span>Erkannte Domöffnung</li>
+      </ul>
+      <p class="note">Die Armkinematik ist schematisch. Die Koordinaten stammen aus der echten Erkennung.</p>
+    </section>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(() => {
+  const ERRORS = {
+    11: "Zu wenige Messpunkte im Arbeitsraum (Sensor verschmutzt oder verdeckt?)",
+    12: "Tankoberfläche nicht erkannt",
+    20: "Keine Domöffnung gefunden (Deckel geschlossen?)",
+    21: "Mehrere Domöffnungen gefunden",
+    90: "Interner Fehler Vision-Dienst",
+  };
+  const embedded = document.getElementById("embedded-frames");
+  const FRAMES = embedded ? JSON.parse(embedded.textContent) : null;
+  let frameIdx = 0;
+  document.getElementById("mode").textContent = FRAMES ? "Aufgezeichnete Messungen" : "Live";
+
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const D = reduced
+    ? { scan: 0.2, detect: 0.2, move: 0.2, lower: 0.2, hold: 2.0, retract: 0.2, errHold: 3.0 }
+    : { scan: 1.8, detect: 0.9, move: 2.4, lower: 1.4, hold: 1.6, retract: 2.2, errHold: 3.0 };
+
+  // ---- Farben aus den CSS-Tokens ----
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  let C = {};
+  function readColors() {
+    for (const k of ["scene", "grid", "ink", "muted", "signal", "steel", "point", "surface", "clutter", "rule"])
+      C[k] = new THREE.Color(css("--" + k));
+  }
+  readColors();
+
+  // ---- Szene ----
+  const stage = document.getElementById("stage");
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  stage.prepend(renderer.domElement);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.05, 100);
+  const VIEW_TARGET = new THREE.Vector3(-1.3, -3.2, 0), VIEW_OFFSET = new THREE.Vector3(5.0, 3.6, 7.6);
+  camera.position.copy(VIEW_TARGET).add(VIEW_OFFSET);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.target.copy(VIEW_TARGET);
+  controls.enableDamping = true;
+  controls.update();
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.9));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.6);
+  sun.position.set(3, 5, 4);
+  scene.add(sun);
+
+  // Armbasis-Koordinaten (x, y, z nach unten) -> Anzeige (x, -z, y), Y nach oben
+  const toView = (x, y, z) => new THREE.Vector3(x, -z, y);
+  const GROUND_Y = -7.4;
+
+  const grid = new THREE.GridHelper(14, 28);
+  grid.position.y = GROUND_Y;
+  scene.add(grid);
+
+  // Sensor mit Sichtkegel
+  const sensor = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 0.18),
+    new THREE.MeshStandardMaterial({ color: 0x333333 }));
+  scene.add(sensor);
+  const traverse = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 4.5),
+    new THREE.MeshStandardMaterial({ color: 0x888888 }));
+  traverse.position.set(0, 0.1, 0);
+  scene.add(traverse);
+  const beamGeo = new THREE.BufferGeometry();
+  beamGeo.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(3 * 8), 3));
+  const beam = new THREE.LineSegments(beamGeo, new THREE.LineBasicMaterial({ transparent: true, opacity: 0.7 }));
+  beam.visible = false;
+  scene.add(beam);
+
+  // Punktwolke
+  const MAX = 60000;
+  const ptGeo = new THREE.BufferGeometry();
+  ptGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(MAX * 3), 3));
+  ptGeo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(MAX * 3), 3));
+  ptGeo.setDrawRange(0, 0);
+  const cloud = new THREE.Points(ptGeo, new THREE.PointsMaterial({ size: 0.022, vertexColors: true }));
+  scene.add(cloud);
+
+  // Tankkörper (schematisch, unter der Punktwolke)
+  const tank = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.18, depthWrite: false }));
+  tank.visible = false;
+  scene.add(tank);
+
+  // Markierung Domöffnung
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.018, 8, 64), new THREE.MeshBasicMaterial());
+  ring.visible = false;
+  scene.add(ring);
+  const normalArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(), 0.8);
+  normalArrow.visible = false;
+  scene.add(normalArrow);
+
+  // Verladearm: Säule, zwei horizontale Auslegerglieder, senkrechte Lanze
+  const BASE = new THREE.Vector3(-3.1, -2.35, 0.0);
+  const L1 = 2.0, L2 = 1.8, HOME = [1.75, 2.55];
+  const armMat = new THREE.MeshStandardMaterial({ roughness: 0.5, metalness: 0.3 });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x555a60, roughness: 0.6 });
+  const column = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, BASE.y - GROUND_Y, 20), darkMat);
+  column.position.set(BASE.x, (BASE.y + GROUND_Y) / 2, BASE.z);
+  scene.add(column);
+  const shoulder = new THREE.Group();
+  shoulder.position.copy(BASE);
+  scene.add(shoulder);
+  const link = (len, r) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(len, r, r), armMat);
+    m.position.x = len / 2;
+    return m;
+  };
+  shoulder.add(link(L1, 0.14));
+  const elbow = new THREE.Group();
+  elbow.position.x = L1;
+  shoulder.add(elbow);
+  elbow.add(new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.2, 20), darkMat));
+  elbow.add(link(L2, 0.11));
+  const tip = new THREE.Group();
+  tip.position.x = L2;
+  elbow.add(tip);
+  const lance = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 1, 12), darkMat);
+  tip.add(lance);
+  const cone = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.05, 0.18, 20), armMat);
+  tip.add(cone);
+
+  const arm = { a1: HOME[0], a2: HOME[1], lance: 0.35 };
+  function applyArm() {
+    shoulder.rotation.y = -arm.a1;
+    elbow.rotation.y = -arm.a2;
+    tip.rotation.y = arm.a1 + arm.a2; // Lanze bleibt senkrecht
+    lance.scale.y = arm.lance;
+    lance.position.y = -arm.lance / 2;
+    cone.position.y = -arm.lance + 0.12;
+  }
+  applyArm();
+
+  function ik(target) {
+    const dx = target.x - BASE.x, dz = target.z - BASE.z;
+    const r = Math.min(Math.max(Math.hypot(dx, dz), Math.abs(L1 - L2) + 1e-3), L1 + L2 - 1e-3);
+    const c2 = (r * r - L1 * L1 - L2 * L2) / (2 * L1 * L2);
+    const a2 = Math.acos(Math.max(-1, Math.min(1, c2)));
+    const a1 = Math.atan2(dz, dx) - Math.atan2(L2 * Math.sin(a2), L1 + L2 * Math.cos(a2));
+    return [a1, a2];
+  }
+
+  function applyColors() {
+    scene.background = C.scene;
+    grid.material.color = C.grid;
+    beam.material.color = C.signal;
+    tank.material.color = C.steel;
+    ring.material.color = C.signal;
+    normalArrow.setColor(C.signal);
+    armMat.color = C.signal;
+    if (current) colorPoints(phase === "scan" ? false : current.result.ok);
+  }
+
+  // ---- Messdaten ----
+  let current = null, pts = null, order = null, phase = "idle";
+
+  async function fetchFrame() {
+    if (FRAMES) return FRAMES[frameIdx++ % FRAMES.length];
+    const r = await fetch("/api/frame", { cache: "no-store" });
+    if (!r.ok) throw new Error("Server antwortet mit HTTP " + r.status);
+    return r.json();
+  }
+
+  function loadFrame(f) {
+    current = f;
+    const n = Math.min(f.points.length / 3, MAX);
+    pts = new Float32Array(n * 3);
+    // Scanreihenfolge: Zeile für Zeile entlang der Sensorachse
+    order = Array.from({ length: n }, (_, i) => i).sort((a, b) =>
+      (f.points[a * 3 + 1] - f.points[b * 3 + 1]) || (f.points[a * 3] - f.points[b * 3]));
+    const pos = ptGeo.attributes.position.array;
+    for (let k = 0; k < n; k++) {
+      const i = order[k];
+      const v = toView(f.points[i * 3], f.points[i * 3 + 1], f.points[i * 3 + 2]);
+      pos[k * 3] = v.x; pos[k * 3 + 1] = v.y; pos[k * 3 + 2] = v.z;
+      pts[k * 3] = f.points[i * 3]; pts[k * 3 + 1] = f.points[i * 3 + 1]; pts[k * 3 + 2] = f.points[i * 3 + 2];
+    }
+    ptGeo.attributes.position.needsUpdate = true;
+    ptGeo.setDrawRange(0, 0);
+    ptGeo.computeBoundingSphere();
+    const s = f.sensor_mm || [0, 0, 0];
+    sensor.position.copy(toView(s[0] / 1000, s[1] / 1000, s[2] / 1000));
+    colorPoints(false);
+  }
+
+  function colorPoints(classified) {
+    const col = ptGeo.attributes.color.array, n = pts.length / 3;
+    const r = current.result;
+    let c, nrm, lo = Infinity, hi = -Infinity, ylo = Infinity, yhi = -Infinity, depth = 0, cnt = 0;
+    if (classified && r.ok) {
+      c = r.target_mm.map(v => v / 1000);
+      nrm = r.normal;
+    }
+    for (let k = 0; k < n; k++) {
+      let color = C.point;
+      if (c) {
+        const d = Math.abs((pts[k * 3] - c[0]) * nrm[0] + (pts[k * 3 + 1] - c[1]) * nrm[1] + (pts[k * 3 + 2] - c[2]) * nrm[2]);
+        if (d < 0.03) {
+          color = C.surface;
+          lo = Math.min(lo, pts[k * 3]); hi = Math.max(hi, pts[k * 3]);
+          ylo = Math.min(ylo, pts[k * 3 + 1]); yhi = Math.max(yhi, pts[k * 3 + 1]);
+          depth += pts[k * 3 + 2]; cnt++;
+        } else color = C.clutter;
+      }
+      col[k * 3] = color.r; col[k * 3 + 1] = color.g; col[k * 3 + 2] = color.b;
+    }
+    ptGeo.attributes.color.needsUpdate = true;
+    if (c && cnt) {
+      const top = depth / cnt, h = GROUND_Y + top;
+      tank.scale.set(hi - lo, -h - 0.03, yhi - ylo);
+      tank.position.set((lo + hi) / 2, (-top + GROUND_Y) / 2 - 0.02, (ylo + yhi) / 2);
+      tank.visible = true;
+    }
+  }
+
+  function showResult(f) {
+    const r = f.result, fmt = (v, d = 1) => v.toFixed(d).replace(".", ",");
+    set("v-id", f.id ?? "–");
+    set("v-pts", f.n_points ? f.n_points.toLocaleString("de-DE") : "–");
+    set("v-ms", f.detect_ms != null ? fmt(f.detect_ms) + " ms" : "–");
+    set("v-err", r.error_code);
+    if (r.ok) {
+      set("v-target", r.target_mm.map(v => fmt(v)).join(" / ") + " mm");
+      set("v-normal", r.normal.map(v => fmt(v, 3)).join(" / "));
+      set("v-dia", fmt(r.diameter_mm) + " mm");
+      set("v-conf", fmt(r.confidence, 2));
+    } else {
+      for (const id of ["v-target", "v-normal", "v-dia", "v-conf"]) set(id, "–");
+    }
+  }
+  const set = (id, t) => (document.getElementById(id).textContent = t);
+
+  // ---- Ablaufsteuerung ----
+  const STEP_LABEL = { scan: "Aufnahme", detect: "Erkennung", move: "Anfahrt", lower: "Lanze", hold: "In Position", retract: "Rückfahrt", error: "Fehler", idle: "Bereit" };
+  let t0 = 0, from = null, to = null, busy = false, nextFrame = null, shown = false;
+
+  function setStatus(state, text, msg = "") {
+    document.getElementById("status").dataset.state = state;
+    set("statustext", text);
+    set("msg", msg);
+  }
+  function setSteps(active, failed = false) {
+    const keys = ["scan", "detect", "move", "lower", "retract"];
+    const idx = keys.indexOf(active === "hold" ? "lower" : active === "error" ? "detect" : active);
+    document.querySelectorAll("#steps li").forEach((li, i) => {
+      li.className = active === "idle" ? "" : i < idx ? "done" : i === idx ? (failed ? "fail" : "active") : "";
+    });
+    set("stagechip", STEP_LABEL[active] || "Bereit");
+  }
+  function enter(p) {
+    phase = p;
+    shown = false;
+    t0 = performance.now();
+    setSteps(p, p === "error");
+  }
+
+  async function startMeasurement() {
+    if (busy) return;
+    busy = true;
+    document.getElementById("trigger").disabled = true;
+    setStatus("busy", "Messung läuft …");
+    try {
+      const f = nextFrame ? await nextFrame : await fetchFrame();
+      nextFrame = null;
+      loadFrame(f);
+      ring.visible = normalArrow.visible = tank.visible = false;
+      beam.visible = true;
+      enter("scan");
+    } catch (e) {
+      nextFrame = null;
+      setStatus("err", "Keine Verbindung zum Vision-Server",
+        "Starte den Server mit python -m verladearm_vision.viewer und lade die Seite neu. (" + e.message + ")");
+      finish(4000);
+    }
+  }
+
+  function finish(delay = 600) {
+    phase = "idle";
+    setSteps("idle");
+    busy = false;
+    document.getElementById("trigger").disabled = false;
+    if (document.getElementById("auto").checked) setTimeout(startMeasurement, delay);
+  }
+
+  const ease = t => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  function updateBeam(k) {
+    // vier Strahlen vom Sensor zu den Enden der aktuellen Scanzeile
+    const n = pts.length / 3, a = order.length ? Math.max(0, Math.min(n - 1, k)) : 0;
+    const p = ptGeo.attributes.position.array, s = sensor.position;
+    const rowY = p[a * 3 + 2];
+    const arr = beam.geometry.attributes.position.array;
+    const box = ptGeo.boundingSphere;
+    const ends = [[box.center.x - box.radius * 0.7, rowY], [box.center.x + box.radius * 0.7, rowY]];
+    let o = 0;
+    for (const [x, z] of ends) {
+      arr.set([s.x, s.y, s.z, x, p[a * 3 + 1], z], o); o += 6;
+    }
+    arr.set([ends[0][0], p[a * 3 + 1], rowY, ends[1][0], p[a * 3 + 1], rowY], o); o += 6;
+    arr.set([s.x, s.y, s.z, s.x, s.y, s.z], o);
+    beam.geometry.attributes.position.needsUpdate = true;
+  }
+
+  function tick(now) {
+    const t = (now - t0) / 1000;
+    if (phase === "scan") {
+      const n = pts.length / 3, k = Math.floor(n * Math.min(1, t / D.scan));
+      ptGeo.setDrawRange(0, k);
+      updateBeam(k);
+      if (t >= D.scan) {
+        ptGeo.setDrawRange(0, n);
+        beam.visible = false;
+        enter("detect");
+        // nächste Messung schon vorbereiten, während der Arm fährt
+        if (!FRAMES) nextFrame = fetchFrame().catch(() => null).then(f => f || fetchFrame());
+      }
+    } else if (phase === "detect") {
+      if (!shown) {
+        shown = true;
+        const r = current.result;
+        colorPoints(true);
+        showResult(current);
+        if (r.ok) {
+          const c = toView(...r.target_mm.map(v => v / 1000));
+          const nv = toView(...r.normal).normalize();
+          ring.geometry.dispose();
+          ring.geometry = new THREE.TorusGeometry(r.diameter_mm / 2000, 0.018, 8, 64);
+          ring.position.copy(c);
+          ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), nv);
+          normalArrow.position.copy(c);
+          normalArrow.setDirection(nv);
+          ring.visible = normalArrow.visible = true;
+          setStatus("ok", "Domöffnung erkannt",
+            "Ø " + Math.round(r.diameter_mm) + " mm, Confidence " + r.confidence.toFixed(2).replace(".", ","));
+        } else {
+          setStatus("err", "Fehler " + r.error_code, ERRORS[r.error_code] || r.message || "");
+          enter("error");
+          return requestAnimationFrame(tick);
+        }
+      }
+      ring.scale.setScalar(1 + 0.08 * Math.sin(t * 12) * (1 - t / D.detect));
+      if (t >= D.detect) {
+        ring.scale.setScalar(1);
+        const c = toView(...current.result.target_mm.map(v => v / 1000));
+        from = [arm.a1, arm.a2];
+        to = ik(c);
+        enter("move");
+      }
+    } else if (phase === "move") {
+      const u = ease(Math.min(1, t / D.move));
+      arm.a1 = lerp(from[0], to[0], u);
+      arm.a2 = lerp(from[1], to[1], u);
+      applyArm();
+      if (t >= D.move) enter("lower");
+    } else if (phase === "lower") {
+      const c = toView(...current.result.target_mm.map(v => v / 1000));
+      const depth = BASE.y - c.y + 0.55; // bis unter die Domöffnung
+      arm.lance = lerp(0.35, depth, ease(Math.min(1, t / D.lower)));
+      applyArm();
+      if (t >= D.lower) {
+        from = [arm.lance];
+        enter("hold");
+      }
+    } else if (phase === "hold") {
+      if (t >= D.hold) {
+        from = [arm.a1, arm.a2, arm.lance];
+        enter("retract");
+      }
+    } else if (phase === "retract") {
+      const u1 = ease(Math.min(1, t / (D.retract * 0.4)));
+      const u2 = ease(Math.max(0, Math.min(1, (t - D.retract * 0.4) / (D.retract * 0.6))));
+      arm.lance = lerp(from[2], 0.35, u1);
+      arm.a1 = lerp(from[0], HOME[0], u2);
+      arm.a2 = lerp(from[1], HOME[1], u2);
+      applyArm();
+      if (t >= D.retract) finish();
+    } else if (phase === "error") {
+      if (t >= D.errHold) finish();
+    }
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / Math.max(h, 1);
+    camera.updateProjectionMatrix();
+    if (!userMoved) // Hochformat: weiter weg, damit Sensor, Arm und Tank ins Bild passen
+      camera.position.copy(VIEW_TARGET).addScaledVector(VIEW_OFFSET, Math.max(1, 1.25 / camera.aspect));
+  }
+  let userMoved = false;
+  controls.addEventListener("start", () => (userMoved = true));
+  new ResizeObserver(resize).observe(stage);
+  resize();
+
+  const onTheme = () => { readColors(); applyColors(); };
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  applyColors();
+
+  document.getElementById("trigger").addEventListener("click", startMeasurement);
+  document.getElementById("auto").addEventListener("change", e => { if (e.target.checked && !busy) startMeasurement(); });
+
+  requestAnimationFrame(tick);
+  startMeasurement();
+})();
+</script>
+</body>
+</html>

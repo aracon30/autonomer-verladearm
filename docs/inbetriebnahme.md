@@ -42,7 +42,8 @@ Alles andere (Erkennung, Schnittstelle, Standardwerte) kommt aus `vision/config/
 6. **Arbeitsraum** (`commissioning`): Bereich, in dem die Domöffnung bei dieser Station liegen
    kann (unterschiedliche Tankwagen, Aufbauhöhen, Abstellpositionen).
 
-7. **Hand-Auge-Kalibrierung** → `calibration.matrix` (Verfahren: `docs/kalibrierung.md`, offen).
+7. **Hand-Auge-Kalibrierung** → `calibration.matrix`, siehe [Kalibrierung](kalibrierung.md):
+   `python -m verladearm_vision.calibrate --config vision/config/anlagen/<anlage>.yaml --from-plc`
 
 8. **Prüfen**
    ```bash
@@ -58,7 +59,10 @@ Alles andere (Erkennung, Schnittstelle, Standardwerte) kommt aus `vision/config/
    ```
    Rohrführung, Sperrbereiche und Servowerte mit der realen Anlage vergleichen.
 
-10. **Abgleich mit der SPS**: Maße, Nullstellungen, Drehrichtungen und Grenzen im SPS-Programm
+10. **Autostart einrichten**: `sudo deploy/install.sh vision/config/anlagen/<anlage>.yaml`,
+    siehe [Betrieb](betrieb.md).
+
+11. **Abgleich mit der SPS**: Maße, Nullstellungen, Drehrichtungen und Grenzen im SPS-Programm
     müssen denselben Werten entsprechen. Anlagendatei per Pull Request einchecken.
 
 ## Grundsatz

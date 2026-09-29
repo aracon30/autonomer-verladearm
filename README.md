@@ -65,17 +65,28 @@ Inbetriebnahme einer Anlage (Parameter je Verladearm, siehe [docs/inbetriebnahme
 python -m verladearm_vision.commissioning --config vision/config/anlagen/beispiel.yaml
 ```
 
+Kalibrierung, Aufzeichnung und Betrieb:
+
+```bash
+python -m verladearm_vision.calibrate --config <anlage>.yaml --sim     # Probelauf, sonst --from-plc
+python tools/auswertung.py --dir data/aufzeichnung > auswertung.csv    # alle Aufträge als CSV
+sudo deploy/install.sh vision/config/anlagen/<anlage>.yaml             # Autostart auf dem Edge-PC
+```
+
+Siehe [Kalibrierung](docs/kalibrierung.md) und [Betrieb](docs/betrieb.md).
+
 ## Struktur
 
 | Ordner | Inhalt |
 |---|---|
-| `docs/` | Lastenheft, Schnittstelle, Kinematik, Inbetriebnahme, Architekturentscheidungen |
+| `docs/` | Lastenheft, Schnittstelle, Kinematik, Inbetriebnahme, Kalibrierung, Betrieb, Architekturentscheidungen |
 | `hardware/` | Stückliste, Halterungen, Elektro (Sensor: [docs/sensor_sick.md](docs/sensor_sick.md)) |
 | `plc/` | Schnittstellen-DB für TIA Portal |
 | `vision/src/verladearm_vision/` | acquisition, detection, calibration, kinematics, plc, service, viewer |
 | `vision/config/` | Konfiguration: `default.yaml`, Anlagendateien unter `anlagen/` |
 | `vision/tests/` | Tests |
-| `tools/` | SPS-Simulator, Testdatengenerator |
+| `tools/` | SPS-Simulator, Testdatengenerator, Auswertung der Aufzeichnungen |
+| `deploy/` | Systemdienste und Installationsskript für den Edge-PC |
 
 ## Arbeitsweise
 

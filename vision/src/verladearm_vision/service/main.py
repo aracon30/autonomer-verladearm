@@ -10,6 +10,7 @@ import asyncio
 import inspect
 import logging
 import os
+import time
 from pathlib import Path
 
 import numpy as np
@@ -43,6 +44,7 @@ from verladearm_vision.plc import (
     PlcInterface,
     Request,
 )
+from verladearm_vision.recording import Recorder
 
 log = logging.getLogger("verladearm")
 
@@ -60,7 +62,7 @@ def _params_for(cls, cfg: dict) -> dict:
 def build_source(cfg: dict, full_cfg: dict | None = None):
     kind = cfg["type"]
     if kind == "file":
-        return FileSource(cfg["path"])
+        return FileSource(cfg["path"], cfg.get("pattern", "*"))
     if kind == "sick":
         return SickVisionarySource(**_params_for(SickVisionarySource, cfg))
     if kind == "sim":
@@ -108,12 +110,20 @@ class VisionService:
         snapshot = (cfg.get("snapshot") or {}).get("path")
         self.snapshot = Path(snapshot) if snapshot else None
         self.last = None  # Ziel aus Job 1: target_mm, normal, depth, diameter, confidence
+        rec = cfg.get("recording") or {}
+        self.recorder = Recorder(rec.get("dir", "data/aufzeichnung"), rec.get("keep_days", 60),
+                                 rec.get("enabled", True), cfg.get("station", ""))
+        self._points = None
+        self._info = {}
 
     # --- Hilfen ---------------------------------------------------------------------------
     def _grab(self, req: Request) -> np.ndarray:
         if hasattr(self.source, "prepare"):  # Simulation: Stellung des Arms mitgeben
             self.source.prepare(req.job, req.actual_deg if req.axes_homed else None)
+        t0 = time.perf_counter()
         points = self.source.grab()
+        self._points = points
+        self._info["aufnahme_ms"] = round((time.perf_counter() - t0) * 1000, 1)
         if self.snapshot:
             save_snapshot(self.snapshot, points)
         return points
@@ -144,6 +154,14 @@ class VisionService:
 
     # --- Aufträge -------------------------------------------------------------------------
     def __call__(self, req: Request) -> MeasureResult:
+        self._points, self._info = None, {}
+        t0 = time.perf_counter()
+        result = self._dispatch(req)
+        self._info["gesamt_ms"] = round((time.perf_counter() - t0) * 1000, 1)
+        self.recorder.save(req, result, self._points, self._info)
+        return result
+
+    def _dispatch(self, req: Request) -> MeasureResult:
         if req.job == 0:
             return self._measure(req)[0]
         if req.job not in (JOB_MEASURE_PLAN, JOB_CORRECT, JOB_RETRACT):
@@ -181,6 +199,7 @@ class VisionService:
                            q_start=q_act)
         self.last = dict(target_mm=res.target_mm, normal=res.normal, depth=depth,
                          diameter_mm=res.diameter_mm, confidence=res.confidence)
+        self._info["eintauchtiefe_m"] = depth
         if not plan["ok"]:
             return self._fail(plan["code"], plan["reason"], target_mm=res.target_mm,
                               normal=res.normal, diameter_mm=res.diameter_mm,
@@ -206,6 +225,8 @@ class VisionService:
             return self._fail(e.code, str(e), **keep)
         plan = plan_correction(self.geom, q_act, tip, last["target_mm"], last["normal"],
                                last["depth"])
+        self._info.update(auslass_gemessen_mm=(tip * 1000).round(1),
+                          modellabweichung_mm=plan["model_offset_mm"])
         corr = tuple(plan["correction_mm"][:2])
         if not plan["ok"]:
             return self._fail(plan["code"], plan["reason"], correction_mm=corr, **keep)

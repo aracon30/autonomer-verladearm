@@ -73,6 +73,12 @@ commissioning:
   workspace_max: [3.6, 0.6, -0.5]  # bis Kesselwagen-Domhöhe
   step: 0.2
 
+recording:
+  # Jeder Auftrag mit Punktwolke und Ergebnis (Nachweis N-01, Fehlersuche, tools/auswertung.py)
+  enabled: true
+  dir: data/aufzeichnung
+  keep_days: 60           # ältere Tagesordner werden gelöscht (ca. 1,5 MB je Messung)
+
 snapshot:
   # Letzte Punktwolke für die Live-Ansicht (python -m verladearm_vision.viewer --opcua). Leer = aus.
   path: data/last_measurement.npy

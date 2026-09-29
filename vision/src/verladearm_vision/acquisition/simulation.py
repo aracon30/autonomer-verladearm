@@ -21,14 +21,18 @@ RIM_HEIGHT = {"lkw": (3.35, 3.6), "kesselwagen": (4.35, 4.55)}
 class SimulatedScene:
     def __init__(self, geom: ArmGeometry, transform: SensorToArm, vehicles=("lkw", "kesselwagen"),
                  joint_error_deg=(0.0, 0.0, 0.0), dome_spread=0.35, marker_radius=0.125,
-                 marker_offset=0.15, seed=None):
+                 marker_offset=0.15, empty=False, sensor_matrix=None, seed=None):
         self.geom, self.transform = geom, transform
         self.vehicles = list(vehicles)
         self.joint_error = np.radians(np.asarray(joint_error_deg, dtype=float))
         self.dome_spread = dome_spread
         self.marker_radius, self.marker_offset = marker_radius, marker_offset
         self.rng = np.random.default_rng(seed)
-        self.inv = np.linalg.inv(transform.T)
+        # sensor_matrix: tatsächliche Montagelage (Sensor -> Armbasis), falls sie von der
+        # Konfiguration abweichen soll (Test der Kalibrierung)
+        self.true_t = np.asarray(sensor_matrix, float) if sensor_matrix is not None else transform.T
+        self.inv = np.linalg.inv(self.true_t)
+        self.empty = empty  # leere Station (Kalibrierung): kein Tankwagen
         self.tank = None
         self.q_true = None
         self.count = 0
@@ -54,7 +58,7 @@ class SimulatedScene:
 
     def _arm_points(self, q, spacing=0.012, radius=(0.075, 0.075, 0.06)):
         pts = forward(self.geom, q)
-        sensor = self.transform.point(np.zeros(3))
+        sensor = self.true_t[:3, 3]
         out = []
         for (a, b), r in zip(((pts[3], pts[4]), (pts[4], pts[5]), (pts[5], pts[6])), radius,
                              strict=True):
@@ -83,7 +87,7 @@ class SimulatedScene:
     def grab(self) -> np.ndarray:
         if self.tank is None:
             self._new_vehicle()
-        parts = [self.tank]
+        parts = [] if self.empty else [self.tank]
         if self.q_true is not None:
             arm = self._arm_points(self.q_true)
             arm_sensor = arm @ self.inv[:3, :3].T + self.inv[:3, 3]

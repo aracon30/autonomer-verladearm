@@ -114,7 +114,7 @@ Beide Seiten prüfen, ob sich der Heartbeat der Gegenseite ändert. Ausfall > **
 Armbasis-Koordinaten in mm: Ursprung auf der Drehachse J1 am Haltepunkt, x nach vorne,
 y nach links, z nach oben (siehe `docs/kinematik.md`). Servowinkel so, wie der Antrieb sie
 anzeigt; Umrechnung über Nullstellung und Drehrichtung aus der Anlagendatei. Das
-Kalibrierverfahren wird in `docs/kalibrierung.md` festgelegt (offen).
+Kalibrierverfahren: `docs/kalibrierung.md`.
 
 ## Änderungen
 

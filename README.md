@@ -20,31 +20,73 @@ Der Vision-PC liefert **nur die Zielkoordinate**. Bewegung, Ablauf und Sicherhei
 ```bash
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
+pip install -e ".[dev]"            # mit Sensor SICK Visionary-T Mini: ".[dev,sick]"
 
 python tools/make_synthetic.py      # Testdaten erzeugen
 python -m verladearm_vision.service.main --once   # eine Messung ohne SPS
 pytest                              # Tests
 ```
 
-Mit simulierter SPS (zwei Terminals):
+Kompletter Ablauf ohne Hardware (SPS-Simulator mit Achsen, simulierter Sensor mit Getriebespiel):
 
 ```bash
-python tools/plc_simulator.py
-python -m verladearm_vision.service.main
+# Anlagendatei für die Simulation, z. B. sim.yaml:
+#   extends: vision/config/anlagen/beispiel.yaml
+#   source: {type: sim, joint_error_deg: [0.3, -0.25, 0.2]}
+#   plc: {url: "opc.tcp://127.0.0.1:4840/"}
+python tools/plc_simulator.py --config vision/config/anlagen/beispiel.yaml
+python -m verladearm_vision.service.main --config sim.yaml
+python -m verladearm_vision.viewer --opcua --config sim.yaml   # Arm live aus den Istwinkeln
 ```
+
+Live-Ansicht im Browser (Punktwolke, Erkennung, schematische Armbewegung):
+
+```bash
+python -m verladearm_vision.viewer   # dann http://127.0.0.1:8000 öffnen
+```
+
+Mit `--host 0.0.0.0` ist die Ansicht im Netzwerk erreichbar, z. B. auf dem Tablet an der Verladestation.
+
+Die Ansicht kann auch mitlesen, was der Vision-Dienst an die SPS liefert (drei Terminals):
+
+```bash
+python tools/plc_simulator.py                 # oder echte SPS, siehe plc.url
+python -m verladearm_vision.service.main
+python -m verladearm_vision.viewer --opcua
+```
+
+Mit `--opcua` liest die Ansicht `DB_Vision` per OPC UA (nur lesend) und zeigt Handshake-Signale,
+Heartbeats und jedes neue Ergebnis. Die zugehörige Punktwolke legt der Vision-Dienst unter
+`snapshot.path` ab (Standard `data/last_measurement.npy`).
+
+Inbetriebnahme einer Anlage (Parameter je Verladearm, siehe [docs/inbetriebnahme.md](docs/inbetriebnahme.md)):
+
+```bash
+python -m verladearm_vision.commissioning --config vision/config/anlagen/beispiel.yaml
+```
+
+Kalibrierung, Aufzeichnung und Betrieb:
+
+```bash
+python -m verladearm_vision.calibrate --config <anlage>.yaml --sim     # Probelauf, sonst --from-plc
+python tools/auswertung.py --dir data/aufzeichnung > auswertung.csv    # alle Aufträge als CSV
+sudo deploy/install.sh vision/config/anlagen/<anlage>.yaml             # Autostart auf dem Edge-PC
+```
+
+Siehe [Kalibrierung](docs/kalibrierung.md) und [Betrieb](docs/betrieb.md).
 
 ## Struktur
 
 | Ordner | Inhalt |
 |---|---|
-| `docs/` | Lastenheft, Schnittstelle, Architekturentscheidungen |
-| `hardware/` | Stückliste, Halterungen, Elektro |
+| `docs/` | Lastenheft, Schnittstelle, Kinematik, Inbetriebnahme, Kalibrierung, Betrieb, Architekturentscheidungen |
+| `hardware/` | Stückliste, Halterungen, Elektro (Sensor: [docs/sensor_sick.md](docs/sensor_sick.md)) |
 | `plc/` | Schnittstellen-DB für TIA Portal |
-| `vision/src/verladearm_vision/` | acquisition, detection, calibration, plc, service |
-| `vision/config/` | Konfiguration |
+| `vision/src/verladearm_vision/` | acquisition, detection, calibration, kinematics, plc, service, viewer |
+| `vision/config/` | Konfiguration: `default.yaml`, Anlagendateien unter `anlagen/` |
 | `vision/tests/` | Tests |
-| `tools/` | SPS-Simulator, Testdatengenerator |
+| `tools/` | SPS-Simulator, Testdatengenerator, Auswertung der Aufzeichnungen |
+| `deploy/` | Systemdienste und Installationsskript für den Edge-PC |
 
 ## Arbeitsweise
 
@@ -55,5 +97,6 @@ python -m verladearm_vision.service.main
 
 ## Status
 
-Prototyp. Erkennung für ebene Tankdächer mit synthetischen Daten getestet; reale Sensortreiber,
-Kalibrierung und gewölbte Tankdächer folgen.
+Prototyp. Erkennung für ebene und runde Tanks (Lkw, Kesselwagen) mit Domkragen auf synthetischen
+Daten getestet. Treiber für den SICK Visionary-T Mini CX vorhanden, am echten Gerät noch nicht
+erprobt; Kalibrierung und Messungen an echten Fahrzeugen folgen.

@@ -1,0 +1,19 @@
+# Vision-Dienst Verladearm (OPC UA zur SPS). Installation: deploy/install.sh
+[Unit]
+Description=Verladearm Vision-Dienst
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=verladearm
+WorkingDirectory=/var/lib/verladearm
+ExecStart=/opt/verladearm/venv/bin/python -m verladearm_vision.service.main --config /etc/verladearm/anlage.yaml
+Restart=always
+RestartSec=3
+# Beim Neustart erkennt die SPS den Ausfall über den Heartbeat und geht in den sicheren Zustand.
+TimeoutStopSec=10
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target

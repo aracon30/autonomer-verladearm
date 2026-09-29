@@ -1,14 +1,22 @@
 # Konfiguration Vision-Dienst autonomer Verladearm
 
 source:
-  type: file            # file = aufgenommene Punktwolken abspielen; später z. B. orbbec, livox
+  type: file            # file = aufgenommene Punktwolken abspielen, sick = Visionary-T Mini CX
   path: data/samples
+  # Simulation ohne Hardware (Tankwagen + Arm mit Getriebespiel), z. B. mit tools/plc_simulator.py:
+  # type: sim
+  # joint_error_deg: [0.3, -0.25, 0.2]
+  # Beispiel SICK Visionary-T Mini CX (pip install -e ".[sick]", docs/sensor_sick.md):
+  # type: sick
+  # ip: 192.168.1.10
+  # frames: 3           # Bilder je Messung, pixelweiser Median
 
 detection:
   roi_min: [-2.0, -2.0, 0.5]    # Arbeitsraum in Sensorkoordinaten [m]
   roi_max: [2.0, 2.0, 8.0]
   plane_threshold: 0.015        # [m]
   ransac_iterations: 300
+  ransac_sample: 5000           # Punkte zur Bewertung der RANSAC-Hypothesen
   grid_size: 0.02               # Rasterweite [m], an Punktdichte des Sensors anpassen
   min_diameter: 0.35            # erwarteter Domdurchmesser [m]
   max_diameter: 0.65
@@ -16,11 +24,64 @@ detection:
 
 calibration:
   # Transformation Sensor -> Armbasis (4x4, Meter). Wird bei der Hand-Auge-Kalibrierung ermittelt.
+  # Platzhalter: Sensor 3 m vor J1 über der Fahrspur, 2,1 m über J1, blickt senkrecht nach unten.
+  # Armbasis: Ursprung auf Achse J1, x nach vorne, y nach links, z nach oben (docs/kinematik.md).
   matrix:
-    - [1, 0, 0, 0]
-    - [0, 1, 0, 0]
-    - [0, 0, 1, 0]
+    - [1, 0, 0, 3.0]
+    - [0, -1, 0, 0.0]
+    - [0, 0, -1, 2.1]
     - [0, 0, 0, 1]
+
+arm:
+  # Geometrie des Verladearms, siehe docs/kinematik.md. [m, Grad]
+  # Die Werte hier sind PLATZHALTER für Entwicklung und Simulation. Jede Anlage bekommt eine
+  # eigene Datei unter vision/config/anlagen/, die bei der Inbetriebnahme ausgefüllt wird
+  # (docs/inbetriebnahme.md).
+  base_height: 5.0        # Höhe Achse J1 über Fahrbahn
+  incline_deg: 3.0        # Gefälle innerer und äußerer Ausleger
+  inner_length: 2.2       # J1 bis Winkel nach unten
+  drop: 0.5               # Winkel nach unten bis Winkel nach rechts (Achse J2)
+  offset_right: 0.35      # Winkel nach rechts bis Winkel nach vorne (Achse J3)
+  outer_length: 2.4       # äußerer Ausleger bis Winkel nach links
+  offset_left: 0.35       # Winkel nach links bis freies Drehgelenk J4
+  outlet_length: 1.2      # J4 bis Auslassende
+  joints:                 # Servo-Grad wie am Antrieb angezeigt
+    q1: {min: -120, max: 120, park: 70, zero: 0, direction: 1}
+    q2: {min: -170, max: 170, park: -150, zero: 0, direction: 1}
+    q3: {min: -35, max: 50, park: 10, zero: 0, direction: 1}
+  obstacles: []           # Sperrbereiche, siehe anlagen/beispiel.yaml
+  clearance: 0.15         # Mindestabstand Rohrachse zu Hindernissen
+  approach_height: 0.3    # Anfahrpunkt über der Domöffnung
+  insertion_depth: 0.4    # Eintauchtiefe, falls für das Produkt nichts hinterlegt ist
+
+outlet:
+  # Nachmessen des Auslasses (Job 2). Markierungsscheibe am Auslass, von oben immer sichtbar.
+  marker_radius: 0.125    # Außenradius Scheibe [m]; null = ohne Scheibe (Rohrwand, unsicherer)
+  marker_offset: 0.15     # Scheibe über dem Auslassende [m]
+
+planning:
+  move_waypoints: 3       # Stützpunkte für die Anfahrt (synchrone Gelenkbewegung)
+  insert_waypoints: 5     # Stützpunkte für das senkrechte Eintauchen (max. 16 insgesamt)
+
+products:
+  # Eintauchtiefe je ProductId (aus DB_Vision); "default" gilt für alle anderen
+  default: {insertion_depth: 0.4}
+
+commissioning:
+  # Bereich, in dem die Domöffnung liegen kann (Armbasis, m), für die Reichweitenprüfung
+  workspace_min: [2.6, -0.6, -2.0]
+  workspace_max: [3.6, 0.6, -0.5]  # bis Kesselwagen-Domhöhe
+  step: 0.2
+
+recording:
+  # Jeder Auftrag mit Punktwolke und Ergebnis (Nachweis N-01, Fehlersuche, tools/auswertung.py)
+  enabled: true
+  dir: data/aufzeichnung
+  keep_days: 60           # ältere Tagesordner werden gelöscht (ca. 1,5 MB je Messung)
+
+snapshot:
+  # Letzte Punktwolke für die Live-Ansicht (python -m verladearm_vision.viewer --opcua). Leer = aus.
+  path: data/last_measurement.npy
 
 plc:
   url: opc.tcp://127.0.0.1:4840/        # Simulator; für die SPS deren IP eintragen

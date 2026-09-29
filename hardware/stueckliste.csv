@@ -1,8 +1,17 @@
 Pos;Bezeichnung;Vorschlag;Menge;Status;Bemerkung
-1;3D-Sensor Kamera;Orbbec Gemini/Femto;1;offen;Vergleich mit Pos. 2 für Bachelorarbeit
-2;3D-Sensor LiDAR;Livox Mid-360;1;offen;optional
-3;Edge-PC;Mini-PC x86 Ubuntu oder NVIDIA Jetson Orin;1;offen;
-4;Industrie-Switch;unmanaged 5 Port;1;offen;
-5;Netzteil;24 V DC;1;offen;
-6;Sensortraverse;Alu-Profil verstellbar 4-6 m;1;offen;
-7;Mock-up Tankdach;Blech mit Domausschnitt, Edelstahl blank;1;offen;Domdurchmesser realer Tankwagen klären
+1;3D-Sensor;SICK Visionary-T Mini CX (V3S105-1AAAAAA);1;offen;ToF, 512x424, IP65, 24 V, GigE; Preis auf Anfrage; docs/sensor_sick.md
+2;Kabel Ethernet;M12 8-polig X-kodiert auf RJ45, Cat6a, ca. 10 m;1;offen;Länge nach Montagehöhe
+3;Kabel Versorgung Sensor;Anschlussleitung passend zum Versorgungsstecker laut Datenblatt, ca. 10 m;1;offen;24 V DC, typ. 12 W
+4;Edge-PC Prüfstand;ASUS NUC 14 Pro, Core Ultra 5, 16 GB, 512 GB SSD;1;offen;Ubuntu 24.04; ca. 640 EUR
+5;USB-LAN-Adapter;USB 3 auf Gigabit Ethernet;1;offen;zweites Netz: Sensor getrennt von SPS
+6;Edge-PC Station;Lüfterloser Industrie-PC, Core i5/i7, 16 GB, 24 V DC, 2-3x LAN, Hutschiene;1;später;Auswahl nach Rechenzeitmessung am Prüfstand
+7;Industrie-Switch;unmanaged, 5 Port, Gigabit, 24 V, Hutschiene;1;offen;
+8;Netzteil;24 V DC, 5 A, Hutschiene;1;offen;Sensor, Switch
+9;Sensortraverse;Alu-Profil 45x45/45x90 verstellbar 4-6 m, Winkel, Nutensteine;1;offen;steif, Sensor senkrecht nach unten
+10;Sensorhalter;neigbar;1;offen;
+11;Mock-up Tankdach;gebogenes Blech auf Rahmen, R 1,1 m bzw. 1,5 m, ca. 1,5 x 2 m;1;offen;Oberfläche blank und matt testen
+12;Domkragen Mock-up;Rohrstück ca. 500-600 mm, 12-25 cm hoch, mit Deckel;1;offen;Domdurchmesser realer Tankwagen klären
+13;Kalibrierkugel;entfällt;0;entfällt;Kalibrierung nutzt die Markierungsscheibe (Pos. 15)
+14;Messmittel;Laser-Entfernungsmesser, digitaler Neigungsmesser, Maßband;1;offen;
+15;Markierungsscheibe Auslass;Ringscheibe Ø 250 mm, matt, über dem Auslassende (ca. 150 mm);1;offen;für Nachmessen Job 2, Werkstoff produktverträglich
+16;Antriebe J1-J3;Klärung: Servomotoren mit Motorgeber (Absolutwert) oder Gelenkgeber nachrüsten;3;klären;Positionierung ohne Winkelmessung nicht möglich

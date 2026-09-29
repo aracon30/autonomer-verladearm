@@ -1,0 +1,60 @@
+# Anlagenparameter Verladearm – VORLAGE
+# Kopieren als <standort>_<station>.yaml und bei der Inbetriebnahme ausfüllen
+# (Ablauf: docs/inbetriebnahme.md). Nicht angegebene Werte kommen aus default.yaml.
+#
+# Anlage:            Beispiel, Station 1
+# Inbetriebnahme:    TT.MM.JJJJ, Name
+# Freigabe:          offen
+
+extends: ../default.yaml
+
+plc:
+  url: opc.tcp://192.168.0.10:4840/      # SPS dieser Station
+
+calibration:
+  # Ergebnis der Hand-Auge-Kalibrierung (Sensor -> Armbasis, 4x4, m)
+  matrix:
+    - [1, 0, 0, 3.0]
+    - [0, -1, 0, 0.0]
+    - [0, 0, -1, 2.1]
+    - [0, 0, 0, 1]
+
+arm:
+  # Maße von Gelenkachse zu Gelenkachse bzw. Rohrmitte [m]
+  base_height: 5.0
+  incline_deg: 3.0
+  inner_length: 2.2
+  drop: 0.5
+  offset_right: 0.35
+  outer_length: 2.4
+  offset_left: 0.35
+  outlet_length: 1.2
+
+  # Servoachsen in Servo-Grad, wie am Antrieb angezeigt:
+  #   zero       Servowert, wenn beide Ausleger gestreckt nach vorne zeigen (J3: Ausleger im Gefälle)
+  #   direction  +1, wenn steigender Servowert nach links dreht (J1, J2) bzw. hebt (J3), sonst -1
+  #   min / max  freigegebener Verfahrbereich
+  #   park       Parkstellung
+  joints:
+    q1: {min: -120, max: 120, park: 70, zero: 0, direction: 1}
+    q2: {min: -170, max: 170, park: -150, zero: 0, direction: 1}
+    q3: {min: -35, max: 50, park: 10, zero: 0, direction: 1}
+
+  # Sperrbereiche als Quader in Armbasis-Koordinaten [m]
+  # (Ursprung Achse J1, x vorne, y links, z oben)
+  obstacles:
+    - {name: Stütze Überdachung, min: [-1.6, -2.4, -5.0], max: [-1.3, -2.1, 1.0]}
+    - {name: Geländer Verladebühne, min: [-0.6, -0.9, -3.0], max: [-0.4, 0.9, -1.6]}
+  clearance: 0.15
+
+# Eintauchtiefe je ProductId [m]
+products:
+  default: {insertion_depth: 0.4}
+  1: {name: Dispersionsklebstoff A, insertion_depth: 0.5}
+  2: {name: Produkt B (schäumend), insertion_depth: 0.7}
+
+commissioning:
+  # Bereich, in dem die Domöffnung bei dieser Station liegen kann (Armbasis, m)
+  workspace_min: [2.6, -0.6, -2.0]
+  workspace_max: [3.6, 0.6, -0.5]  # bis Kesselwagen-Domhöhe
+  step: 0.2

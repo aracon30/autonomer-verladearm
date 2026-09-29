@@ -16,10 +16,14 @@ dependencies = [
 
 [project.optional-dependencies]
 viz = ["open3d>=0.18"]
+sick = ["visionary-python-base @ git+https://github.com/SICKAG/sick_visionary_python_base"]
 dev = ["pytest>=8", "ruff>=0.5"]
 
 [tool.setuptools.packages.find]
 where = ["vision/src"]
+
+[tool.setuptools.package-data]
+verladearm_vision = ["viewer/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["vision/tests"]

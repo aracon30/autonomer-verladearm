@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Verladearm Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Leitwarten-HMI: 3D-Szene links als Hauptfläche, rechts ein Messprotokoll-Streifen wie am Bedienpanel.
+   Farben aus dem Lastenheft (Signalgelb, Tinte, Stahlblau). */
+:root{
+  --bg:#EEF1F4; --panel:#FFFFFF; --ink:#1C2430; --muted:#5B6875; --rule:#D3D9E0;
+  --scene:#E4E9EE; --grid:#C3CCD5;
+  --signal:#E8A900; --signal-ink:#3A2A00;
+  --steel:#4E6E8E; --point:#8494A5; --surface:#2F7D8C; --clutter:#C0572B;
+  --ok:#2E7D4F; --err:#B3261E;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Source Sans 3","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F141A; --panel:#161C23; --ink:#E4E8EC; --muted:#9AA6B2; --rule:#2B3540;
+    --scene:#121820; --grid:#28323D;
+    --signal:#F2B705; --signal-ink:#1A1300;
+    --steel:#7FA3C7; --point:#6D7B89; --surface:#4FB3C4; --clutter:#E07A4A;
+    --ok:#5CC08A; --err:#F2766B; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F141A; --panel:#161C23; --ink:#E4E8EC; --muted:#9AA6B2; --rule:#2B3540;
+  --scene:#121820; --grid:#28323D;
+  --signal:#F2B705; --signal-ink:#1A1300;
+  --steel:#7FA3C7; --point:#6D7B89; --surface:#4FB3C4; --clutter:#E07A4A;
+  --ok:#5CC08A; --err:#F2766B; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+.app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 21rem;gap:12px;
+  padding-inline:16px;padding-block:12px}
+.stage{position:relative;min-width:0;min-height:0;background:var(--scene);border:1px solid var(--rule);overflow:hidden}
+.stage canvas{display:block;width:100%;height:100%;touch-action:none}
+.stripe{position:absolute;left:0;right:0;top:0;height:6px;
+  background:repeating-linear-gradient(135deg,var(--signal) 0 12px,var(--ink) 12px 24px)}
+.overlay{position:absolute;left:12px;top:18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;pointer-events:none}
+.chip{font-family:var(--f-display);font-weight:600;font-size:.85rem;letter-spacing:.04em;text-transform:uppercase;
+  padding:.2rem .55rem;border:1.5px solid var(--ink);background:var(--panel);color:var(--ink)}
+.chip.live{border-color:var(--signal)}
+.hint{position:absolute;right:12px;bottom:10px;font-size:.8rem;color:var(--muted);pointer-events:none}
+aside{min-width:0;overflow:auto;background:var(--panel);border:1px solid var(--rule);display:flex;flex-direction:column}
+aside header{padding:14px 16px 10px;border-bottom:2px solid var(--ink)}
+h1{margin:0;font-family:var(--f-display);font-weight:700;font-size:1.6rem;line-height:1.1;text-wrap:balance}
+.sub{margin:.2rem 0 0;color:var(--muted);font-size:.9rem}
+section{padding:12px 16px;border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:8px}
+h2{margin:0;font-family:var(--f-display);font-weight:600;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.status{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:600;font-size:1.15rem}
+.lamp{width:14px;height:14px;border-radius:50%;background:var(--muted);flex:none;box-shadow:0 0 0 3px var(--rule)}
+.status[data-state="ok"] .lamp{background:var(--ok)}
+.status[data-state="err"] .lamp{background:var(--err)}
+.status[data-state="busy"] .lamp{background:var(--signal)}
+.msg{margin:0;font-size:.9rem;color:var(--muted);min-height:1.3em}
+ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:4px;counter-reset:s}
+ol.steps li{counter-increment:s;display:flex;align-items:center;gap:10px;font-size:.95rem;color:var(--muted)}
+ol.steps li::before{content:counter(s);flex:none;width:1.5rem;height:1.5rem;display:grid;place-items:center;
+  border:1.5px solid var(--rule);font-family:var(--f-mono);font-size:.75rem}
+ol.steps li.done{color:var(--ink)}
+ol.steps li.done::before{border-color:var(--ink)}
+ol.steps li.active{color:var(--ink);font-weight:600}
+ol.steps li.active::before{background:var(--signal);border-color:var(--signal);color:var(--signal-ink)}
+ol.steps li.fail::before{background:var(--err);border-color:var(--err);color:var(--panel)}
+dl{margin:0;display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:4px 12px;align-items:baseline}
+dt{color:var(--muted);font-size:.88rem}
+dd{margin:0;min-width:0;text-align:right;font-family:var(--f-mono);font-size:.88rem;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font-family:var(--f-display);font-weight:600;font-size:1rem;letter-spacing:.03em;
+  padding:.45rem .9rem;border:1.5px solid var(--ink);background:var(--signal);color:var(--signal-ink);cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+button:hover:not(:disabled){filter:brightness(1.05)}
+label.toggle{display:flex;align-items:center;gap:6px;font-size:.95rem;cursor:pointer}
+input[type="checkbox"]{accent-color:var(--signal);width:1.05rem;height:1.05rem}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.sig{display:grid;grid-template-columns:repeat(auto-fill,minmax(7.5rem,1fr));gap:6px 12px}
+.sig span{display:flex;align-items:center;gap:6px;font-size:.88rem;font-family:var(--f-mono)}
+.sig i{width:10px;height:10px;border-radius:50%;flex:none;background:var(--rule)}
+.sig span[data-on="1"] i{background:var(--signal)}
+.sig span[data-on="1"][data-kind="good"] i{background:var(--ok)}
+.sig span[data-on="1"][data-kind="bad"] i{background:var(--err)}
+ul.legend{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:.88rem}
+ul.legend li{display:flex;align-items:center;gap:8px}
+.sw{width:12px;height:12px;flex:none}
+.note{font-size:.82rem;color:var(--muted);margin:0}
+@media (max-width:760px){
+  .app{height:auto;grid-template-columns:1fr}
+  .stage{height:62svh;min-height:320px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage" id="stage">
+    <div class="stripe"></div>
+    <div class="overlay">
+      <span class="chip live" id="mode">Live</span>
+      <span class="chip" id="stagechip">Bereit</span>
+    </div>
+    <span class="hint">Ziehen = drehen · Scrollen = zoomen</span>
+  </div>
+  <aside>
+    <header>
+      <h1>Verladearm Live</h1>
+      <p class="sub">3D-Sensor → Domöffnung → Zielkoordinate → Arm</p>
+    </header>
+    <section aria-live="polite">
+      <h2>Messung</h2>
+      <div class="status" id="status" data-state="idle"><span class="lamp"></span><span id="statustext">Warte auf erste Messung</span></div>
+      <p class="msg" id="msg"></p>
+    </section>
+    <section id="signals" hidden>
+      <h2>SPS-Signale (OPC UA, nur lesend)</h2>
+      <p class="msg" id="conn">Verbinde …</p>
+      <div class="sig">
+        <span id="s-conn" data-kind="good"><i></i>Verbindung</span>
+        <span id="s-Ready" data-kind="good"><i></i>Ready</span>
+        <span id="s-Trigger"><i></i>Trigger</span>
+        <span id="s-Busy"><i></i>Busy</span>
+        <span id="s-Done" data-kind="good"><i></i>Done</span>
+        <span id="s-Error" data-kind="bad"><i></i>Error</span>
+        <span id="s-AxesHomed" data-kind="good"><i></i>Referenziert</span>
+      </div>
+      <dl>
+        <dt>Job / ArmState</dt><dd id="s-job">–</dd>
+        <dt>Ist J1/J2/J3</dt><dd id="s-act">–</dd>
+        <dt>HeartbeatPLC / PC</dt><dd id="s-hb">–</dd>
+        <dt>ProductId</dt><dd id="s-prod">–</dd>
+        <dt>InterfaceVersion</dt><dd id="s-ver">–</dd>
+      </dl>
+      <p class="note">Messungen und Bewegungen steuert die SPS. Die Ansicht zeigt den Arm aus den Istwinkeln und schreibt nichts in den DB_Vision. Gelbe Punkte: geplante Stützpunkte.</p>
+    </section>
+    <section>
+      <h2>Ablauf</h2>
+      <ol class="steps" id="steps">
+        <li data-step="scan">Punktwolke aufnehmen</li>
+        <li data-step="detect">Domöffnung erkennen</li>
+        <li data-step="move">Arm fährt über den Dom</li>
+        <li data-step="measure2">Auslass nachmessen (Markierungsscheibe)</li>
+        <li data-step="lower">Auslass eintauchen</li>
+        <li data-step="retract">Zurück in Parkposition</li>
+      </ol>
+    </section>
+    <section>
+      <h2>Ergebnis an SPS (DB_Vision)</h2>
+      <dl>
+        <dt>ResultId</dt><dd id="v-id">–</dd>
+        <dt>Target X/Y/Z</dt><dd id="v-target">–</dd>
+        <dt>Normale</dt><dd id="v-normal">–</dd>
+        <dt>DiameterMm</dt><dd id="v-dia">–</dd>
+        <dt>Confidence</dt><dd id="v-conf">–</dd>
+        <dt>ErrorCode</dt><dd id="v-err">–</dd>
+        <dt>Servo J1/J2/J3</dt><dd id="v-joints">–</dd>
+        <dt>Eintauchtiefe</dt><dd id="v-depth">–</dd>
+        <dt>Korrektur X/Y</dt><dd id="v-corr">–</dd>
+        <dt>Tankform</dt><dd id="v-tank">–</dd>
+        <dt>Messpunkte</dt><dd id="v-pts">–</dd>
+        <dt>Rechenzeit</dt><dd id="v-ms">–</dd>
+      </dl>
+    </section>
+    <section id="ctl">
+      <h2>Bedienung</h2>
+      <div class="controls">
+        <button id="trigger" type="button">Messung auslösen</button>
+        <label class="toggle"><input type="checkbox" id="auto" checked> Automatik</label>
+      </div>
+    </section>
+    <section>
+      <h2>Legende</h2>
+      <ul class="legend">
+        <li><span class="sw" style="background:var(--point)"></span>Rohpunkte vom Sensor</li>
+        <li><span class="sw" style="background:var(--surface)"></span>Tankoberfläche (Ebene)</li>
+        <li><span class="sw" style="background:var(--clutter)"></span>Störpunkte (Geländer, Arm …)</li>
+        <li><span class="sw" style="background:var(--signal)"></span>Domöffnung, Rohrführung</li>
+        <li><span class="sw" style="background:var(--steel)"></span>Freies Drehgelenk J4 (dunkel: Servos J1–J3)</li>
+        <li><span class="sw" style="background:var(--clutter);opacity:.5"></span>Sperrbereich (Hindernis)</li>
+        <li><span class="sw" style="background:var(--ink)"></span>Markierungsscheibe am Auslass (Nachmessen)</li>
+        <li><span class="sw" style="background:var(--steel);opacity:.6"></span>Tank (Form aus der Messung, Fahrzeug aus dem Radius geschätzt)</li>
+      </ul>
+      <p class="note">Armmaße, Servowerte und Sperrbereiche kommen aus der Anlagenkonfiguration. Die Achsregelung übernimmt die SPS.</p>
+    </section>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(() => {
+  const ERRORS = {
+    11: "Zu wenige Messpunkte im Arbeitsraum (Sensor verschmutzt oder verdeckt?)",
+    12: "Tankoberfläche nicht erkannt",
+    20: "Keine Domöffnung gefunden (Deckel geschlossen?)",
+    21: "Mehrere Domöffnungen gefunden",
+    90: "Interner Fehler Vision-Dienst",
+  };
+  const embedded = document.getElementById("embedded-frames");
+  const FRAMES = embedded ? JSON.parse(embedded.textContent) : null;
+  let frameIdx = 0, MODE = FRAMES ? "demo" : "standalone";
+
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const D = reduced
+    ? { scan: 0.2, detect: 0.2, move: 0.2, measure2: 1.5, adjust: 0.2, lower: 0.2, hold: 2.0, retract: 0.2, errHold: 3.0 }
+    : { scan: 1.8, detect: 0.9, move: 2.4, measure2: 2.0, adjust: 1.0, lower: 1.4, hold: 1.6, retract: 2.6, errHold: 3.0 };
+
+  // ---- Farben aus den CSS-Tokens ----
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  let C = {};
+  function readColors() {
+    for (const k of ["scene", "grid", "ink", "muted", "signal", "steel", "point", "surface", "clutter", "rule"])
+      C[k] = new THREE.Color(css("--" + k));
+  }
+  readColors();
+
+  // ---- Szene ----
+  const stage = document.getElementById("stage");
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  stage.prepend(renderer.domElement);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.05, 100);
+  const VIEW_TARGET = new THREE.Vector3(2.0, -1.0, 0.4), VIEW_OFFSET = new THREE.Vector3(3.6, 3.0, 10.2);
+  camera.position.copy(VIEW_TARGET).add(VIEW_OFFSET);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.target.copy(VIEW_TARGET);
+  controls.enableDamping = true;
+  controls.update();
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.9));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.6);
+  sun.position.set(3, 5, 4);
+  scene.add(sun);
+
+  // Armbasis (x vorne, y links, z oben, Ursprung Achse J1) -> Anzeige (x, z, -y), Y nach oben
+  const toView = (x, y, z) => new THREE.Vector3(x, z, -y);
+  let groundY = -5.0;
+
+  const grid = new THREE.GridHelper(14, 28);
+  grid.position.y = groundY;
+  scene.add(grid);
+
+  // Sensor mit Sichtkegel
+  const sensor = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 0.18),
+    new THREE.MeshStandardMaterial({ color: 0x333333 }));
+  scene.add(sensor);
+  const traverse = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 4.5),
+    new THREE.MeshStandardMaterial({ color: 0x888888 }));
+  scene.add(traverse);
+  const beamGeo = new THREE.BufferGeometry();
+  beamGeo.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(3 * 8), 3));
+  const beam = new THREE.LineSegments(beamGeo, new THREE.LineBasicMaterial({ transparent: true, opacity: 0.7 }));
+  beam.visible = false;
+  scene.add(beam);
+
+  // Punktwolke
+  const MAX = 60000;
+  const ptGeo = new THREE.BufferGeometry();
+  ptGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(MAX * 3), 3));
+  ptGeo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(MAX * 3), 3));
+  ptGeo.setDrawRange(0, 0);
+  const cloud = new THREE.Points(ptGeo, new THREE.PointsMaterial({ size: 0.022, vertexColors: true }));
+  scene.add(cloud);
+
+  // Tankkörper (schematisch, unter der Punktwolke)
+  const tank = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.18, depthWrite: false }));
+  tank.visible = false;
+  scene.add(tank);
+
+  // Fahrzeug (Lkw-Tankauflieger oder Kesselwagen) aus der gemessenen Tankform
+  const vehicleGroup = new THREE.Group();
+  scene.add(vehicleGroup);
+  const tankMat = new THREE.MeshStandardMaterial({ metalness: 0.35, roughness: 0.4, transparent: true, opacity: 0.9 });
+  const cabMat = new THREE.MeshStandardMaterial({ roughness: 0.5 });
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x4a5058, roughness: 0.7 });
+  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1f2226, roughness: 0.9 });
+  const railMat = new THREE.MeshStandardMaterial({ color: 0x8a8f96, metalness: 0.6, roughness: 0.35 });
+  const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+
+  function box(parent, mat, sx, sy, sz, x, y, z) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mat);
+    m.position.set(x, y, z);
+    parent.add(m);
+    return m;
+  }
+  function wheel(parent, r, x, y, z) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.28, 24), wheelMat);
+    m.rotation.x = Math.PI / 2;
+    m.position.set(x, y, z);
+    parent.add(m);
+  }
+  function buildVehicle(v) {
+    vehicleGroup.clear();
+    if (!v || v.kind === "eben" || !v.radius) return false;
+    const R = v.radius, apex = toView(...v.apex), rim = toView(...v.rim);
+    const ax = toView(...v.axis); ax.y = 0; ax.normalize();
+    // lokales System: x entlang der Tankachse, Ursprung auf der Achse unter dem Dom
+    const g = new THREE.Group();
+    g.position.set(apex.x, apex.y - R, apex.z);
+    g.quaternion.setFromUnitVectors(V3(1, 0, 0), ax);
+    vehicleGroup.add(g);
+    const ground = groundY - (apex.y - R);
+    const rail = v.kind === "kesselwagen";
+    const L = rail ? 12.0 : 8.5, off = rail ? 0 : -0.9;
+
+    const shell = new THREE.Mesh(new THREE.CylinderGeometry(R - 0.03, R - 0.03, L, 48, 1, true), tankMat);
+    shell.rotation.z = Math.PI / 2;
+    shell.position.x = off;
+    g.add(shell);
+    for (const sgn of [-1, 1]) {
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(R - 0.03, 40, 20), tankMat);
+      cap.scale.set(0.3, 1, 1);
+      cap.position.x = off + sgn * L / 2;
+      g.add(cap);
+    }
+
+    if (rail) {
+      const deck = -R - 0.25;
+      box(g, frameMat, L + 1.2, 0.3, 2.4, 0, deck, 0);                 // Untergestell
+      for (const sgn of [-1, 1]) {
+        const bx = sgn * (L / 2 - 2.0);
+        box(g, frameMat, 2.6, 0.45, 2.1, bx, ground + 0.85, 0);          // Drehgestell
+        box(g, frameMat, 0.4, deck - ground - 0.85, 0.4, bx, (deck + ground + 0.85) / 2, 0);
+        for (const wx of [-0.9, 0.9]) for (const wz of [-0.72, 0.72]) wheel(g, 0.46, bx + wx, ground + 0.46, wz);
+        for (const bz of [-0.88, 0.88]) {                                 // Puffer
+          const b = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.6, 20), frameMat);
+          b.rotation.z = Math.PI / 2;
+          b.position.set(sgn * (L / 2 + 0.9), deck, bz);
+          g.add(b);
+        }
+      }
+      for (const rz of [-0.7175, 0.7175]) box(g, railMat, 60, 0.15, 0.07, 0, ground + 0.075, rz); // Gleis
+      for (let i = -14; i <= 14; i++) box(g, frameMat, 0.26, 0.12, 2.6, i * 0.65 * 3, ground + 0.02, 0);
+    } else {
+      const deck = -R - 0.15;
+      box(g, frameMat, L + 0.6, 0.25, 1.1, off, deck, 0);                // Rahmen Auflieger
+      for (const x of [2.1, 3.45, 4.8]) for (const wz of [-0.95, 0.95]) wheel(g, 0.5, off - x + 1.0, ground + 0.5, wz);
+      if (deck - 0.12 > ground + 1.0) box(g, frameMat, 0.35, deck - ground - 1.0, 0.35, off + L / 2 - 1.2, (deck + ground + 1.0) / 2, 0);
+      const cx = off + L / 2 + 1.7;                                        // Zugmaschine am fernen Ende
+      box(g, frameMat, 4.6, 0.3, 1.0, cx - 0.7, ground + 1.0, 0);
+      box(g, cabMat, 2.1, 2.7, 2.45, cx + 0.4, ground + 1.2 + 1.35, 0);
+      for (const x of [0.8, -1.6, -2.9]) for (const wz of [-0.95, 0.95]) wheel(g, 0.5, cx + x, ground + 0.5, wz);
+    }
+
+    const collarH = rim.y - apex.y;                                        // Domkragen
+    if (collarH > 0.02) {
+      const ro = v.diameter / 2 + 0.05;
+      const collar = new THREE.Mesh(new THREE.CylinderGeometry(ro, ro, collarH + R * 0.1, 40, 1, true), tankMat);
+      collar.position.set(rim.x, rim.y - (collarH + R * 0.1) / 2, rim.z);
+      vehicleGroup.add(collar);
+    }
+    return true;
+  }
+
+  // Markierung Domöffnung
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.018, 8, 64), new THREE.MeshBasicMaterial());
+  ring.visible = false;
+  scene.add(ring);
+  const normalArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(), 0.8);
+  normalArrow.visible = false;
+  scene.add(normalArrow);
+
+  // Verladearm nach docs/kinematik.md: Rohrführung aus 7 Eckpunkten, Stellung vom Server berechnet
+  const armMat = new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.3 });
+  const servoMat = new THREE.MeshStandardMaterial({ color: 0x3b4148, roughness: 0.6 });
+  const freeMat = new THREE.MeshStandardMaterial({ roughness: 0.5 });
+  const column = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 1, 20), servoMat);
+  scene.add(column);
+  const pipes = Array.from({ length: 6 }, (_, i) =>
+    new THREE.Mesh(new THREE.CylinderGeometry(i === 5 ? 0.06 : 0.075, i === 5 ? 0.06 : 0.075, 1, 16), armMat));
+  pipes.forEach(m => scene.add(m));
+  const elbows = Array.from({ length: 5 }, () => new THREE.Mesh(new THREE.SphereGeometry(0.085, 16, 12), armMat));
+  elbows.forEach(m => scene.add(m));
+  // Servos J1-J3 dunkel, freies Gelenk J4 in Stahlblau
+  const joints = [servoMat, servoMat, servoMat, freeMat].map(mat => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.24, 20), mat);
+    scene.add(m);
+    return m;
+  });
+  const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.06, 0.16, 16), servoMat);
+  scene.add(nozzle);
+  const UP = new THREE.Vector3(0, 1, 0);
+  let armPts = null;
+  // Markierungsscheibe am Auslass (für das Nachmessen, von oben immer sichtbar)
+  const markerMat = new THREE.MeshStandardMaterial({ roughness: 0.9 });
+  const markerDisc = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.025, 48), markerMat);
+  markerDisc.visible = false;
+  scene.add(markerDisc);
+  let marker = null;
+  function setMarker(m) { marker = m && m.radius ? m : null; markerDisc.visible = !!marker; }
+  const obstacleMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.28, depthWrite: false });
+  const obstacleGroup = new THREE.Group();
+  scene.add(obstacleGroup);
+  let obstacleKey = "";
+  function drawObstacles(list) {
+    const key = JSON.stringify(list || []);
+    if (key === obstacleKey) return;
+    obstacleKey = key;
+    obstacleGroup.clear();
+    for (const o of list || []) {
+      const a = toView(...o.min), b = toView(...o.max);
+      const box = new THREE.Mesh(new THREE.BoxGeometry(Math.abs(b.x - a.x), Math.abs(b.y - a.y), Math.abs(b.z - a.z)), obstacleMat);
+      box.position.set((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+      obstacleGroup.add(box);
+    }
+  }
+
+  function alongAxis(mesh, pos, a, b) {
+    mesh.position.copy(pos);
+    mesh.quaternion.setFromUnitVectors(UP, new THREE.Vector3().subVectors(b, a).normalize());
+  }
+  function drawArm(P) {
+    armPts = P;
+    const v = P.map(p => toView(p[0], p[1], p[2]));
+    for (let i = 0; i < 6; i++) {
+      alongAxis(pipes[i], v[i].clone().lerp(v[i + 1], 0.5), v[i], v[i + 1]);
+      pipes[i].scale.set(1, v[i].distanceTo(v[i + 1]), 1);
+    }
+    for (let i = 0; i < 5; i++) elbows[i].position.copy(v[i + 1]);
+    alongAxis(joints[0], v[0], new THREE.Vector3(), UP);          // J1 senkrecht
+    alongAxis(joints[1], v[1].clone().lerp(v[2], 0.55), v[1], v[2]); // J2 um das Fallrohr
+    alongAxis(joints[2], v[3], v[2], v[3]);                       // J3 quer zum Ausleger
+    alongAxis(joints[3], v[5], v[4], v[5]);                       // J4 frei
+    alongAxis(nozzle, v[6], v[6], v[5]);
+    if (marker) {
+      markerDisc.position.copy(v[6]).add(new THREE.Vector3(0, marker.offset, 0));
+      markerDisc.scale.set(marker.radius, 1, marker.radius);
+    }
+  }
+  function setGround(z) {
+    groundY = z;
+    grid.position.y = z;
+    column.scale.set(1, -z + 0.25, 1);
+    column.position.set(0, (z + 0.25) / 2, 0);
+  }
+  setGround(groundY);
+  function samplePath(path, u) {
+    if (path.length === 1) return path[0];
+    const f = Math.max(0, Math.min(1, u)) * (path.length - 1);
+    const i = Math.min(Math.floor(f), path.length - 2), w = f - i;
+    return path[i].map((p, k) => p.map((c, j) => c + (path[i + 1][k][j] - c) * w));
+  }
+
+  function applyColors() {
+    scene.background = C.scene;
+    grid.material.color = C.grid;
+    beam.material.color = C.signal;
+    tank.material.color = C.steel;
+    ring.material.color = C.signal;
+    normalArrow.setColor(C.signal);
+    armMat.color = C.signal;
+    freeMat.color = C.steel;
+    tankMat.color = C.steel;
+    cabMat.color = C.muted;
+    obstacleMat.color = C.clutter;
+    markerMat.color = C.ink;
+    if (current) colorPoints(phase === "scan" ? false : current.result.ok);
+  }
+
+  // ---- Messdaten ----
+  let current = null, pts = null, order = null, phase = "idle";
+
+  async function fetchFrame() {
+    if (FRAMES) return FRAMES[frameIdx++ % FRAMES.length];
+    const r = await fetch("/api/frame", { cache: "no-store" });
+    if (!r.ok) throw new Error("Server antwortet mit HTTP " + r.status);
+    return r.json();
+  }
+
+  function setPoints(flat) {
+    const n = Math.min(flat.length / 3, MAX);
+    pts = new Float32Array(n * 3);
+    // Scanreihenfolge: Zeile für Zeile entlang der Sensorachse
+    order = Array.from({ length: n }, (_, i) => i).sort((a, b) =>
+      (flat[a * 3 + 1] - flat[b * 3 + 1]) || (flat[a * 3] - flat[b * 3]));
+    const pos = ptGeo.attributes.position.array;
+    for (let k = 0; k < n; k++) {
+      const i = order[k];
+      const v = toView(flat[i * 3], flat[i * 3 + 1], flat[i * 3 + 2]);
+      pos[k * 3] = v.x; pos[k * 3 + 1] = v.y; pos[k * 3 + 2] = v.z;
+      pts[k * 3] = flat[i * 3]; pts[k * 3 + 1] = flat[i * 3 + 1]; pts[k * 3 + 2] = flat[i * 3 + 2];
+    }
+    ptGeo.attributes.position.needsUpdate = true;
+    ptGeo.setDrawRange(0, 0);
+    ptGeo.computeBoundingSphere();
+  }
+
+  function loadFrame(f) {
+    current = f;
+    setPoints(f.points);
+    const s = f.sensor_mm || [0, 0, 0];
+    sensor.position.copy(toView(s[0] / 1000, s[1] / 1000, s[2] / 1000));
+    traverse.position.copy(sensor.position).add(new THREE.Vector3(0, 0.1, 0));
+    if (f.arm) {
+      setGround(f.arm.ground_z);
+      drawObstacles(f.arm.obstacles);
+      setMarker(f.arm.marker);
+      if (!armPts) drawArm(f.arm.park);
+    }
+    colorPoints(false);
+  }
+
+  function colorPoints(classified) {
+    const col = ptGeo.attributes.color.array, n = pts.length / 3;
+    const r = current.result;
+    let c, nrm, lo = Infinity, hi = -Infinity, ylo = Infinity, yhi = -Infinity, depth = 0, cnt = 0;
+    if (classified && r.ok) {
+      c = r.target_mm.map(v => v / 1000);
+      nrm = r.normal;
+    }
+    // runder Tank: Abstand zum Zylindermantel statt zur Ebene; Domkragen zählt zur Oberfläche
+    const vh = c && current.vehicle && current.vehicle.radius ? current.vehicle : null;
+    let axisP, ax, R, rim, rr;
+    if (vh) {
+      R = vh.radius; ax = vh.axis; rim = vh.rim; rr = vh.diameter / 2 + 0.12;
+      axisP = [vh.apex[0], vh.apex[1], vh.apex[2] - R];
+    }
+    const onSurface = k => {
+      const x = pts[k * 3], y = pts[k * 3 + 1], z = pts[k * 3 + 2];
+      if (!vh) return Math.abs((x - c[0]) * nrm[0] + (y - c[1]) * nrm[1] + (z - c[2]) * nrm[2]) < 0.03;
+      if (Math.hypot(x - rim[0], y - rim[1]) < rr && z > vh.apex[2] - 0.05 && z < rim[2] + 0.05) return true;
+      const dx = x - axisP[0], dy = y - axisP[1], dz = z - axisP[2];
+      const along = dx * ax[0] + dy * ax[1] + dz * ax[2];
+      const perp = Math.hypot(dx - along * ax[0], dy - along * ax[1], dz - along * ax[2]);
+      return Math.abs(perp - R) < 0.04;
+    };
+    for (let k = 0; k < n; k++) {
+      let color = C.point;
+      if (c) {
+        if (onSurface(k)) {
+          color = C.surface;
+          lo = Math.min(lo, pts[k * 3]); hi = Math.max(hi, pts[k * 3]);
+          ylo = Math.min(ylo, pts[k * 3 + 1]); yhi = Math.max(yhi, pts[k * 3 + 1]);
+          depth += pts[k * 3 + 2]; cnt++;
+        } else color = C.clutter;
+      }
+      col[k * 3] = color.r; col[k * 3 + 1] = color.g; col[k * 3 + 2] = color.b;
+    }
+    ptGeo.attributes.color.needsUpdate = true;
+    if (c && cnt && !vehicleGroup.children.length) {
+      const top = depth / cnt;
+      tank.scale.set(hi - lo, top - groundY - 0.03, yhi - ylo);
+      tank.position.set((lo + hi) / 2, (top + groundY) / 2 - 0.02, -(ylo + yhi) / 2);
+      tank.visible = true;
+    }
+  }
+
+  function showResult(f) {
+    const r = f.result, fmt = (v, d = 1) => v.toFixed(d).replace(".", ",");
+    set("v-id", f.id ?? "–");
+    set("v-pts", f.n_points ? f.n_points.toLocaleString("de-DE") : "–");
+    set("v-ms", f.detect_ms != null ? fmt(f.detect_ms) + " ms" : "–");
+    set("v-err", r.error_code);
+    const vh = f.vehicle;
+    set("v-tank", !r.ok || !vh ? "–" : vh.kind === "eben" ? "eben"
+      : (vh.kind === "kesselwagen" ? "Kesselwagen" : "Lkw") + ", R " + vh.radius.toFixed(2).replace(".", ",") + " m");
+    if (r.ok) {
+      set("v-target", r.target_mm.map(v => fmt(v)).join(" / ") + " mm");
+      set("v-normal", r.normal.map(v => fmt(v, 3)).join(" / "));
+      set("v-dia", fmt(r.diameter_mm) + " mm");
+      set("v-conf", fmt(r.confidence, 2));
+    } else {
+      for (const id of ["v-target", "v-normal", "v-dia", "v-conf", "v-joints", "v-depth", "v-corr"]) set(id, "–");
+    }
+  }
+  const set = (id, t) => (document.getElementById(id).textContent = t);
+
+  // ---- Ablaufsteuerung ----
+  const STEP_LABEL = { scan: "Aufnahme", detect: "Erkennung", move: "Anfahrt", measure2: "Nachmessen", adjust: "Korrektur", lower: "Eintauchen", hold: "In Position", retract: "Rückfahrt", error: "Fehler", idle: "Bereit" };
+  let t0 = 0, busy = false, nextFrame = null, shown = false;
+
+  function setStatus(state, text, msg = "") {
+    document.getElementById("status").dataset.state = state;
+    set("statustext", text);
+    set("msg", msg);
+  }
+  function setSteps(active, failed = false) {
+    const keys = ["scan", "detect", "move", "measure2", "lower", "retract"];
+    const alias = { hold: "lower", error: "detect", adjust: "measure2" };
+    const idx = keys.indexOf(alias[active] || active);
+    document.querySelectorAll("#steps li").forEach((li, i) => {
+      li.className = active === "idle" ? "" : i < idx ? "done" : i === idx ? (failed ? "fail" : "active") : "";
+    });
+    set("stagechip", STEP_LABEL[active] || "Bereit");
+  }
+  function enter(p) {
+    phase = p;
+    shown = false;
+    t0 = performance.now();
+    setSteps(p, p === "error");
+  }
+
+  // geplante Stützpunkte (Auslassende) aus dem DB_Vision
+  const pathGroup = new THREE.Group();
+  scene.add(pathGroup);
+  let pathKey = "";
+  function drawPath(list) {
+    const key = JSON.stringify(list || []);
+    if (key === pathKey) return;
+    pathKey = key;
+    pathGroup.clear();
+    for (const p of list || []) {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 8), new THREE.MeshBasicMaterial({ color: C.signal }));
+      m.position.copy(toView(...p));
+      pathGroup.add(m);
+    }
+  }
+
+  function showFollowUp(f) {
+    // Job 2/3: keine neue Scan-Animation, nur Ergebnis und (Job 2) aktuelle Punktwolke
+    const r = f.result;
+    if (f.job === 2 && f.points && f.points.length) {
+      loadFrame(f);
+      ptGeo.setDrawRange(0, pts.length / 3);
+      colorPoints(r.ok);
+    }
+    if (!r.ok) setStatus("err", "Job " + f.job + ": Fehler " + r.error_code, ERRORS[r.error_code] || "");
+    else if (f.job === 2) setStatus("ok", "Auslass nachgemessen",
+      "Korrektur " + f.correction_mm.map(v => (v >= 0 ? "+" : "") + v.toFixed(1).replace(".", ",")).join(" / ") + " mm, SPS taucht ein");
+    else setStatus("ok", "Rückfahrt geplant", "SPS fährt in die Parkstellung");
+    if (f.servo_target) set("v-joints", f.servo_target.map(v => v.toFixed(1).replace(".", ",")).join(" / ") + " °");
+    set("v-id", f.id);
+    set("v-err", r.error_code);
+  }
+
+  async function startMeasurement() {
+    if (busy) return;
+    if (MODE === "opcua" && !queued) return;
+    if (MODE === "opcua" && (queued.job === 2 || queued.job === 3)) {
+      const f = queued; queued = null;
+      showFollowUp(f);
+      return;
+    }
+    busy = true;
+    document.getElementById("trigger").disabled = true;
+    setStatus("busy", MODE === "opcua" ? "Neues Ergebnis #" + queued.id : "Messung läuft …");
+    try {
+      let f;
+      if (MODE === "opcua") { f = queued; queued = null; }
+      else { f = nextFrame ? await nextFrame : await fetchFrame(); nextFrame = null; }
+      loadFrame(f);
+      ring.visible = normalArrow.visible = tank.visible = false;
+      vehicleGroup.clear();
+      beam.visible = pts.length > 0;
+      enter("scan");
+    } catch (e) {
+      nextFrame = null;
+      setStatus("err", "Keine Verbindung zum Vision-Server",
+        "Starte den Server mit python -m verladearm_vision.viewer und lade die Seite neu. (" + e.message + ")");
+      finish(4000);
+    }
+  }
+
+  function finish(delay = 600) {
+    phase = "idle";
+    setSteps("idle");
+    busy = false;
+    document.getElementById("trigger").disabled = false;
+    if (MODE === "opcua") { if (queued) startMeasurement(); return; }
+    if (document.getElementById("auto").checked) setTimeout(startMeasurement, delay);
+  }
+
+  // ---- OPC UA: DB_Vision mitlesen ----
+  let queued = null, lastResultId = null;
+  const lamp = (id, on) => (document.getElementById(id).dataset.on = on ? "1" : "0");
+  function renderSignals(s) {
+    const g = s && s.signals ? s.signals : {};
+    const up = !!(s && s.connected);
+    lamp("s-conn", up);
+    for (const k of ["Ready", "Trigger", "Busy", "Done", "Error", "AxesHomed"]) lamp("s-" + k, up && g[k]);
+    const JOBS = { 0: "–", 1: "1 Messen", 2: "2 Nachmessen", 3: "3 Rückfahrt" };
+    const ARM = { 0: "Park", 1: "fährt", 2: "über Dom", 3: "eingetaucht", 9: "Störung" };
+    set("s-job", up ? (JOBS[g.Job] || g.Job) + " / " + (ARM[g.ArmState] || g.ArmState) : "–");
+    set("s-act", up && g.AxesHomed ? [g.ActualJ1, g.ActualJ2, g.ActualJ3].map(v => v.toFixed(1).replace(".", ",")).join(" / ") + " °" : "–");
+    if (s && s.arm_pts) {
+      if (!armPts) setGround(s.ground_z);
+      setMarker(s.marker);
+      drawObstacles(s.obstacles);
+      drawArm(s.arm_pts);
+    }
+    drawPath(s && s.path);
+    set("conn", !s ? "Viewer-Server nicht erreichbar" :
+      up ? s.url : "Keine Verbindung zu " + s.url + (s.error ? " (" + s.error + ")" : ""));
+    set("s-hb", up ? g.HeartbeatPLC + " / " + g.HeartbeatPC : "–");
+    set("s-prod", up ? g.ProductId : "–");
+    set("s-ver", up ? g.InterfaceVersion : "–");
+    if (!busy && !queued) {
+      if (!up) setStatus("err", "SPS nicht verbunden", "Die Ansicht verbindet sich automatisch neu.");
+      else if (!g.Ready) setStatus("idle", "Vision-Dienst nicht bereit", "Ready = FALSE: Dienst gestoppt oder SPS-Heartbeat ausgefallen.");
+      else if (g.Trigger || g.Busy) setStatus("busy", "SPS hat eine Messung angefordert", "");
+      else if (lastResultId === 0 || lastResultId === null) setStatus("idle", "Warte auf die erste Messung der SPS", "");
+    }
+  }
+  async function poll() {
+    let s = null;
+    try {
+      s = await (await fetch("/api/state", { cache: "no-store" })).json();
+      const rid = s.connected ? s.signals.ResultId : null;
+      if (rid != null && rid !== lastResultId) {
+        lastResultId = rid;
+        if (rid > 0) {
+          queued = await (await fetch("/api/frame", { cache: "no-store" })).json();
+          if (!busy) startMeasurement();
+        }
+      }
+    } catch (e) { s = null; }
+    renderSignals(s);
+    setTimeout(poll, 150);
+  }
+
+  const ease = t => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+
+  function updateBeam(k) {
+    // vier Strahlen vom Sensor zu den Enden der aktuellen Scanzeile
+    const n = pts.length / 3, a = order.length ? Math.max(0, Math.min(n - 1, k)) : 0;
+    const p = ptGeo.attributes.position.array, s = sensor.position;
+    const rowY = p[a * 3 + 2];
+    const arr = beam.geometry.attributes.position.array;
+    const box = ptGeo.boundingSphere;
+    const ends = [[box.center.x - box.radius * 0.7, rowY], [box.center.x + box.radius * 0.7, rowY]];
+    let o = 0;
+    for (const [x, z] of ends) {
+      arr.set([s.x, s.y, s.z, x, p[a * 3 + 1], z], o); o += 6;
+    }
+    arr.set([ends[0][0], p[a * 3 + 1], rowY, ends[1][0], p[a * 3 + 1], rowY], o); o += 6;
+    arr.set([s.x, s.y, s.z, s.x, s.y, s.z], o);
+    beam.geometry.attributes.position.needsUpdate = true;
+  }
+
+  function tick(now) {
+    const t = (now - t0) / 1000;
+    if (phase === "scan") {
+      const n = pts.length / 3, k = Math.floor(n * Math.min(1, t / D.scan));
+      ptGeo.setDrawRange(0, k);
+      updateBeam(k);
+      if (t >= D.scan) {
+        ptGeo.setDrawRange(0, n);
+        beam.visible = false;
+        enter("detect");
+        // nächste Messung schon vorbereiten, während der Arm fährt
+        if (MODE === "standalone") nextFrame = fetchFrame().catch(() => null).then(f => f || fetchFrame());
+      }
+    } else if (phase === "detect") {
+      if (!shown) {
+        shown = true;
+        const r = current.result;
+        buildVehicle(r.ok ? current.vehicle : null);
+        colorPoints(true);
+        showResult(current);
+        if (r.ok) {
+          const c = toView(...r.target_mm.map(v => v / 1000));
+          const nv = toView(...r.normal).normalize();
+          ring.geometry.dispose();
+          ring.geometry = new THREE.TorusGeometry(r.diameter_mm / 2000, 0.018, 8, 64);
+          ring.position.copy(c);
+          ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), nv);
+          normalArrow.position.copy(c);
+          normalArrow.setDirection(nv);
+          ring.visible = normalArrow.visible = true;
+          setStatus("ok", "Domöffnung erkannt",
+            "Ø " + Math.round(r.diameter_mm) + " mm, Confidence " + r.confidence.toFixed(2).replace(".", ",")
+            + (current.note ? ". " + current.note : ""));
+        } else {
+          setStatus("err", "Fehler " + r.error_code, ERRORS[r.error_code] || r.message || "");
+          enter("error");
+          return requestAnimationFrame(tick);
+        }
+      }
+      ring.scale.setScalar(1 + 0.08 * Math.sin(t * 12) * (1 - t / D.detect));
+      if (t >= D.detect) {
+        ring.scale.setScalar(1);
+        const a = current.arm;
+        if (MODE === "opcua") {  // Arm kommt live aus den Istwinkeln der SPS
+          if (current.servo_target) set("v-joints", current.servo_target.map(v => v.toFixed(1).replace(".", ",")).join(" / ") + " °");
+          finish();
+        } else if (a && a.ok) {
+          set("v-joints", a.servo_inside_deg.map(v => v.toFixed(1).replace(".", ",")).join(" / ") + " °");
+          set("v-depth", Math.round(a.insertion_depth * 1000) + " mm · Produkt " + a.product_id);
+          enter("move");
+        } else {
+          setStatus("err", "Ziel nicht anfahrbar", a ? a.reason : "Keine Armdaten vom Server");
+          enter("error");
+        }
+      }
+    } else if (phase === "move") {
+      drawArm(samplePath(current.arm.move, ease(Math.min(1, t / D.move))));
+      if (t >= D.move) enter(current.arm.adjust ? "measure2" : "lower");
+    } else if (phase === "measure2") {
+      // Job 2: Sensor misst Markierungsscheibe und Dom im selben Bild
+      if (!shown) {
+        shown = true;
+        if (current.points2) {
+          setPoints(current.points2);
+          ptGeo.setDrawRange(0, pts.length / 3);
+          colorPoints(true);
+        }
+        const c = current.arm.correction_mm;
+        const fmt = v => (v >= 0 ? "+" : "") + v.toFixed(1).replace(".", ",");
+        set("v-corr", c.map(fmt).join(" / ") + " mm");
+        setStatus("busy", "Auslass nachgemessen",
+          "Scheibe steht " + Math.round(Math.hypot(c[0], c[1])) + " mm neben der Dommitte (Getriebespiel), Arm korrigiert");
+      }
+      beam.visible = t < D.measure2 * 0.5 && pts.length > 0;
+      if (beam.visible) updateBeam(Math.floor((t / (D.measure2 * 0.5)) * pts.length / 3));
+      markerMat.emissive = C.signal;
+      markerMat.emissiveIntensity = 0.6 * Math.abs(Math.sin(t * 6));
+      if (t >= D.measure2) {
+        markerMat.emissiveIntensity = 0;
+        beam.visible = false;
+        enter("adjust");
+      }
+    } else if (phase === "adjust") {
+      drawArm(samplePath(current.arm.adjust, ease(Math.min(1, t / D.adjust))));
+      if (t >= D.adjust) {
+        setStatus("ok", "Über der Dommitte", "Korrektur ausgeführt, Auslass taucht ein");
+        enter("lower");
+      }
+    } else if (phase === "lower") {
+      drawArm(samplePath(current.arm.insert, ease(Math.min(1, t / D.lower))));
+      if (t >= D.lower) enter("hold");
+    } else if (phase === "hold") {
+      if (t >= D.hold) enter("retract");
+    } else if (phase === "retract") {
+      // rückwärts: aus dem Dom, Korrektur zurück (falls vorhanden), Anfahrt zurück
+      const r = t / D.retract, a1 = 0.35, a2 = current.arm.adjust ? 0.45 : 0.35;
+      const seg = (lo, hi) => ease(Math.max(0, Math.min(1, (r - lo) / (hi - lo))));
+      if (r < a1) drawArm(samplePath(current.arm.insert, 1 - seg(0, a1)));
+      else if (r < a2) drawArm(samplePath(current.arm.adjust, 1 - seg(a1, a2)));
+      else drawArm(samplePath(current.arm.move, 1 - seg(a2, 1)));
+      if (t >= D.retract) finish();
+    } else if (phase === "error") {
+      if (t >= D.errHold) finish();
+    }
+    // beim Nachmessen und Eintauchen auf den Dom heranfahren (solange nicht selbst gedreht)
+    if (!userMoved) {
+      const close = current && current.result && current.result.ok &&
+        ["measure2", "adjust", "lower", "hold"].includes(phase);
+      const focus = close ? toView(...current.result.target_mm.map(v => v / 1000)) : VIEW_TARGET;
+      controls.target.lerp(focus, 0.04);
+      const scale = Math.max(1, 1.25 / camera.aspect) * (close ? 0.38 : 1);
+      camera.position.lerp(controls.target.clone().addScaledVector(VIEW_OFFSET, scale), 0.04);
+    }
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / Math.max(h, 1);
+    camera.updateProjectionMatrix();
+    if (!userMoved) // Hochformat: weiter weg, damit Sensor, Arm und Tank ins Bild passen
+      camera.position.copy(VIEW_TARGET).addScaledVector(VIEW_OFFSET, Math.max(1, 1.25 / camera.aspect));
+  }
+  let userMoved = false;
+  controls.addEventListener("start", () => (userMoved = true));
+  new ResizeObserver(resize).observe(stage);
+  resize();
+
+  const onTheme = () => { readColors(); applyColors(); };
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  applyColors();
+
+  document.getElementById("trigger").addEventListener("click", startMeasurement);
+  document.getElementById("auto").addEventListener("change", e => { if (e.target.checked && !busy) startMeasurement(); });
+
+  requestAnimationFrame(tick);
+
+  async function init() {
+    if (!FRAMES) {
+      try { MODE = (await (await fetch("/api/state", { cache: "no-store" })).json()).mode || "standalone"; }
+      catch (e) { MODE = "standalone"; }
+    }
+    set("mode", { demo: "Aufgezeichnete Messungen", standalone: "Live · eigene Messung", opcua: "Live · OPC UA" }[MODE]);
+    if (MODE === "opcua") {
+      document.getElementById("signals").hidden = false;
+      document.getElementById("ctl").hidden = true;
+      poll();
+    } else startMeasurement();
+  }
+  init();
+})();
+</script>
+</body>
+</html>

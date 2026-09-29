@@ -1,0 +1,16 @@
+# Live-Ansicht (Browser, Port 8000), liest DB_Vision nur mit. Installation: deploy/install.sh
+[Unit]
+Description=Verladearm Live-Ansicht
+Wants=network-online.target
+After=network-online.target verladearm-vision.service
+
+[Service]
+Type=simple
+User=verladearm
+WorkingDirectory=/var/lib/verladearm
+ExecStart=/opt/verladearm/venv/bin/python -m verladearm_vision.viewer --opcua --host 0.0.0.0 --config /etc/verladearm/anlage.yaml
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

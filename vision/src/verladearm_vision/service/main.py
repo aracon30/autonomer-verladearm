@@ -266,7 +266,8 @@ class VisionService:
                       for k in (self.products or {})] or [self.geom.insertion_depth]
             lift = self.geom.approach_height + self.geom.approach_lift + max(depths)
         plan = plan_retract(self._scene_geom(), q_act, lift,
-                            fallback=(self.last or {}).get("approach"))
+                            fallback=(self.last or {}).get("approach"),
+                            time_limit=self.plan_time_limit)
         self._info["rueckfahrt_rueckwaerts"] = bool(plan.get("reversed"))
         if not plan["ok"]:
             return self._fail(plan["code"], plan["reason"])

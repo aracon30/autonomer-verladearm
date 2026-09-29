@@ -552,7 +552,7 @@ def _check_frames(geom: ArmGeometry, q0, frames, what: str, steps_per_rad: float
 
 def _transit(geom: ArmGeometry, q0, q_goal, goal_point, safe_z: float, move_steps: int,
              what: str, max_frames: int = 8, around=None, routes: bool = True,
-             deadline: float = float("inf")):
+             search: bool = True, deadline: float = float("inf")):
     """Kollisionsfreie Fahrt von q0 nach q_goal. Reihenfolge der Versuche:
     1. synchrone Gelenkbewegung (ggf. mit angehobenem Ausleger)
     2. senkrecht auf sichere Höhe, waagerecht zum Ziel
@@ -590,7 +590,97 @@ def _transit(geom: ArmGeometry, q0, q_goal, goal_point, safe_z: float, move_step
             qs, pts, err = _check_frames(geom, q0, frames, what)
             if not err:
                 return frames, qs, pts, None
+    # 4. Suche im Gelenkraum (RRT-Connect)
+    if search:
+        found = _search(geom, q0, [q_goal], deadline, what, max_frames)
+        if found:
+            return (*found[1:], None)
+    if time.monotonic() > deadline:
+        return None, None, None, f"{first_err}; Suche nach Umweg abgebrochen (Zeitlimit)"
     return None, None, None, first_err
+
+
+def _search(geom: ArmGeometry, q0, goals, deadline: float, what: str, max_frames: int = 8):
+    """Weg im Gelenkraum zu einem der Ziele, geglättet und fein geprüft.
+    Liefert (Zielindex, Stützpunkte, Gelenkwinkel, Eckpunkte) oder None."""
+    found = _rrt_connect(geom, q0, goals, deadline - 0.3)  # Reserve für Glätten und Prüfen
+    if found is None:
+        return None
+    k, path = found
+    frames = _shortcut(geom, q0, path)
+    frames[-1] = np.asarray(goals[k], float)
+    if len(frames) > max_frames:
+        return None
+    qs, pts, err = _check_frames(geom, q0, frames, what)
+    return None if err else (k, frames, qs, pts)
+
+
+def _edge_free(geom: ArmGeometry, a, b, max_step: float) -> bool:
+    n = int(np.ceil(np.abs(b - a).max() * _arm_length(geom) / max_step)) + 1
+    us = np.linspace(0, 1, max(n, 2))
+    return first_collision(geom, forward_many(geom, a + np.outer(us, b - a)))[1] is None
+
+
+def _rrt_connect(geom: ArmGeometry, qa, goals, deadline: float, step: float = 0.3,
+                 max_step: float = 0.08, iters: int = 4000, seed: int = 0):
+    """Kollisionsfreier Weg im Gelenkraum von qa zu einem der Ziele (zwei Suchbäume, die
+    aufeinander zuwachsen; der Zielbaum hat eine Wurzel je Ziel). Grob geprüft; die geglätteten
+    Stützpunkte prüft `_check_frames` danach fein. Fester Zufallsstartwert: gleiche Szene,
+    gleiche Bahn. Liefert (Zielindex, Weg ohne Startstellung) oder None."""
+    rng = np.random.default_rng(seed)
+    lo, hi = geom.bounds
+    a = ([np.asarray(qa, float)], [-1])  # wächst von qa aus
+    b = ([np.asarray(q, float) for q in goals], [-1] * len(goals))  # wächst von den Zielen aus
+
+    def extend(tree, q):
+        nodes, parent = tree
+        d = np.abs(np.asarray(nodes) - q).max(axis=1)
+        i = int(d.argmin())
+        reached = d[i] <= step
+        new = q if reached else nodes[i] + (q - nodes[i]) * step / d[i]
+        if not _edge_free(geom, nodes[i], new, max_step):
+            return None, False
+        nodes.append(new)
+        parent.append(i)
+        return len(nodes) - 1, reached
+
+    def branch(tree, i):
+        nodes, parent = tree
+        out = []
+        while True:
+            out.append(nodes[i])
+            if parent[i] == -1:
+                return out, i  # i = Wurzel
+            i = parent[i]
+
+    grow, other = a, b
+    for _ in range(iters):
+        if time.monotonic() > deadline:
+            return None
+        ig, _ = extend(grow, rng.uniform(lo, hi))
+        if ig is not None:
+            while (res := extend(other, grow[0][ig]))[0] is not None:
+                io, reached = res
+                if reached:  # Bäume verbunden
+                    ia, ib = (ig, io) if grow is a else (io, ig)
+                    to_start, to_goal = branch(a, ia)[0], branch(b, ib)
+                    path = to_start[::-1] + to_goal[0][1:]
+                    return to_goal[1], path[1:]
+        grow, other = other, grow
+    return None
+
+
+def _shortcut(geom: ArmGeometry, q0, path, max_step: float = 0.03):
+    """Stützpunkte weglassen, solange die direkte synchrone Fahrt frei bleibt."""
+    pts = [np.asarray(q0, float)] + [np.asarray(q, float) for q in path]
+    out, i = [], 0
+    while i < len(pts) - 1:
+        j = len(pts) - 1
+        while j > i + 1 and not _edge_free(geom, pts[i], pts[j], max_step):
+            j -= 1
+        out.append(pts[j])
+        i = j
+    return out
 
 
 def plan_motion(geom: ArmGeometry, target_mm, normal, insertion_depth: float | None = None,
@@ -634,21 +724,35 @@ def plan_motion(geom: ArmGeometry, target_mm, normal, insertion_depth: float | N
             q_down, down, err = _line(geom, pre.q, above + n * lift, above, 8, "Absenken")
             if not err:
                 options.append((q_above, q_insert, insert, lift, pre.q, q_down, down))
-    # erst alle Möglichkeiten mit direkter Fahrt, dann (rechenintensiv) mit Umwegen
-    # Umwege nur zum höchsten Vorpunkt je Armstellung (dort ist am meisten Platz)
+    # kartesische Umwege nur zum höchsten Vorpunkt je Armstellung (dort ist am meisten Platz)
     highest = [o for i, o in enumerate(options)
                if i == 0 or o[0] is not options[i - 1][0]]
-    for routes, opts in ((False, options), (True, highest)):
-        for q_above, q_insert, insert, lift, q_pre, q_down, down in opts:
-            vias, q_move, move, err = _transit(geom, q0, q_pre, above + n * lift,
-                                               (above + n * lift)[2], move_steps, "Anfahrt",
-                                               around=center, routes=routes,
-                                               deadline=deadline)
-            if err:
-                continue
-            q_down[-1] = q_above  # exakt auf den geprüften Eintauchbeginn
-            plan.update(move_vias=[q.tolist() for q in vias + [q_above]], approach_lift=lift)
-            return _result(geom, plan, q_move + q_down, move + down, q_insert, insert)
+
+    def done(option, vias, q_move, move):
+        q_above, q_insert, insert, lift, _, q_down, down = option
+        q_down[-1] = q_above  # exakt auf den geprüften Eintauchbeginn
+        plan.update(move_vias=[q.tolist() for q in vias + [q_above]], approach_lift=lift)
+        return _result(geom, plan, q_move + q_down, move + down, q_insert, insert)
+
+    def transit(o, routes):
+        return _transit(geom, q0, o[4], above + n * o[3], (above + n * o[3])[2], move_steps,
+                        "Anfahrt", around=center, routes=routes, search=False,
+                        deadline=deadline)
+
+    for o in options:  # 1. direkte Fahrt (ggf. mit angehobenem Ausleger)
+        vias, q_move, move, err = transit(o, False)
+        if not err:
+            return done(o, vias, q_move, move)
+    # 2. Suche im Gelenkraum zu allen möglichen Vorpunkten gleichzeitig (60 % der Restzeit)
+    budget = time.monotonic() + 0.6 * max(0.0, deadline - time.monotonic())
+    found = _search(geom, q0, [o[4] for o in options], budget, "Anfahrt") if options else None
+    if found:
+        k, frames, q_move, move = found
+        return done(options[k], frames, q_move, move)
+    for o in highest:  # 3. kartesische Umwege über sichere Höhe / seitlich am Dom vorbei
+        vias, q_move, move, err = transit(o, True)
+        if not err:
+            return done(o, vias, q_move, move)
     plan.update(reason=err or "Kein kollisionsfreier Weg gefunden",
                 code=31 if err and "Kollision" in err else 30)
     return plan
@@ -687,7 +791,7 @@ def plan_correction(geom: ArmGeometry, q_actual, tip_measured, target_mm, normal
 
 
 def plan_retract(geom: ArmGeometry, q_start, lift: float, lift_steps: int = 8,
-                 move_steps: int = 36, fallback=None):
+                 move_steps: int = 36, fallback=None, time_limit: float = 3.5):
     """Job 3: senkrecht aus dem Dom heraus (so hoch wie erreichbar, höchstens `lift`), dann
     kollisionsfrei in die Parkstellung.
 
@@ -698,7 +802,8 @@ def plan_retract(geom: ArmGeometry, q_start, lift: float, lift_steps: int = 8,
     q_start = np.asarray(q_start, dtype=float)
     p0 = tip(geom, q_start)
     plan = {"park": forward(geom, geom.park).round(4).tolist(), "ok": False, "code": 30}
-    result = _retract_new(geom, q_start, p0, lift, lift_steps, move_steps, plan)
+    deadline = time.monotonic() + time_limit
+    result = _retract_new(geom, q_start, p0, lift, lift_steps, move_steps, plan, deadline)
     if result["ok"] or not fallback:
         return result
     back = _retract_reverse(geom, q_start, p0, fallback, lift_steps, dict(plan))
@@ -725,7 +830,7 @@ def _retract_reverse(geom, q_start, p0, fallback, lift_steps, plan):
     return plan
 
 
-def _retract_new(geom, q_start, p0, lift, lift_steps, move_steps, plan):
+def _retract_new(geom, q_start, p0, lift, lift_steps, move_steps, plan, deadline):
     err = "Herausfahren nicht möglich"
     for h in np.linspace(lift, min(lift, 0.3), 5):
         q_lift, lift_pts, err = _line(geom, q_start, p0, p0 + [0, 0, h], lift_steps,
@@ -737,7 +842,8 @@ def _retract_new(geom, q_start, p0, lift, lift_steps, move_steps, plan):
         return plan
     top = tip(geom, q_lift[-1])
     vias, q_move, move, err = _transit(geom, q_lift[-1], geom.park, tip(geom, geom.park),
-                                       top[2], move_steps, "Rückfahrt", around=p0)
+                                       top[2], move_steps, "Rückfahrt", around=p0,
+                                       deadline=deadline)
     if err:
         plan.update(reason=err, code=31)
         return plan

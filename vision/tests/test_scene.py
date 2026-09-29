@@ -1,5 +1,6 @@
 """Hindernisse aus der Messung (Tank, Domkragen, offener Deckel) und kollisionsfreie Bahnen."""
 
+import time
 from pathlib import Path
 
 import numpy as np
@@ -135,7 +136,7 @@ def test_rueckfahrt_rueckwaerts_als_ausweg(monkeypatch):
     q_in, _, err = k._line(g, pre.q, tip(g, pre.q), tip(g, pre.q) - [0, 0, 0.8], 8, "Eintauchen")
     assert not err
     approach = [g.park.tolist(), (g.park + [0, 0, 0.3]).tolist(), pre.q.tolist()]
-    monkeypatch.setattr(k, "_retract_new", lambda *a: dict(a[-1], reason="kein Weg", code=31))
+    monkeypatch.setattr(k, "_retract_new", lambda *a: dict(a[-2], reason="kein Weg", code=31))
     plan = plan_retract(g, q_in[-1], lift=1.0, fallback=approach)
     assert plan["ok"] and plan["reversed"]
     assert np.allclose(tip(g, plan["q_lift"][-1]), tip(g, pre.q), atol=0.003)  # senkrecht hoch
@@ -154,3 +155,19 @@ def test_hindernisformen_aus_anlagendatei():
     assert [type(o) for o in g.obstacles] == [Obstacle, CylinderObstacle, OrientedBoxObstacle]
     with pytest.raises(ValueError, match="unbekannte Form"):
         ArmGeometry(obstacles=[{"name": "X", "form": "kugel"}])
+
+
+def test_suche_im_gelenkraum_umfaehrt_hindernis():
+    import verladearm_vision.kinematics as k
+
+    g = ArmGeometry()
+    q0, goal = g.park, g.park + np.array([-1.2, 0.3, 0.0])
+    mid = forward(g, (q0 + goal) / 2)[-1]  # Auslassende auf halber direkter Strecke
+    geom = g.with_obstacles([Obstacle("Block", mid - 0.3, mid + 0.3)])
+    assert k._joint_move(geom, q0, goal, 20, "direkt")[2]  # direkt kollidiert
+    unreachable = goal + np.array([0.0, 0.0, 5.0])  # außerhalb der Achsgrenzen
+    found = k._search(geom, q0, [unreachable, goal], time.monotonic() + 10, "Test")
+    assert found is not None
+    idx, frames, _, pts = found
+    assert idx == 1 and np.allclose(frames[-1], goal) and len(frames) <= 8
+    assert all(collision(geom, p) is None for p in pts)

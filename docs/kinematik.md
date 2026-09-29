@@ -83,13 +83,15 @@ stehen im Protokoll (`szene.deckel`) und in der Live-Ansicht.
    an J4 darf dabei z. B. nicht über dem Deckel stehen.
 2. Vorpunkthöhen `approach_lift`, 0,35, 0,2, 0,1 m: senkrechtes Absenken muss frei sein.
 3. direkte synchrone Fahrt; wenn nicht frei: J3 anheben, schwenken, J3 senken.
-4. erst wenn für keine Möglichkeit eine direkte Fahrt frei ist, **Umwege**: senkrecht auf sichere
-   Höhe, waagerecht über den Vorpunkt, oder seitlich in 8 Richtungen 1 m am Dom vorbei (wenn der
-   Deckel höher ist, als der Arm den Auslass heben kann). Höchstens 8 Zwischenstützpunkte.
-5. nichts frei → **Fehler 31**, der Arm fährt nicht. Die Meldung nennt das Hindernis.
+4. erst wenn für keine Möglichkeit eine direkte Fahrt frei ist: **Suche im Gelenkraum**
+   (RRT-Connect) zu allen möglichen Vorpunkten gleichzeitig. Der gefundene Weg wird auf wenige
+   Stützpunkte geglättet und fein geprüft. Fester Zufallsstartwert: gleiche Messung, gleiche Bahn.
+5. danach kartesische **Umwege**: senkrecht auf sichere Höhe, waagerecht über den Vorpunkt, oder
+   seitlich in 8 Richtungen 1 m am Dom vorbei. Höchstens 8 Zwischenstützpunkte.
+6. nichts frei → **Fehler 31**, der Arm fährt nicht. Die Meldung nennt das Hindernis.
 
-Die Suche ist auf `planning.time_limit_s` (Standard 3,5 s) begrenzt. Auf dem Entwicklungsrechner
-braucht Job 1 im Mittel 0,5 s und höchstens 2,7 s.
+Die Suche ist auf `planning.time_limit_s` (Standard 3,5 s) begrenzt, für Job 1 und Job 3. Auf dem
+Entwicklungsrechner braucht Job 1 im Mittel 0,5 s und höchstens 3,1 s.
 
 **Rückfahrt (Job 3):** senkrecht heraus (so hoch wie möglich), dann wie oben in die Parkstellung.
 Gibt es keinen neuen Weg, fährt der Arm senkrecht bis auf den Vorpunkt und den **in Job 1
@@ -97,11 +99,13 @@ geprüften Anfahrweg rückwärts** (`rueckfahrt_rueckwaerts` im Protokoll).
 
 **Grenzen:** Die Hindernisse kommen aus einer Aufnahme. Was der Sensor nicht sieht (verdeckte
 Teile, Personen), ist nicht enthalten; dafür bleibt die Sicherheitstechnik der Anlage zuständig.
-In der Simulation (Deckel zufällig ausgerichtet, 95–115° geöffnet, 40 Verladungen Lkw und
-Kesselwagen) meldete die Planung 3 × Fehler 31; alle Bahnen der übrigen Verladungen sind
-kollisionsfrei. Das waren Kesselwagen, bei denen der Deckel so steht, dass der Rohrbogen an J4
-in beiden Armstellungen über ihm stünde. Abhilfe: Deckel weiter öffnen oder in eine andere
-Richtung stellen, Fahrzeug versetzen.
+In der Simulation (Beispielanlage, Deckel zufällig ausgerichtet, 95–115° geöffnet) kamen alle
+Lkw kollisionsfrei an den Dom, Kesselwagen in etwa 70–90 % der Fälle. Die übrigen meldeten
+Fehler 31: Der Kesselwagen-Dom liegt so hoch, dass der Arm den Auslass nur knapp 0,5 m über den
+Kragen heben kann, der offene Deckel ist aber ca. 0,6 m hoch. Steht der Deckel zwischen Arm und
+Dom oder unter dem Rohrbogen an J4, gibt es keinen Weg; auch eine Suche ohne Zeitlimit findet
+dann keinen. Abhilfe: Deckel in eine andere Richtung stellen, Fahrzeug versetzen, oder bei der
+Anlagenplanung mehr Hub an J3 bzw. einen höheren Haltepunkt vorsehen.
 
 Die Achsregelung liegt in der SPS. Das Python-Modell dient der Planung, der Live-Ansicht, der
 Plausibilisierung und als Referenz für die SPS-Programmierung.

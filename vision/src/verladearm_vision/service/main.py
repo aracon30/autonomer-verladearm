@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
-from verladearm_vision.acquisition import FileSource
+from verladearm_vision.acquisition import FileSource, SickVisionarySource
 from verladearm_vision.calibration import SensorToArm
 from verladearm_vision.config import load_config
 from verladearm_vision.detection import DetectionError, DetectorConfig, detect_opening
@@ -23,10 +23,13 @@ log = logging.getLogger("verladearm")
 
 
 def build_source(cfg: dict):
+    params = {k: v for k, v in cfg.items() if k != "type"}
     kind = cfg["type"]
     if kind == "file":
-        return FileSource(cfg["path"])
-    raise ValueError(f"Unbekannte Quelle: {kind}")  # hier später echte Sensortreiber ergänzen
+        return FileSource(params["path"])
+    if kind == "sick":
+        return SickVisionarySource(**params)
+    raise ValueError(f"Unbekannte Quelle: {kind}")
 
 
 def save_snapshot(path: Path, points: np.ndarray):

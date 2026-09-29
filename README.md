@@ -20,7 +20,7 @@ Der Vision-PC liefert **nur die Zielkoordinate**. Bewegung, Ablauf und Sicherhei
 ```bash
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
+pip install -e ".[dev]"            # mit Sensor SICK Visionary-T Mini: ".[dev,sick]"
 
 python tools/make_synthetic.py      # Testdaten erzeugen
 python -m verladearm_vision.service.main --once   # eine Messung ohne SPS
@@ -65,7 +65,7 @@ python -m verladearm_vision.commissioning --config vision/config/anlagen/beispie
 | Ordner | Inhalt |
 |---|---|
 | `docs/` | Lastenheft, Schnittstelle, Kinematik, Inbetriebnahme, Architekturentscheidungen |
-| `hardware/` | Stückliste, Halterungen, Elektro |
+| `hardware/` | Stückliste, Halterungen, Elektro (Sensor: [docs/sensor_sick.md](docs/sensor_sick.md)) |
 | `plc/` | Schnittstellen-DB für TIA Portal |
 | `vision/src/verladearm_vision/` | acquisition, detection, calibration, kinematics, plc, service, viewer |
 | `vision/config/` | Konfiguration: `default.yaml`, Anlagendateien unter `anlagen/` |
@@ -82,4 +82,5 @@ python -m verladearm_vision.commissioning --config vision/config/anlagen/beispie
 ## Status
 
 Prototyp. Erkennung für ebene und runde Tanks (Lkw, Kesselwagen) mit Domkragen auf synthetischen
-Daten getestet; reale Sensortreiber, Kalibrierung und Messungen an echten Fahrzeugen folgen.
+Daten getestet. Treiber für den SICK Visionary-T Mini CX vorhanden, am echten Gerät noch nicht
+erprobt; Kalibrierung und Messungen an echten Fahrzeugen folgen.

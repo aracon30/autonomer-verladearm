@@ -1,8 +1,12 @@
 # Konfiguration Vision-Dienst autonomer Verladearm
 
 source:
-  type: file            # file = aufgenommene Punktwolken abspielen; später z. B. orbbec, livox
+  type: file            # file = aufgenommene Punktwolken abspielen, sick = Visionary-T Mini CX
   path: data/samples
+  # Beispiel SICK Visionary-T Mini CX (pip install -e ".[sick]", docs/sensor_sick.md):
+  # type: sick
+  # ip: 192.168.1.10
+  # frames: 3           # Bilder je Messung, pixelweiser Median
 
 detection:
   roi_min: [-2.0, -2.0, 0.5]    # Arbeitsraum in Sensorkoordinaten [m]

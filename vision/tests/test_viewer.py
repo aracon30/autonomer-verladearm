@@ -68,8 +68,9 @@ def test_plc_monitor_liest_db_vision(tmp_path):
         server.set_endpoint(f"opc.tcp://127.0.0.1:{port}/")
         idx = await server.register_namespace("urn:test")
         db = await server.nodes.objects.add_object(ua.NodeId('"DB_Vision"', idx), "DB_Vision")
-        for name, (vtype, _) in VARIABLES.items():
+        for name, (vtype, _, length) in VARIABLES.items():
             default = False if vtype == ua.VariantType.Boolean else 0
+            default = [default] * length if length else default
             await db.add_variable(ua.NodeId(f'"DB_Vision"."{name}"', idx), name,
                                   ua.Variant(values.get(name, default), vtype))
         async with server:

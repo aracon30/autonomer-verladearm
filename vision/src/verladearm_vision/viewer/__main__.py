@@ -24,6 +24,7 @@ from verladearm_vision.calibration import SensorToArm
 from verladearm_vision.config import load_config
 from verladearm_vision.detection import DetectionError, DetectorConfig, detect_opening
 from verladearm_vision.kinematics import (
+    JOINTS,
     ArmGeometry,
     forward,
     plan_motion,
@@ -36,7 +37,9 @@ log = logging.getLogger("verladearm.viewer")
 
 # Handshake-Signale aus DB_Vision, die die Seite live anzeigt
 SIGNALS = ("Ready", "Trigger", "Busy", "Done", "Error", "ErrorCode", "ResultId", "ProductId",
-           "HeartbeatPLC", "HeartbeatPC", "InterfaceVersion")
+           "HeartbeatPLC", "HeartbeatPC", "InterfaceVersion", "Job", "AxesHomed", "ArmState",
+           "ActualJ1", "ActualJ2", "ActualJ3", "WaypointCount", "ApproachIndex", "CorrectionX",
+           "CorrectionY")
 
 
 class FrameProducer:
@@ -186,13 +189,31 @@ class PlcMonitor:
         with self.lock:
             v = dict(self.values)
             connected, error = self.connected, self.error
-        return {
+        state = {
             "mode": "opcua",
             "url": self.url,
             "connected": connected,
             "error": error,
             "signals": {k: v.get(k) for k in SIGNALS},
+            "ground_z": -self.geom.base_height,
+            "obstacles": [{"name": o.name, "min": o.min, "max": o.max}
+                          for o in self.geom.obstacles],
         }
+        if connected and v.get("AxesHomed"):
+            # Arm live aus den Istwinkeln der SPS, geplante Stützpunkte als Auslasspositionen
+            state["arm_pts"] = forward(self.geom, self._model(
+                [v["ActualJ1"], v["ActualJ2"], v["ActualJ3"]])).round(4).tolist()
+            n = int(v.get("WaypointCount") or 0)
+            if n and not v.get("Error"):
+                wps = zip(v["WaypointsJ1"][:n], v["WaypointsJ2"][:n], v["WaypointsJ3"][:n],
+                          strict=True)
+                state["path"] = [forward(self.geom, self._model(w))[-1].round(4).tolist()
+                                 for w in wps]
+        return state
+
+    def _model(self, servo_deg):
+        return np.array([self.geom.joints[k].to_model(float(d))
+                         for k, d in zip(JOINTS, servo_deg, strict=True)])
 
     def next_frame(self) -> dict:
         with self.lock:
@@ -209,11 +230,18 @@ class PlcMonitor:
                 confidence=round(float(v["Confidence"]), 3),
             )
         frame = {"id": int(v["ResultId"]), "detect_ms": None, "result": result,
+                 "job": int(v.get("Job") or 0),
+                 "correction_mm": [round(float(v["CorrectionX"]), 1),
+                                   round(float(v["CorrectionY"]), 1)],
                  "arm": arm_for_view(self.geom, result, int(v["ProductId"]), self.products)}
+        n = int(v.get("WaypointCount") or 0)
+        if ok and n:
+            frame["servo_target"] = [round(float(v[k][n - 1]), 2)
+                                     for k in ("WaypointsJ1", "WaypointsJ2", "WaypointsJ3")]
         if self.snapshot and self.snapshot.exists():
             points = np.load(self.snapshot)
             frame.update(points_for_view(points, self.transform, self.max_points, self.rng))
-            if ok:  # Tankform nur für die Anzeige, die Koordinaten kommen aus dem DB_Vision
+            if ok and frame["job"] != 3:  # Tankform nur für die Anzeige
                 try:
                     frame["vehicle"] = vehicle_for_view(detect_opening(points, self.det_cfg),
                                                         self.transform)

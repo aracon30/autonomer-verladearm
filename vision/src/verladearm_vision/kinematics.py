@@ -247,12 +247,61 @@ def inverse(geom: ArmGeometry, target, q0=None, tol: float = 0.002) -> IkResult:
     return IkResult(ok=err < tol, q=q, error=err)
 
 
-def plan_motion(geom: ArmGeometry, target_mm, normal, insertion_depth: float | None = None,
-                move_steps: int = 36, insert_steps: int = 16):
-    """Bahn für die Anzeige: Parkstellung -> Anfahrpunkt über dem Dom -> Eintauchpunkt.
+def _line(geom: ArmGeometry, q0, p_from, p_to, steps: int, what: str, offset=None):
+    """Gerade Bahn des Auslassendes von p_from nach p_to per Rückwärtsrechnung.
 
-    Anfahrt im Gelenkraum, Eintauchen als senkrechte Bahn des Auslassendes.
-    Liefert je Stützpunkt die Eckpunkte der Rohrführung.
+    `offset` ist ein gemessener Modellfehler (Istlage - Modell); die Modellziele werden um ihn
+    verschoben, damit das reale Auslassende auf der Bahn liegt.
+    Liefert (Gelenkwinkel je Stützpunkt, Eckpunkte je Stützpunkt, Fehlertext oder None).
+    """
+    offset = np.zeros(3) if offset is None else np.asarray(offset, dtype=float)
+    q, qs, pts = np.asarray(q0, dtype=float), [], []
+    for u in np.linspace(0, 1, steps):
+        res = inverse(geom, p_from + (p_to - p_from) * u - offset, q0=q)
+        if not res.ok:
+            return qs, pts, f"{what} nicht erreichbar ({u * 100:.0f} % der Bahn)"
+        q = res.q
+        qs.append(q)
+        pts.append(forward(geom, q))
+        if hit := collision(geom, pts[-1]):
+            return qs, pts, f"Kollision mit {hit} ({what})"
+    return qs, pts, None
+
+
+def _joint_move(geom: ArmGeometry, q_from, q_to, steps: int, what: str):
+    """Synchrone Gelenkbewegung (alle Achsen starten und enden gemeinsam) mit Kollisionsprüfung."""
+    qs = [q_from + (q_to - q_from) * u for u in np.linspace(0, 1, steps)]
+    pts = [forward(geom, q) for q in qs]
+    for p in pts:
+        if hit := collision(geom, p):
+            return qs, pts, f"Kollision mit {hit} ({what})"
+    return qs, pts, None
+
+
+def _result(geom, plan, q_move, move, q_insert, insert):
+    plan.update(
+        ok=True,
+        q_move=[q.tolist() for q in q_move],
+        q_insert=[q.tolist() for q in q_insert],
+        move=[m.round(4).tolist() for m in move],
+        insert=[m.round(4).tolist() for m in insert],
+    )
+    if q_insert:
+        plan.update(
+            q_above_deg=np.degrees(q_insert[0]).round(2).tolist(),
+            q_inside_deg=np.degrees(q_insert[-1]).round(2).tolist(),
+            servo_above_deg=geom.to_servo(q_insert[0]),
+            servo_inside_deg=geom.to_servo(q_insert[-1]),
+        )
+    return plan
+
+
+def plan_motion(geom: ArmGeometry, target_mm, normal, insertion_depth: float | None = None,
+                q_start=None, move_steps: int = 36, insert_steps: int = 16):
+    """Job 1: aktuelle Stellung (sonst Park) -> Anfahrpunkt über dem Dom -> Eintauchpunkt.
+
+    Anfahrt als synchrone Gelenkbewegung, Eintauchen als senkrechte Bahn des Auslassendes.
+    Liefert Gelenkwinkel und Eckpunkte der Rohrführung je Stützpunkt.
     """
     center = np.asarray(target_mm, dtype=float) / 1000.0
     n = np.asarray(normal, dtype=float)
@@ -260,9 +309,10 @@ def plan_motion(geom: ArmGeometry, target_mm, normal, insertion_depth: float | N
     above = center + n * geom.approach_height
     depth = geom.insertion_depth if insertion_depth is None else insertion_depth
     inside = center - n * depth
+    q0 = geom.park if q_start is None else np.asarray(q_start, dtype=float)
 
     plan = {"park": forward(geom, geom.park).round(4).tolist(), "ok": False,
-            "insertion_depth": depth}
+            "insertion_depth": depth, "code": 30}
     first = inverse(geom, above)
     if not first.ok:
         plan["reason"] = (
@@ -270,34 +320,71 @@ def plan_motion(geom: ArmGeometry, target_mm, normal, insertion_depth: float | N
             "Arbeitsraum oder Achsgrenzen prüfen"
         )
         return plan
+    q_move, move, err = _joint_move(geom, q0, first.q, move_steps, "Anfahrt")
+    if err:
+        plan.update(reason=err, code=31)
+        return plan
+    q_insert, insert, err = _line(geom, first.q, above, inside, insert_steps, "Eintauchen")
+    if err:
+        plan.update(reason=err, code=31 if "Kollision" in err else 30)
+        return plan
+    return _result(geom, plan, q_move, move, q_insert, insert)
 
-    move = [
-        forward(geom, geom.park + (first.q - geom.park) * u)
-        for u in np.linspace(0, 1, move_steps)
-    ]
-    for m in move:
-        if hit := collision(geom, m):
-            plan["reason"] = f"Kollision mit {hit} bei der Anfahrt"
-            return plan
-    q, insert = first.q, []
-    for u in np.linspace(0, 1, insert_steps):
-        res = inverse(geom, above + (inside - above) * u, q0=q)
-        if not res.ok:
-            plan["reason"] = f"Eintauchtiefe nicht erreichbar ({u * 100:.0f} % der Bahn)"
-            return plan
-        q = res.q
-        insert.append(forward(geom, q))
-        if hit := collision(geom, insert[-1]):
-            plan["reason"] = f"Kollision mit {hit} beim Eintauchen"
-            return plan
 
-    plan.update(
-        ok=True,
-        q_above_deg=np.degrees(first.q).round(2).tolist(),
-        q_inside_deg=np.degrees(q).round(2).tolist(),
-        servo_above_deg=geom.to_servo(first.q),
-        servo_inside_deg=geom.to_servo(q),
-        move=[m.round(4).tolist() for m in move],
-        insert=[m.round(4).tolist() for m in insert],
-    )
+def plan_correction(geom: ArmGeometry, q_actual, tip_measured, target_mm, normal,
+                    insertion_depth: float, insert_steps: int = 16,
+                    horizontal_only: bool = True):
+    """Job 2: Auslass über dem Dom nachgemessen -> korrigierte Anfahrstellung und Eintauchbahn.
+
+    Der Unterschied zwischen gemessenem Auslassende und Modell (Getriebespiel, Durchbiegung,
+    Kalibrierung) wird für die restliche Bahn ausgeglichen. Standardmäßig nur waagerecht: Das
+    Rohrende ist von oben schlecht zu sehen, und die Höhe ist beim Eintauchen unkritisch.
+    """
+    q_actual = np.asarray(q_actual, dtype=float)
+    center = np.asarray(target_mm, dtype=float) / 1000.0
+    n = np.asarray(normal, dtype=float)
+    n /= np.linalg.norm(n)
+    above = center + n * geom.approach_height
+    inside = center - n * insertion_depth
+    offset = np.asarray(tip_measured, dtype=float) - tip(geom, q_actual)
+    if horizontal_only:
+        offset[2] = 0.0
+
+    plan = {"park": forward(geom, geom.park).round(4).tolist(), "ok": False,
+            "insertion_depth": insertion_depth, "code": 30,
+            "model_offset_mm": (offset * 1000).round(1).tolist(),
+            "correction_mm": ((above - np.asarray(tip_measured))[:2] * 1000).round(1).tolist()}
+    q_insert, insert, err = _line(geom, q_actual, above, inside, insert_steps,
+                                  "Eintauchen nach Korrektur", offset=offset)
+    if err:
+        plan.update(reason=err, code=31 if "Kollision" in err else 30)
+        return plan
+    move = [forward(geom, q_actual), insert[0]]
+    return _result(geom, plan, [q_actual, q_insert[0]], move, q_insert, insert)
+
+
+def plan_retract(geom: ArmGeometry, q_start, lift: float, lift_steps: int = 8,
+                 move_steps: int = 36):
+    """Job 3: senkrecht um `lift` aus dem Dom heraus, dann synchron in die Parkstellung."""
+    q_start = np.asarray(q_start, dtype=float)
+    p0 = tip(geom, q_start)
+    plan = {"park": forward(geom, geom.park).round(4).tolist(), "ok": False, "code": 30}
+    q_lift, lift_pts, err = _line(geom, q_start, p0, p0 + [0, 0, lift], lift_steps, "Herausfahren")
+    if err:
+        plan.update(reason=err, code=31 if "Kollision" in err else 30)
+        return plan
+    q_move, move, err = _joint_move(geom, q_lift[-1], geom.park, move_steps, "Rückfahrt")
+    if err:
+        plan.update(reason=err, code=31)
+        return plan
+    plan = _result(geom, plan, q_move, move, [], [])
+    plan.update(q_lift=[q.tolist() for q in q_lift], lift=[m.round(4).tolist() for m in lift_pts])
     return plan
+
+
+def pick(seq, n: int) -> list:
+    """n gleichmäßig verteilte Elemente inkl. letztem (ohne erstes = Startstellung)."""
+    if not seq:
+        return []
+    idx = np.unique(np.linspace(0, len(seq) - 1, n + 1).round().astype(int))[1:]
+    return [seq[i] for i in idx]

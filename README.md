@@ -27,11 +27,16 @@ python -m verladearm_vision.service.main --once   # eine Messung ohne SPS
 pytest                              # Tests
 ```
 
-Mit simulierter SPS (zwei Terminals):
+Kompletter Ablauf ohne Hardware (SPS-Simulator mit Achsen, simulierter Sensor mit Getriebespiel):
 
 ```bash
-python tools/plc_simulator.py
-python -m verladearm_vision.service.main
+# Anlagendatei für die Simulation, z. B. sim.yaml:
+#   extends: vision/config/anlagen/beispiel.yaml
+#   source: {type: sim, joint_error_deg: [0.3, -0.25, 0.2]}
+#   plc: {url: "opc.tcp://127.0.0.1:4840/"}
+python tools/plc_simulator.py --config vision/config/anlagen/beispiel.yaml
+python -m verladearm_vision.service.main --config sim.yaml
+python -m verladearm_vision.viewer --opcua --config sim.yaml   # Arm live aus den Istwinkeln
 ```
 
 Live-Ansicht im Browser (Punktwolke, Erkennung, schematische Armbewegung):

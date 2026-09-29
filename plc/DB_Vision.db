@@ -1,16 +1,22 @@
-// Schnittstellen-DB Vision-PC <-> SPS, siehe docs/schnittstelle.md
+// Schnittstellen-DB Vision-PC <-> SPS, InterfaceVersion 2, siehe docs/schnittstelle.md
 // Import in TIA Portal: Externe Quellen > Neue externe Datei hinzufügen > Bausteine aus Quelle generieren
 // In den Eigenschaften "Erreichbar aus HMI/OPC UA" und "Schreibbar aus HMI/OPC UA" aktivieren.
 DATA_BLOCK "DB_Vision"
 { S7_Optimized_Access := 'TRUE' }
-VERSION : 0.1
+VERSION : 0.2
 NON_RETAIN
    VAR
       // SPS -> PC
       HeartbeatPLC : Int;
       Trigger : Bool;
+      Job : Int;          // 1 messen+planen, 2 nachmessen+korrigieren, 3 Rückfahrt, 0 nur messen
       ProductId : Int;
       Reset : Bool;
+      ActualJ1 : Real;    // Servo-Istwinkel [°]
+      ActualJ2 : Real;
+      ActualJ3 : Real;
+      AxesHomed : Bool;
+      ArmState : Int;     // 0 Park, 1 fährt, 2 über Dom, 3 eingetaucht, 9 Störung
       // PC -> SPS
       HeartbeatPC : Int;
       Ready : Bool;
@@ -19,7 +25,7 @@ NON_RETAIN
       Error : Bool;
       ErrorCode : Int;
       ResultId : DInt;
-      TargetX : Real;   // mm, Armbasis
+      TargetX : Real;     // mm, Armbasis
       TargetY : Real;
       TargetZ : Real;
       NormalX : Real;
@@ -27,6 +33,13 @@ NON_RETAIN
       NormalZ : Real;
       DiameterMm : Real;
       Confidence : Real;
+      WaypointCount : Int;
+      WaypointsJ1 : Array[1..16] of Real;   // Servo-Sollwinkel [°]
+      WaypointsJ2 : Array[1..16] of Real;
+      WaypointsJ3 : Array[1..16] of Real;
+      ApproachIndex : Int;                  // Stützpunkt "über dem Dom", 0 = keiner
+      CorrectionX : Real;                   // mm, Job 2
+      CorrectionY : Real;
       InterfaceVersion : Int;
    END_VAR
 

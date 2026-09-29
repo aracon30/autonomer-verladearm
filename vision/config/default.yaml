@@ -3,6 +3,9 @@
 source:
   type: file            # file = aufgenommene Punktwolken abspielen, sick = Visionary-T Mini CX
   path: data/samples
+  # Simulation ohne Hardware (Tankwagen + Arm mit Getriebespiel), z. B. mit tools/plc_simulator.py:
+  # type: sim
+  # joint_error_deg: [0.3, -0.25, 0.2]
   # Beispiel SICK Visionary-T Mini CX (pip install -e ".[sick]", docs/sensor_sick.md):
   # type: sick
   # ip: 192.168.1.10
@@ -50,6 +53,15 @@ arm:
   clearance: 0.15         # Mindestabstand Rohrachse zu Hindernissen
   approach_height: 0.3    # Anfahrpunkt über der Domöffnung
   insertion_depth: 0.4    # Eintauchtiefe, falls für das Produkt nichts hinterlegt ist
+
+outlet:
+  # Nachmessen des Auslasses (Job 2). Markierungsscheibe am Auslass, von oben immer sichtbar.
+  marker_radius: 0.125    # Außenradius Scheibe [m]; null = ohne Scheibe (Rohrwand, unsicherer)
+  marker_offset: 0.15     # Scheibe über dem Auslassende [m]
+
+planning:
+  move_waypoints: 3       # Stützpunkte für die Anfahrt (synchrone Gelenkbewegung)
+  insert_waypoints: 5     # Stützpunkte für das senkrechte Eintauchen (max. 16 insgesamt)
 
 products:
   # Eintauchtiefe je ProductId (aus DB_Vision); "default" gilt für alle anderen

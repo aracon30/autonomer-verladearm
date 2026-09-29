@@ -106,3 +106,29 @@ def test_eintauchtiefe_je_produkt():
     assert product_insertion_depth(products, 2, 0.3) == 0.7
     assert product_insertion_depth(products, 5, 0.3) == 0.4
     assert product_insertion_depth(None, 5, 0.3) == 0.3
+
+
+def test_korrektur_gleicht_modellfehler_aus():
+    from verladearm_vision.kinematics import plan_correction
+
+    g = ArmGeometry()
+    target = np.array([3.1, -0.2, -1.5])
+    q = inverse(g, target + [0, 0, g.approach_height]).q
+    true_error = np.radians([0.3, -0.2, 0.0])
+    measured = tip(g, q + true_error)  # reale Lage weicht vom Modell ab
+    plan = plan_correction(g, q, measured, target * 1000, [0, 0, 1], 0.4)
+    assert plan["ok"]
+    corrected = tip(g, np.array(plan["q_insert"][0]) + true_error)
+    assert np.hypot(*(corrected - target)[:2]) < 0.002
+
+
+def test_rueckfahrt_aus_dem_dom():
+    from verladearm_vision.kinematics import plan_retract
+
+    g = ArmGeometry()
+    q = inverse(g, [3.1, -0.2, -1.9]).q
+    plan = plan_retract(g, q, lift=0.7)
+    assert plan["ok"]
+    lifted = tip(g, np.array(plan["q_lift"][-1]))
+    assert np.allclose(lifted, tip(g, q) + [0, 0, 0.7], atol=0.002)
+    assert np.allclose(plan["q_move"][-1], g.park)

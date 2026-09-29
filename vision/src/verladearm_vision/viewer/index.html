@@ -129,13 +129,16 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         <span id="s-Busy"><i></i>Busy</span>
         <span id="s-Done" data-kind="good"><i></i>Done</span>
         <span id="s-Error" data-kind="bad"><i></i>Error</span>
+        <span id="s-AxesHomed" data-kind="good"><i></i>Referenziert</span>
       </div>
       <dl>
+        <dt>Job / ArmState</dt><dd id="s-job">–</dd>
+        <dt>Ist J1/J2/J3</dt><dd id="s-act">–</dd>
         <dt>HeartbeatPLC / PC</dt><dd id="s-hb">–</dd>
         <dt>ProductId</dt><dd id="s-prod">–</dd>
         <dt>InterfaceVersion</dt><dd id="s-ver">–</dd>
       </dl>
-      <p class="note">Messungen löst die SPS aus. Die Ansicht schreibt nichts in den DB_Vision.</p>
+      <p class="note">Messungen und Bewegungen steuert die SPS. Die Ansicht zeigt den Arm aus den Istwinkeln und schreibt nichts in den DB_Vision. Gelbe Punkte: geplante Stützpunkte.</p>
     </section>
     <section>
       <h2>Ablauf</h2>
@@ -574,9 +577,47 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     setSteps(p, p === "error");
   }
 
+  // geplante Stützpunkte (Auslassende) aus dem DB_Vision
+  const pathGroup = new THREE.Group();
+  scene.add(pathGroup);
+  let pathKey = "";
+  function drawPath(list) {
+    const key = JSON.stringify(list || []);
+    if (key === pathKey) return;
+    pathKey = key;
+    pathGroup.clear();
+    for (const p of list || []) {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 8), new THREE.MeshBasicMaterial({ color: C.signal }));
+      m.position.copy(toView(...p));
+      pathGroup.add(m);
+    }
+  }
+
+  function showFollowUp(f) {
+    // Job 2/3: keine neue Scan-Animation, nur Ergebnis und (Job 2) aktuelle Punktwolke
+    const r = f.result;
+    if (f.job === 2 && f.points && f.points.length) {
+      loadFrame(f);
+      ptGeo.setDrawRange(0, pts.length / 3);
+      colorPoints(r.ok);
+    }
+    if (!r.ok) setStatus("err", "Job " + f.job + ": Fehler " + r.error_code, ERRORS[r.error_code] || "");
+    else if (f.job === 2) setStatus("ok", "Auslass nachgemessen",
+      "Korrektur " + f.correction_mm.map(v => (v >= 0 ? "+" : "") + v.toFixed(1).replace(".", ",")).join(" / ") + " mm, SPS taucht ein");
+    else setStatus("ok", "Rückfahrt geplant", "SPS fährt in die Parkstellung");
+    if (f.servo_target) set("v-joints", f.servo_target.map(v => v.toFixed(1).replace(".", ",")).join(" / ") + " °");
+    set("v-id", f.id);
+    set("v-err", r.error_code);
+  }
+
   async function startMeasurement() {
     if (busy) return;
     if (MODE === "opcua" && !queued) return;
+    if (MODE === "opcua" && (queued.job === 2 || queued.job === 3)) {
+      const f = queued; queued = null;
+      showFollowUp(f);
+      return;
+    }
     busy = true;
     document.getElementById("trigger").disabled = true;
     setStatus("busy", MODE === "opcua" ? "Neues Ergebnis #" + queued.id : "Messung läuft …");
@@ -613,7 +654,17 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     const g = s && s.signals ? s.signals : {};
     const up = !!(s && s.connected);
     lamp("s-conn", up);
-    for (const k of ["Ready", "Trigger", "Busy", "Done", "Error"]) lamp("s-" + k, up && g[k]);
+    for (const k of ["Ready", "Trigger", "Busy", "Done", "Error", "AxesHomed"]) lamp("s-" + k, up && g[k]);
+    const JOBS = { 0: "–", 1: "1 Messen", 2: "2 Nachmessen", 3: "3 Rückfahrt" };
+    const ARM = { 0: "Park", 1: "fährt", 2: "über Dom", 3: "eingetaucht", 9: "Störung" };
+    set("s-job", up ? (JOBS[g.Job] || g.Job) + " / " + (ARM[g.ArmState] || g.ArmState) : "–");
+    set("s-act", up && g.AxesHomed ? [g.ActualJ1, g.ActualJ2, g.ActualJ3].map(v => v.toFixed(1).replace(".", ",")).join(" / ") + " °" : "–");
+    if (s && s.arm_pts) {
+      if (!armPts) setGround(s.ground_z);
+      drawObstacles(s.obstacles);
+      drawArm(s.arm_pts);
+    }
+    drawPath(s && s.path);
     set("conn", !s ? "Viewer-Server nicht erreichbar" :
       up ? s.url : "Keine Verbindung zu " + s.url + (s.error ? " (" + s.error + ")" : ""));
     set("s-hb", up ? g.HeartbeatPLC + " / " + g.HeartbeatPC : "–");
@@ -705,7 +756,10 @@ ul.legend li{display:flex;align-items:center;gap:8px}
       if (t >= D.detect) {
         ring.scale.setScalar(1);
         const a = current.arm;
-        if (a && a.ok) {
+        if (MODE === "opcua") {  // Arm kommt live aus den Istwinkeln der SPS
+          if (current.servo_target) set("v-joints", current.servo_target.map(v => v.toFixed(1).replace(".", ",")).join(" / ") + " °");
+          finish();
+        } else if (a && a.ok) {
           set("v-joints", a.servo_inside_deg.map(v => v.toFixed(1).replace(".", ",")).join(" / ") + " °");
           set("v-depth", Math.round(a.insertion_depth * 1000) + " mm · Produkt " + a.product_id);
           enter("move");

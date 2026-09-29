@@ -17,11 +17,28 @@ detection:
 
 calibration:
   # Transformation Sensor -> Armbasis (4x4, Meter). Wird bei der Hand-Auge-Kalibrierung ermittelt.
+  # Platzhalter: Sensor 3 m vor J1 über der Fahrspur, 2,1 m über J1, blickt senkrecht nach unten.
+  # Armbasis: Ursprung auf Achse J1, x nach vorne, y nach links, z nach oben (docs/kinematik.md).
   matrix:
-    - [1, 0, 0, 0]
-    - [0, 1, 0, 0]
-    - [0, 0, 1, 0]
+    - [1, 0, 0, 3.0]
+    - [0, -1, 0, 0.0]
+    - [0, 0, -1, 2.1]
     - [0, 0, 0, 1]
+
+arm:
+  # Geometrie des Verladearms, siehe docs/kinematik.md. PLATZHALTER, echte Maße eintragen. [m, Grad]
+  base_height: 5.0        # Höhe Achse J1 über Fahrbahn
+  incline_deg: 3.0        # Gefälle innerer und äußerer Ausleger
+  inner_length: 2.2       # J1 bis Winkel nach unten
+  drop: 0.5               # Winkel nach unten bis Winkel nach rechts (Achse J2)
+  offset_right: 0.35      # Winkel nach rechts bis Winkel nach vorne (Achse J3)
+  outer_length: 2.4       # äußerer Ausleger bis Winkel nach links
+  offset_left: 0.35       # Winkel nach links bis freies Drehgelenk J4
+  outlet_length: 1.2      # J4 bis Auslassende
+  limits_deg: {q1: [-120, 120], q2: [-170, 170], q3: [-35, 35]}
+  park_deg: [70, -150, 10]
+  approach_height: 0.3    # Anfahrpunkt über der Domöffnung
+  insertion_depth: 0.4    # Eintauchtiefe, später produktspezifisch (F-31)
 
 snapshot:
   # Letzte Punktwolke für die Live-Ansicht (python -m verladearm_vision.viewer --opcua). Leer = aus.

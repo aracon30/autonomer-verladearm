@@ -61,7 +61,8 @@ Beide Seiten prüfen, ob sich der Heartbeat der Gegenseite ändert. Ausfall > **
 
 ## Koordinatensystem
 
-Armbasis-Koordinaten in mm; Ursprung, Achsrichtungen und Kalibrierverfahren werden in
+Armbasis-Koordinaten in mm: Ursprung auf der Drehachse J1 am Haltepunkt, x nach vorne,
+y nach links, z nach oben (siehe `docs/kinematik.md`). Das Kalibrierverfahren wird in
 `docs/kalibrierung.md` festgelegt (offen).
 
 ## Änderungen

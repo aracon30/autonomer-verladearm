@@ -37,6 +37,7 @@
   --ok:#5CC08A; --err:#F2766B; color-scheme:dark;
 }
 *,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
 .app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 21rem;gap:12px;
@@ -142,7 +143,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         <li data-step="scan">Punktwolke aufnehmen</li>
         <li data-step="detect">Domöffnung erkennen</li>
         <li data-step="move">Arm fährt über den Dom</li>
-        <li data-step="lower">Lanze einführen</li>
+        <li data-step="lower">Auslass eintauchen</li>
         <li data-step="retract">Zurück in Parkposition</li>
       </ol>
     </section>
@@ -155,6 +156,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         <dt>DiameterMm</dt><dd id="v-dia">–</dd>
         <dt>Confidence</dt><dd id="v-conf">–</dd>
         <dt>ErrorCode</dt><dd id="v-err">–</dd>
+        <dt>J1 / J2 / J3 (Ziel)</dt><dd id="v-joints">–</dd>
         <dt>Messpunkte</dt><dd id="v-pts">–</dd>
         <dt>Rechenzeit</dt><dd id="v-ms">–</dd>
       </dl>
@@ -172,9 +174,10 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         <li><span class="sw" style="background:var(--point)"></span>Rohpunkte vom Sensor</li>
         <li><span class="sw" style="background:var(--surface)"></span>Tankoberfläche (Ebene)</li>
         <li><span class="sw" style="background:var(--clutter)"></span>Störpunkte (Geländer, Arm …)</li>
-        <li><span class="sw" style="background:var(--signal)"></span>Erkannte Domöffnung</li>
+        <li><span class="sw" style="background:var(--signal)"></span>Domöffnung, Rohrführung</li>
+        <li><span class="sw" style="background:var(--steel)"></span>Freies Drehgelenk J4 (dunkel: Servos J1–J3)</li>
       </ul>
-      <p class="note">Die Armkinematik ist schematisch. Die Koordinaten stammen aus der echten Erkennung.</p>
+      <p class="note">Armmaße sind Platzhalter aus der Konfiguration (arm). Die Gelenkwinkel stammen aus der Rückwärtsrechnung, die Achsregelung übernimmt die SPS.</p>
     </section>
   </aside>
 </div>
@@ -215,7 +218,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
   stage.prepend(renderer.domElement);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, 1, 0.05, 100);
-  const VIEW_TARGET = new THREE.Vector3(-1.3, -3.2, 0), VIEW_OFFSET = new THREE.Vector3(5.0, 3.6, 7.6);
+  const VIEW_TARGET = new THREE.Vector3(2.0, -1.0, 0.4), VIEW_OFFSET = new THREE.Vector3(3.6, 3.0, 10.2);
   camera.position.copy(VIEW_TARGET).add(VIEW_OFFSET);
   const controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.target.copy(VIEW_TARGET);
@@ -226,12 +229,12 @@ ul.legend li{display:flex;align-items:center;gap:8px}
   sun.position.set(3, 5, 4);
   scene.add(sun);
 
-  // Armbasis-Koordinaten (x, y, z nach unten) -> Anzeige (x, -z, y), Y nach oben
-  const toView = (x, y, z) => new THREE.Vector3(x, -z, y);
-  const GROUND_Y = -7.4;
+  // Armbasis (x vorne, y links, z oben, Ursprung Achse J1) -> Anzeige (x, z, -y), Y nach oben
+  const toView = (x, y, z) => new THREE.Vector3(x, z, -y);
+  let groundY = -5.0;
 
   const grid = new THREE.GridHelper(14, 28);
-  grid.position.y = GROUND_Y;
+  grid.position.y = groundY;
   scene.add(grid);
 
   // Sensor mit Sichtkegel
@@ -240,7 +243,6 @@ ul.legend li{display:flex;align-items:center;gap:8px}
   scene.add(sensor);
   const traverse = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 4.5),
     new THREE.MeshStandardMaterial({ color: 0x888888 }));
-  traverse.position.set(0, 0.1, 0);
   scene.add(traverse);
   const beamGeo = new THREE.BufferGeometry();
   beamGeo.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(3 * 8), 3));
@@ -271,54 +273,58 @@ ul.legend li{display:flex;align-items:center;gap:8px}
   normalArrow.visible = false;
   scene.add(normalArrow);
 
-  // Verladearm: Säule, zwei horizontale Auslegerglieder, senkrechte Lanze
-  const BASE = new THREE.Vector3(-3.1, -2.35, 0.0);
-  const L1 = 2.0, L2 = 1.8, HOME = [1.75, 2.55];
-  const armMat = new THREE.MeshStandardMaterial({ roughness: 0.5, metalness: 0.3 });
-  const darkMat = new THREE.MeshStandardMaterial({ color: 0x555a60, roughness: 0.6 });
-  const column = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, BASE.y - GROUND_Y, 20), darkMat);
-  column.position.set(BASE.x, (BASE.y + GROUND_Y) / 2, BASE.z);
+  // Verladearm nach docs/kinematik.md: Rohrführung aus 7 Eckpunkten, Stellung vom Server berechnet
+  const armMat = new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.3 });
+  const servoMat = new THREE.MeshStandardMaterial({ color: 0x3b4148, roughness: 0.6 });
+  const freeMat = new THREE.MeshStandardMaterial({ roughness: 0.5 });
+  const column = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 1, 20), servoMat);
   scene.add(column);
-  const shoulder = new THREE.Group();
-  shoulder.position.copy(BASE);
-  scene.add(shoulder);
-  const link = (len, r) => {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(len, r, r), armMat);
-    m.position.x = len / 2;
+  const pipes = Array.from({ length: 6 }, (_, i) =>
+    new THREE.Mesh(new THREE.CylinderGeometry(i === 5 ? 0.06 : 0.075, i === 5 ? 0.06 : 0.075, 1, 16), armMat));
+  pipes.forEach(m => scene.add(m));
+  const elbows = Array.from({ length: 5 }, () => new THREE.Mesh(new THREE.SphereGeometry(0.085, 16, 12), armMat));
+  elbows.forEach(m => scene.add(m));
+  // Servos J1-J3 dunkel, freies Gelenk J4 in Stahlblau
+  const joints = [servoMat, servoMat, servoMat, freeMat].map(mat => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.24, 20), mat);
+    scene.add(m);
     return m;
-  };
-  shoulder.add(link(L1, 0.14));
-  const elbow = new THREE.Group();
-  elbow.position.x = L1;
-  shoulder.add(elbow);
-  elbow.add(new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.2, 20), darkMat));
-  elbow.add(link(L2, 0.11));
-  const tip = new THREE.Group();
-  tip.position.x = L2;
-  elbow.add(tip);
-  const lance = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 1, 12), darkMat);
-  tip.add(lance);
-  const cone = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.05, 0.18, 20), armMat);
-  tip.add(cone);
+  });
+  const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.06, 0.16, 16), servoMat);
+  scene.add(nozzle);
+  const UP = new THREE.Vector3(0, 1, 0);
+  let armPts = null;
 
-  const arm = { a1: HOME[0], a2: HOME[1], lance: 0.35 };
-  function applyArm() {
-    shoulder.rotation.y = -arm.a1;
-    elbow.rotation.y = -arm.a2;
-    tip.rotation.y = arm.a1 + arm.a2; // Lanze bleibt senkrecht
-    lance.scale.y = arm.lance;
-    lance.position.y = -arm.lance / 2;
-    cone.position.y = -arm.lance + 0.12;
+  function alongAxis(mesh, pos, a, b) {
+    mesh.position.copy(pos);
+    mesh.quaternion.setFromUnitVectors(UP, new THREE.Vector3().subVectors(b, a).normalize());
   }
-  applyArm();
-
-  function ik(target) {
-    const dx = target.x - BASE.x, dz = target.z - BASE.z;
-    const r = Math.min(Math.max(Math.hypot(dx, dz), Math.abs(L1 - L2) + 1e-3), L1 + L2 - 1e-3);
-    const c2 = (r * r - L1 * L1 - L2 * L2) / (2 * L1 * L2);
-    const a2 = Math.acos(Math.max(-1, Math.min(1, c2)));
-    const a1 = Math.atan2(dz, dx) - Math.atan2(L2 * Math.sin(a2), L1 + L2 * Math.cos(a2));
-    return [a1, a2];
+  function drawArm(P) {
+    armPts = P;
+    const v = P.map(p => toView(p[0], p[1], p[2]));
+    for (let i = 0; i < 6; i++) {
+      alongAxis(pipes[i], v[i].clone().lerp(v[i + 1], 0.5), v[i], v[i + 1]);
+      pipes[i].scale.set(1, v[i].distanceTo(v[i + 1]), 1);
+    }
+    for (let i = 0; i < 5; i++) elbows[i].position.copy(v[i + 1]);
+    alongAxis(joints[0], v[0], new THREE.Vector3(), UP);          // J1 senkrecht
+    alongAxis(joints[1], v[1].clone().lerp(v[2], 0.55), v[1], v[2]); // J2 um das Fallrohr
+    alongAxis(joints[2], v[3], v[2], v[3]);                       // J3 quer zum Ausleger
+    alongAxis(joints[3], v[5], v[4], v[5]);                       // J4 frei
+    alongAxis(nozzle, v[6], v[6], v[5]);
+  }
+  function setGround(z) {
+    groundY = z;
+    grid.position.y = z;
+    column.scale.set(1, -z + 0.25, 1);
+    column.position.set(0, (z + 0.25) / 2, 0);
+  }
+  setGround(groundY);
+  function samplePath(path, u) {
+    if (path.length === 1) return path[0];
+    const f = Math.max(0, Math.min(1, u)) * (path.length - 1);
+    const i = Math.min(Math.floor(f), path.length - 2), w = f - i;
+    return path[i].map((p, k) => p.map((c, j) => c + (path[i + 1][k][j] - c) * w));
   }
 
   function applyColors() {
@@ -329,6 +335,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     ring.material.color = C.signal;
     normalArrow.setColor(C.signal);
     armMat.color = C.signal;
+    freeMat.color = C.steel;
     if (current) colorPoints(phase === "scan" ? false : current.result.ok);
   }
 
@@ -361,6 +368,11 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     ptGeo.computeBoundingSphere();
     const s = f.sensor_mm || [0, 0, 0];
     sensor.position.copy(toView(s[0] / 1000, s[1] / 1000, s[2] / 1000));
+    traverse.position.copy(sensor.position).add(new THREE.Vector3(0, 0.1, 0));
+    if (f.arm) {
+      setGround(f.arm.ground_z);
+      if (!armPts) drawArm(f.arm.park);
+    }
     colorPoints(false);
   }
 
@@ -387,9 +399,9 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     }
     ptGeo.attributes.color.needsUpdate = true;
     if (c && cnt) {
-      const top = depth / cnt, h = GROUND_Y + top;
-      tank.scale.set(hi - lo, -h - 0.03, yhi - ylo);
-      tank.position.set((lo + hi) / 2, (-top + GROUND_Y) / 2 - 0.02, (ylo + yhi) / 2);
+      const top = depth / cnt;
+      tank.scale.set(hi - lo, top - groundY - 0.03, yhi - ylo);
+      tank.position.set((lo + hi) / 2, (top + groundY) / 2 - 0.02, -(ylo + yhi) / 2);
       tank.visible = true;
     }
   }
@@ -406,14 +418,14 @@ ul.legend li{display:flex;align-items:center;gap:8px}
       set("v-dia", fmt(r.diameter_mm) + " mm");
       set("v-conf", fmt(r.confidence, 2));
     } else {
-      for (const id of ["v-target", "v-normal", "v-dia", "v-conf"]) set(id, "–");
+      for (const id of ["v-target", "v-normal", "v-dia", "v-conf", "v-joints"]) set(id, "–");
     }
   }
   const set = (id, t) => (document.getElementById(id).textContent = t);
 
   // ---- Ablaufsteuerung ----
-  const STEP_LABEL = { scan: "Aufnahme", detect: "Erkennung", move: "Anfahrt", lower: "Lanze", hold: "In Position", retract: "Rückfahrt", error: "Fehler", idle: "Bereit" };
-  let t0 = 0, from = null, to = null, busy = false, nextFrame = null, shown = false;
+  const STEP_LABEL = { scan: "Aufnahme", detect: "Erkennung", move: "Anfahrt", lower: "Eintauchen", hold: "In Position", retract: "Rückfahrt", error: "Fehler", idle: "Bereit" };
+  let t0 = 0, busy = false, nextFrame = null, shown = false;
 
   function setStatus(state, text, msg = "") {
     document.getElementById("status").dataset.state = state;
@@ -504,7 +516,6 @@ ul.legend li{display:flex;align-items:center;gap:8px}
   }
 
   const ease = t => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
-  const lerp = (a, b, t) => a + (b - a) * t;
 
   function updateBeam(k) {
     // vier Strahlen vom Sensor zu den Enden der aktuellen Scanzeile
@@ -564,38 +575,27 @@ ul.legend li{display:flex;align-items:center;gap:8px}
       ring.scale.setScalar(1 + 0.08 * Math.sin(t * 12) * (1 - t / D.detect));
       if (t >= D.detect) {
         ring.scale.setScalar(1);
-        const c = toView(...current.result.target_mm.map(v => v / 1000));
-        from = [arm.a1, arm.a2];
-        to = ik(c);
-        enter("move");
+        const a = current.arm;
+        if (a && a.ok) {
+          set("v-joints", a.q_inside_deg.map(v => v.toFixed(1).replace(".", ",")).join(" / ") + " °");
+          enter("move");
+        } else {
+          setStatus("err", "Ziel nicht anfahrbar", a ? a.reason : "Keine Armdaten vom Server");
+          enter("error");
+        }
       }
     } else if (phase === "move") {
-      const u = ease(Math.min(1, t / D.move));
-      arm.a1 = lerp(from[0], to[0], u);
-      arm.a2 = lerp(from[1], to[1], u);
-      applyArm();
+      drawArm(samplePath(current.arm.move, ease(Math.min(1, t / D.move))));
       if (t >= D.move) enter("lower");
     } else if (phase === "lower") {
-      const c = toView(...current.result.target_mm.map(v => v / 1000));
-      const depth = BASE.y - c.y + 0.55; // bis unter die Domöffnung
-      arm.lance = lerp(0.35, depth, ease(Math.min(1, t / D.lower)));
-      applyArm();
-      if (t >= D.lower) {
-        from = [arm.lance];
-        enter("hold");
-      }
+      drawArm(samplePath(current.arm.insert, ease(Math.min(1, t / D.lower))));
+      if (t >= D.lower) enter("hold");
     } else if (phase === "hold") {
-      if (t >= D.hold) {
-        from = [arm.a1, arm.a2, arm.lance];
-        enter("retract");
-      }
+      if (t >= D.hold) enter("retract");
     } else if (phase === "retract") {
       const u1 = ease(Math.min(1, t / (D.retract * 0.4)));
       const u2 = ease(Math.max(0, Math.min(1, (t - D.retract * 0.4) / (D.retract * 0.6))));
-      arm.lance = lerp(from[2], 0.35, u1);
-      arm.a1 = lerp(from[0], HOME[0], u2);
-      arm.a2 = lerp(from[1], HOME[1], u2);
-      applyArm();
+      drawArm(u2 > 0 ? samplePath(current.arm.move, 1 - u2) : samplePath(current.arm.insert, 1 - u1));
       if (t >= D.retract) finish();
     } else if (phase === "error") {
       if (t >= D.errHold) finish();

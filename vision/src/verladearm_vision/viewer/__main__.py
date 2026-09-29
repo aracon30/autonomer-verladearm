@@ -23,6 +23,7 @@ from asyncua import Client
 from verladearm_vision.calibration import SensorToArm
 from verladearm_vision.config import load_config
 from verladearm_vision.detection import DetectionError, DetectorConfig, detect_opening
+from verladearm_vision.kinematics import ArmGeometry, forward, plan_motion
 from verladearm_vision.plc import VARIABLES
 from verladearm_vision.service.main import build_source
 
@@ -40,6 +41,7 @@ class FrameProducer:
         self.source = build_source(cfg["source"])
         self.det_cfg = DetectorConfig(**cfg.get("detection", {}))
         self.transform = SensorToArm(cfg["calibration"]["matrix"])
+        self.geom = ArmGeometry(**cfg.get("arm", {}))
         self.max_points = max_points
         self.rng = np.random.default_rng()
         self.frame_id = 0
@@ -67,7 +69,8 @@ class FrameProducer:
         detect_ms = (time.perf_counter() - t0) * 1000
 
         frame = points_for_view(points, self.transform, self.max_points, self.rng)
-        frame.update(id=frame_id, detect_ms=round(detect_ms, 1), result=result)
+        frame.update(id=frame_id, detect_ms=round(detect_ms, 1), result=result,
+                     arm=arm_for_view(self.geom, result))
         return frame
 
     def state(self) -> dict:
@@ -87,6 +90,16 @@ def points_for_view(points, transform: SensorToArm, max_points: int, rng) -> dic
     }
 
 
+def arm_for_view(geom: ArmGeometry, result: dict) -> dict:
+    """Geplante Armbewegung zum Ergebnis; ohne gültiges Ziel nur die Parkstellung."""
+    if result.get("ok"):
+        arm = plan_motion(geom, result["target_mm"], result["normal"])
+    else:
+        arm = {"ok": False, "park": forward(geom, geom.park).round(4).tolist()}
+    arm["ground_z"] = -geom.base_height
+    return arm
+
+
 class PlcMonitor:
     """Liest DB_Vision zyklisch per OPC UA mit. Schreibt nie, beeinflusst den Ablauf also nicht.
 
@@ -103,6 +116,7 @@ class PlcMonitor:
         snapshot = (cfg.get("snapshot") or {}).get("path")
         self.snapshot = Path(snapshot) if snapshot else None
         self.transform = SensorToArm(cfg["calibration"]["matrix"])
+        self.geom = ArmGeometry(**cfg.get("arm", {}))
         self.max_points = max_points
         self.rng = np.random.default_rng()
         self.lock = threading.Lock()
@@ -163,7 +177,8 @@ class PlcMonitor:
                 diameter_mm=round(float(v["DiameterMm"]), 1),
                 confidence=round(float(v["Confidence"]), 3),
             )
-        frame = {"id": int(v["ResultId"]), "detect_ms": None, "result": result}
+        frame = {"id": int(v["ResultId"]), "detect_ms": None, "result": result,
+                 "arm": arm_for_view(self.geom, result)}
         if self.snapshot and self.snapshot.exists():
             frame.update(points_for_view(np.load(self.snapshot), self.transform,
                                          self.max_points, self.rng))

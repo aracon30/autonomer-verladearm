@@ -58,10 +58,10 @@ Heartbeats und jedes neue Ergebnis. Die zugehörige Punktwolke legt der Vision-D
 
 | Ordner | Inhalt |
 |---|---|
-| `docs/` | Lastenheft, Schnittstelle, Architekturentscheidungen |
+| `docs/` | Lastenheft, Schnittstelle, Kinematik, Architekturentscheidungen |
 | `hardware/` | Stückliste, Halterungen, Elektro |
 | `plc/` | Schnittstellen-DB für TIA Portal |
-| `vision/src/verladearm_vision/` | acquisition, detection, calibration, plc, service, viewer |
+| `vision/src/verladearm_vision/` | acquisition, detection, calibration, kinematics, plc, service, viewer |
 | `vision/config/` | Konfiguration |
 | `vision/tests/` | Tests |
 | `tools/` | SPS-Simulator, Testdatengenerator |

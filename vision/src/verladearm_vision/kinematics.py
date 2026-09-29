@@ -1,0 +1,192 @@
+"""Kinematik des Verladearms (Vorwärts- und Rückwärtsrechnung).
+
+Aufbau vom Haltepunkt zum Auslass:
+    J1  Servo, dreht um die senkrechte Achse am Haltepunkt (links/rechts)
+        innerer Ausleger, `incline_deg` fallend, Länge `inner_length`
+        90°-Winkel nach unten, Fallrohr `drop`
+    J2  Servo, dreht um die Achse des Fallrohrs (links/rechts)
+        90°-Winkel nach rechts, Rohr `offset_right`
+    J3  Servo, dreht um die Achse dieses Rohrs (Ausleger heben/senken)
+        90°-Winkel nach vorne, äußerer Ausleger `outer_length` (bei J3 = 0 ebenfalls fallend)
+        90°-Winkel nach links, Rohr `offset_left`
+    J4  freies Drehgelenk ohne Motor
+        90°-Winkel nach unten, Auslass `outlet_length`; hängt durch die Schwerkraft
+
+Koordinatensystem Armbasis: Ursprung auf der Achse J1 am Haltepunkt, x nach vorne (Richtung des
+inneren Auslegers bei J1 = 0), y nach links, z nach oben. Einheit Meter, Winkel im Bogenmaß.
+
+Die Achsregelung liegt in der SPS. Dieses Modul dient der Planung und Plausibilisierung,
+der Live-Ansicht und als Referenz für die SPS-Programmierung.
+"""
+
+from dataclasses import dataclass, field
+
+import numpy as np
+from scipy.optimize import least_squares
+
+
+def _rx(t):
+    c, s = np.cos(t), np.sin(t)
+    return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
+
+
+def _ry(t):
+    c, s = np.cos(t), np.sin(t)
+    return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
+
+
+def _rz(t):
+    c, s = np.cos(t), np.sin(t)
+    return np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
+
+
+_HALF_PI = np.pi / 2
+
+
+@dataclass
+class ArmGeometry:
+    base_height: float = 5.0  # Höhe J1 über Fahrbahn [m]
+    incline_deg: float = 3.0
+    inner_length: float = 2.2
+    drop: float = 0.5
+    offset_right: float = 0.35
+    outer_length: float = 2.4
+    offset_left: float = 0.35
+    outlet_length: float = 1.2
+    limits_deg: dict = field(
+        default_factory=lambda: {"q1": [-120, 120], "q2": [-170, 170], "q3": [-35, 35]}
+    )
+    park_deg: list = field(default_factory=lambda: [70.0, -150.0, 10.0])
+    approach_height: float = 0.3  # Anfahrpunkt über der Domöffnung [m]
+    insertion_depth: float = 0.4  # Eintauchtiefe unter der Domöffnung [m], produktspezifisch
+
+    @property
+    def bounds(self):
+        lo = np.radians([self.limits_deg[k][0] for k in ("q1", "q2", "q3")])
+        hi = np.radians([self.limits_deg[k][1] for k in ("q1", "q2", "q3")])
+        return lo, hi
+
+    @property
+    def park(self) -> np.ndarray:
+        return np.radians(self.park_deg)
+
+
+def forward(geom: ArmGeometry, q) -> np.ndarray:
+    """Eckpunkte der Rohrführung (7, 3) für die Gelenkwinkel q = (q1, q2, q3).
+
+    Reihenfolge: J1, Winkel unten, Winkel rechts, J3, Winkel links, J4, Auslassende.
+    """
+    q1, q2, q3 = q
+    pts = [np.zeros(3)]
+    r = _rz(q1) @ _ry(np.radians(geom.incline_deg))
+    p = r[:, 0] * geom.inner_length
+    pts.append(p)
+    r = r @ _ry(_HALF_PI)  # Winkel nach unten
+    p = p + r[:, 0] * geom.drop
+    pts.append(p)
+    r = r @ _rx(q2) @ _rz(-_HALF_PI)  # J2, Winkel nach rechts
+    p = p + r[:, 0] * geom.offset_right
+    pts.append(p)
+    r = r @ _rx(q3) @ _ry(-_HALF_PI)  # J3, Winkel nach vorne
+    p = p + r[:, 0] * geom.outer_length
+    pts.append(p)
+    r = r @ _ry(-_HALF_PI)  # Winkel nach links
+    p = p + r[:, 0] * geom.offset_left
+    pts.append(p)
+    # J4 ist frei drehbar: der Auslass steht senkrecht zur Gelenkachse und pendelt so weit
+    # nach unten, wie es die Achse zulässt (Projektion der Schwerkraft auf die Drehebene).
+    axis = r[:, 0]
+    down = np.array([0.0, 0.0, -1.0])
+    d = down - (down @ axis) * axis
+    d /= np.linalg.norm(d)
+    pts.append(p + d * geom.outlet_length)
+    return np.array(pts)
+
+
+def tip(geom: ArmGeometry, q) -> np.ndarray:
+    return forward(geom, q)[-1]
+
+
+@dataclass
+class IkResult:
+    ok: bool
+    q: np.ndarray
+    error: float  # Restabstand zum Ziel [m]
+
+
+def inverse(geom: ArmGeometry, target, q0=None, tol: float = 0.002) -> IkResult:
+    """Gelenkwinkel, mit denen das Auslassende auf `target` steht (innerhalb der Achsgrenzen).
+
+    Numerisch; mit `q0` wird die nächstgelegene Lösung bevorzugt (stetige Bahnen).
+    Ohne `q0` werden mehrere Startwerte probiert und die Lösung nahe der Parkstellung gewählt.
+    """
+    target = np.asarray(target, dtype=float)
+    lo, hi = geom.bounds
+
+    def residual(q):
+        return tip(geom, q) - target
+
+    starts = [q0] if q0 is not None else []
+    if q0 is None:
+        heading = np.arctan2(target[1], target[0])
+        for q2 in (-2.0, -1.0, 0.0, 1.0, 2.0):
+            starts.append([heading - q2 / 2, q2, 0.0])
+        starts.append(geom.park)
+
+    best = None
+    for s in starts:
+        s = np.clip(np.asarray(s, dtype=float), lo + 1e-6, hi - 1e-6)
+        sol = least_squares(residual, s, bounds=(lo, hi), xtol=1e-10, ftol=1e-10)
+        err = float(np.linalg.norm(sol.fun))
+        cost = err + (0.0 if q0 is not None else 1e-3 * np.linalg.norm(sol.x - geom.park))
+        if best is None or cost < best[0]:
+            best = (cost, sol.x, err)
+        if q0 is not None:
+            break
+    _, q, err = best
+    return IkResult(ok=err < tol, q=q, error=err)
+
+
+def plan_motion(geom: ArmGeometry, target_mm, normal, move_steps: int = 36, insert_steps: int = 16):
+    """Bahn für die Anzeige: Parkstellung -> Anfahrpunkt über dem Dom -> Eintauchpunkt.
+
+    Anfahrt im Gelenkraum, Eintauchen als senkrechte Bahn des Auslassendes.
+    Liefert je Stützpunkt die Eckpunkte der Rohrführung.
+    """
+    center = np.asarray(target_mm, dtype=float) / 1000.0
+    n = np.asarray(normal, dtype=float)
+    n /= np.linalg.norm(n)
+    above = center + n * geom.approach_height
+    inside = center - n * geom.insertion_depth
+
+    plan = {"park": forward(geom, geom.park).round(4).tolist(), "ok": False}
+    first = inverse(geom, above)
+    if not first.ok:
+        plan["reason"] = (
+            f"Anfahrpunkt nicht erreichbar (Abstand {first.error * 1000:.0f} mm), "
+            "Arbeitsraum oder Achsgrenzen prüfen"
+        )
+        return plan
+
+    move = [
+        forward(geom, geom.park + (first.q - geom.park) * u)
+        for u in np.linspace(0, 1, move_steps)
+    ]
+    q, qs, insert = first.q, [first.q], []
+    for u in np.linspace(0, 1, insert_steps):
+        res = inverse(geom, above + (inside - above) * u, q0=q)
+        if not res.ok:
+            plan["reason"] = f"Eintauchtiefe nicht erreichbar ({u * 100:.0f} % der Bahn)"
+            return plan
+        q = res.q
+        qs.append(q)
+        insert.append(forward(geom, q))
+
+    plan.update(
+        ok=True,
+        q_above_deg=np.degrees(first.q).round(2).tolist(),
+        q_inside_deg=np.degrees(q).round(2).tolist(),
+        move=[m.round(4).tolist() for m in move],
+        insert=[m.round(4).tolist() for m in insert],
+    )
+    return plan

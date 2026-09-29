@@ -60,6 +60,7 @@ class FrameProducer:
             frame_id = self.frame_id
 
         t0 = time.perf_counter()
+        op = None
         try:
             op = detect_opening(points, self.det_cfg)
             result = {
@@ -76,7 +77,8 @@ class FrameProducer:
 
         frame = points_for_view(points, self.transform, self.max_points, self.rng)
         frame.update(id=frame_id, detect_ms=round(detect_ms, 1), result=result,
-                     arm=arm_for_view(self.geom, result, 0, self.products))
+                     arm=arm_for_view(self.geom, result, 0, self.products),
+                     vehicle=vehicle_for_view(op, self.transform))
         return frame
 
     def state(self) -> dict:
@@ -94,6 +96,23 @@ def points_for_view(points, transform: SensorToArm, max_points: int, rng) -> dic
         "sensor_mm": [round(float(x), 1) for x in transform.point(np.zeros(3)) * 1000],
         "points": np.round(shown, 3).ravel().tolist(),
     }
+
+
+def vehicle_for_view(op, transform: SensorToArm) -> dict | None:
+    """Tankform für die Anzeige (Armbasis, m). Fahrzeugart grob aus dem Tankradius geschätzt."""
+    if op is None:
+        return None
+    apex = transform.point(op.tank_apex)
+    rim = transform.point(op.center)
+    v = {"apex": apex.round(4).tolist(), "rim": rim.round(4).tolist(),
+         "diameter": round(op.diameter, 3)}
+    if op.tank_radius is None:
+        v["kind"] = "eben"
+    else:
+        v.update(kind="kesselwagen" if op.tank_radius >= 1.3 else "lkw",
+                 radius=round(op.tank_radius, 3),
+                 axis=transform.direction(op.tank_axis).round(4).tolist())
+    return v
 
 
 def arm_for_view(geom: ArmGeometry, result: dict, product_id: int = 0,
@@ -128,6 +147,7 @@ class PlcMonitor:
         self.transform = SensorToArm(cfg["calibration"]["matrix"])
         self.geom = ArmGeometry(**cfg.get("arm", {}))
         self.products = cfg.get("products")
+        self.det_cfg = DetectorConfig(**cfg.get("detection", {}))
         self.max_points = max_points
         self.rng = np.random.default_rng()
         self.lock = threading.Lock()
@@ -191,8 +211,14 @@ class PlcMonitor:
         frame = {"id": int(v["ResultId"]), "detect_ms": None, "result": result,
                  "arm": arm_for_view(self.geom, result, int(v["ProductId"]), self.products)}
         if self.snapshot and self.snapshot.exists():
-            frame.update(points_for_view(np.load(self.snapshot), self.transform,
-                                         self.max_points, self.rng))
+            points = np.load(self.snapshot)
+            frame.update(points_for_view(points, self.transform, self.max_points, self.rng))
+            if ok:  # Tankform nur für die Anzeige, die Koordinaten kommen aus dem DB_Vision
+                try:
+                    frame["vehicle"] = vehicle_for_view(detect_opening(points, self.det_cfg),
+                                                        self.transform)
+                except DetectionError:
+                    pass
         else:
             frame.update(points=[], n_points=0, note="Keine Punktwolke: snapshot.path im "
                          "Vision-Dienst setzen und denselben Pfad hier konfigurieren.")

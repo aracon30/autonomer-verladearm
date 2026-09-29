@@ -80,7 +80,7 @@ def _default_joints():
     return {
         "q1": {"min": -120, "max": 120, "park": 70},
         "q2": {"min": -170, "max": 170, "park": -150},
-        "q3": {"min": -35, "max": 35, "park": 10},
+        "q3": {"min": -35, "max": 50, "park": 10},
     }
 
 

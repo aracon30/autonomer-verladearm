@@ -81,5 +81,5 @@ python -m verladearm_vision.commissioning --config vision/config/anlagen/beispie
 
 ## Status
 
-Prototyp. Erkennung für ebene Tankdächer mit synthetischen Daten getestet; reale Sensortreiber,
-Kalibrierung und gewölbte Tankdächer folgen.
+Prototyp. Erkennung für ebene und runde Tanks (Lkw, Kesselwagen) mit Domkragen auf synthetischen
+Daten getestet; reale Sensortreiber, Kalibrierung und Messungen an echten Fahrzeugen folgen.

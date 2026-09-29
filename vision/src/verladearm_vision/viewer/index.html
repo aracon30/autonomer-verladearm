@@ -158,6 +158,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         <dt>ErrorCode</dt><dd id="v-err">–</dd>
         <dt>Servo J1/J2/J3</dt><dd id="v-joints">–</dd>
         <dt>Eintauchtiefe</dt><dd id="v-depth">–</dd>
+        <dt>Tankform</dt><dd id="v-tank">–</dd>
         <dt>Messpunkte</dt><dd id="v-pts">–</dd>
         <dt>Rechenzeit</dt><dd id="v-ms">–</dd>
       </dl>
@@ -178,6 +179,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         <li><span class="sw" style="background:var(--signal)"></span>Domöffnung, Rohrführung</li>
         <li><span class="sw" style="background:var(--steel)"></span>Freies Drehgelenk J4 (dunkel: Servos J1–J3)</li>
         <li><span class="sw" style="background:var(--clutter);opacity:.5"></span>Sperrbereich (Hindernis)</li>
+        <li><span class="sw" style="background:var(--steel);opacity:.6"></span>Tank (Form aus der Messung, Fahrzeug aus dem Radius geschätzt)</li>
       </ul>
       <p class="note">Armmaße, Servowerte und Sperrbereiche kommen aus der Anlagenkonfiguration. Die Achsregelung übernimmt die SPS.</p>
     </section>
@@ -267,6 +269,91 @@ ul.legend li{display:flex;align-items:center;gap:8px}
   tank.visible = false;
   scene.add(tank);
 
+  // Fahrzeug (Lkw-Tankauflieger oder Kesselwagen) aus der gemessenen Tankform
+  const vehicleGroup = new THREE.Group();
+  scene.add(vehicleGroup);
+  const tankMat = new THREE.MeshStandardMaterial({ metalness: 0.35, roughness: 0.4, transparent: true, opacity: 0.9 });
+  const cabMat = new THREE.MeshStandardMaterial({ roughness: 0.5 });
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x4a5058, roughness: 0.7 });
+  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1f2226, roughness: 0.9 });
+  const railMat = new THREE.MeshStandardMaterial({ color: 0x8a8f96, metalness: 0.6, roughness: 0.35 });
+  const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+
+  function box(parent, mat, sx, sy, sz, x, y, z) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mat);
+    m.position.set(x, y, z);
+    parent.add(m);
+    return m;
+  }
+  function wheel(parent, r, x, y, z) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.28, 24), wheelMat);
+    m.rotation.x = Math.PI / 2;
+    m.position.set(x, y, z);
+    parent.add(m);
+  }
+  function buildVehicle(v) {
+    vehicleGroup.clear();
+    if (!v || v.kind === "eben" || !v.radius) return false;
+    const R = v.radius, apex = toView(...v.apex), rim = toView(...v.rim);
+    const ax = toView(...v.axis); ax.y = 0; ax.normalize();
+    // lokales System: x entlang der Tankachse, Ursprung auf der Achse unter dem Dom
+    const g = new THREE.Group();
+    g.position.set(apex.x, apex.y - R, apex.z);
+    g.quaternion.setFromUnitVectors(V3(1, 0, 0), ax);
+    vehicleGroup.add(g);
+    const ground = groundY - (apex.y - R);
+    const rail = v.kind === "kesselwagen";
+    const L = rail ? 12.0 : 8.5, off = rail ? 0 : -0.9;
+
+    const shell = new THREE.Mesh(new THREE.CylinderGeometry(R - 0.03, R - 0.03, L, 48, 1, true), tankMat);
+    shell.rotation.z = Math.PI / 2;
+    shell.position.x = off;
+    g.add(shell);
+    for (const sgn of [-1, 1]) {
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(R - 0.03, 40, 20), tankMat);
+      cap.scale.set(0.3, 1, 1);
+      cap.position.x = off + sgn * L / 2;
+      g.add(cap);
+    }
+
+    if (rail) {
+      const deck = -R - 0.25;
+      box(g, frameMat, L + 1.2, 0.3, 2.4, 0, deck, 0);                 // Untergestell
+      for (const sgn of [-1, 1]) {
+        const bx = sgn * (L / 2 - 2.0);
+        box(g, frameMat, 2.6, 0.45, 2.1, bx, ground + 0.85, 0);          // Drehgestell
+        box(g, frameMat, 0.4, deck - ground - 0.85, 0.4, bx, (deck + ground + 0.85) / 2, 0);
+        for (const wx of [-0.9, 0.9]) for (const wz of [-0.72, 0.72]) wheel(g, 0.46, bx + wx, ground + 0.46, wz);
+        for (const bz of [-0.88, 0.88]) {                                 // Puffer
+          const b = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.6, 20), frameMat);
+          b.rotation.z = Math.PI / 2;
+          b.position.set(sgn * (L / 2 + 0.9), deck, bz);
+          g.add(b);
+        }
+      }
+      for (const rz of [-0.7175, 0.7175]) box(g, railMat, 60, 0.15, 0.07, 0, ground + 0.075, rz); // Gleis
+      for (let i = -14; i <= 14; i++) box(g, frameMat, 0.26, 0.12, 2.6, i * 0.65 * 3, ground + 0.02, 0);
+    } else {
+      const deck = -R - 0.15;
+      box(g, frameMat, L + 0.6, 0.25, 1.1, off, deck, 0);                // Rahmen Auflieger
+      for (const x of [2.1, 3.45, 4.8]) for (const wz of [-0.95, 0.95]) wheel(g, 0.5, off - x + 1.0, ground + 0.5, wz);
+      if (deck - 0.12 > ground + 1.0) box(g, frameMat, 0.35, deck - ground - 1.0, 0.35, off + L / 2 - 1.2, (deck + ground + 1.0) / 2, 0);
+      const cx = off + L / 2 + 1.7;                                        // Zugmaschine am fernen Ende
+      box(g, frameMat, 4.6, 0.3, 1.0, cx - 0.7, ground + 1.0, 0);
+      box(g, cabMat, 2.1, 2.7, 2.45, cx + 0.4, ground + 1.2 + 1.35, 0);
+      for (const x of [0.8, -1.6, -2.9]) for (const wz of [-0.95, 0.95]) wheel(g, 0.5, cx + x, ground + 0.5, wz);
+    }
+
+    const collarH = rim.y - apex.y;                                        // Domkragen
+    if (collarH > 0.02) {
+      const ro = v.diameter / 2 + 0.05;
+      const collar = new THREE.Mesh(new THREE.CylinderGeometry(ro, ro, collarH + R * 0.1, 40, 1, true), tankMat);
+      collar.position.set(rim.x, rim.y - (collarH + R * 0.1) / 2, rim.z);
+      vehicleGroup.add(collar);
+    }
+    return true;
+  }
+
   // Markierung Domöffnung
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.018, 8, 64), new THREE.MeshBasicMaterial());
   ring.visible = false;
@@ -354,6 +441,8 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     normalArrow.setColor(C.signal);
     armMat.color = C.signal;
     freeMat.color = C.steel;
+    tankMat.color = C.steel;
+    cabMat.color = C.muted;
     obstacleMat.color = C.clutter;
     if (current) colorPoints(phase === "scan" ? false : current.result.ok);
   }
@@ -404,11 +493,26 @@ ul.legend li{display:flex;align-items:center;gap:8px}
       c = r.target_mm.map(v => v / 1000);
       nrm = r.normal;
     }
+    // runder Tank: Abstand zum Zylindermantel statt zur Ebene; Domkragen zählt zur Oberfläche
+    const vh = c && current.vehicle && current.vehicle.radius ? current.vehicle : null;
+    let axisP, ax, R, rim, rr;
+    if (vh) {
+      R = vh.radius; ax = vh.axis; rim = vh.rim; rr = vh.diameter / 2 + 0.12;
+      axisP = [vh.apex[0], vh.apex[1], vh.apex[2] - R];
+    }
+    const onSurface = k => {
+      const x = pts[k * 3], y = pts[k * 3 + 1], z = pts[k * 3 + 2];
+      if (!vh) return Math.abs((x - c[0]) * nrm[0] + (y - c[1]) * nrm[1] + (z - c[2]) * nrm[2]) < 0.03;
+      if (Math.hypot(x - rim[0], y - rim[1]) < rr && z > vh.apex[2] - 0.05 && z < rim[2] + 0.05) return true;
+      const dx = x - axisP[0], dy = y - axisP[1], dz = z - axisP[2];
+      const along = dx * ax[0] + dy * ax[1] + dz * ax[2];
+      const perp = Math.hypot(dx - along * ax[0], dy - along * ax[1], dz - along * ax[2]);
+      return Math.abs(perp - R) < 0.04;
+    };
     for (let k = 0; k < n; k++) {
       let color = C.point;
       if (c) {
-        const d = Math.abs((pts[k * 3] - c[0]) * nrm[0] + (pts[k * 3 + 1] - c[1]) * nrm[1] + (pts[k * 3 + 2] - c[2]) * nrm[2]);
-        if (d < 0.03) {
+        if (onSurface(k)) {
           color = C.surface;
           lo = Math.min(lo, pts[k * 3]); hi = Math.max(hi, pts[k * 3]);
           ylo = Math.min(ylo, pts[k * 3 + 1]); yhi = Math.max(yhi, pts[k * 3 + 1]);
@@ -418,7 +522,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
       col[k * 3] = color.r; col[k * 3 + 1] = color.g; col[k * 3 + 2] = color.b;
     }
     ptGeo.attributes.color.needsUpdate = true;
-    if (c && cnt) {
+    if (c && cnt && !vehicleGroup.children.length) {
       const top = depth / cnt;
       tank.scale.set(hi - lo, top - groundY - 0.03, yhi - ylo);
       tank.position.set((lo + hi) / 2, (top + groundY) / 2 - 0.02, -(ylo + yhi) / 2);
@@ -432,6 +536,9 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     set("v-pts", f.n_points ? f.n_points.toLocaleString("de-DE") : "–");
     set("v-ms", f.detect_ms != null ? fmt(f.detect_ms) + " ms" : "–");
     set("v-err", r.error_code);
+    const vh = f.vehicle;
+    set("v-tank", !r.ok || !vh ? "–" : vh.kind === "eben" ? "eben"
+      : (vh.kind === "kesselwagen" ? "Kesselwagen" : "Lkw") + ", R " + vh.radius.toFixed(2).replace(".", ",") + " m");
     if (r.ok) {
       set("v-target", r.target_mm.map(v => fmt(v)).join(" / ") + " mm");
       set("v-normal", r.normal.map(v => fmt(v, 3)).join(" / "));
@@ -479,6 +586,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
       else { f = nextFrame ? await nextFrame : await fetchFrame(); nextFrame = null; }
       loadFrame(f);
       ring.visible = normalArrow.visible = tank.visible = false;
+      vehicleGroup.clear();
       beam.visible = pts.length > 0;
       enter("scan");
     } catch (e) {
@@ -571,6 +679,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
       if (!shown) {
         shown = true;
         const r = current.result;
+        buildVehicle(r.ok ? current.vehicle : null);
         colorPoints(true);
         showResult(current);
         if (r.ok) {

@@ -38,7 +38,7 @@ arm:
   joints:
     q1: {min: -120, max: 120, park: 70, zero: 0, direction: 1}
     q2: {min: -170, max: 170, park: -150, zero: 0, direction: 1}
-    q3: {min: -35, max: 35, park: 10, zero: 0, direction: 1}
+    q3: {min: -35, max: 50, park: 10, zero: 0, direction: 1}
 
   # Sperrbereiche als Quader in Armbasis-Koordinaten [m]
   # (Ursprung Achse J1, x vorne, y links, z oben)
@@ -56,5 +56,5 @@ products:
 commissioning:
   # Bereich, in dem die Domöffnung bei dieser Station liegen kann (Armbasis, m)
   workspace_min: [2.6, -0.6, -2.0]
-  workspace_max: [3.6, 0.6, -0.9]
+  workspace_max: [3.6, 0.6, -0.5]  # bis Kesselwagen-Domhöhe
   step: 0.2

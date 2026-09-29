@@ -1,0 +1,30 @@
+# Konfiguration Vision-Dienst autonomer Verladearm
+
+source:
+  type: file            # file = aufgenommene Punktwolken abspielen; später z. B. orbbec, livox
+  path: data/samples
+
+detection:
+  roi_min: [-2.0, -2.0, 0.5]    # Arbeitsraum in Sensorkoordinaten [m]
+  roi_max: [2.0, 2.0, 8.0]
+  plane_threshold: 0.015        # [m]
+  ransac_iterations: 300
+  grid_size: 0.02               # Rasterweite [m], an Punktdichte des Sensors anpassen
+  min_diameter: 0.35            # erwarteter Domdurchmesser [m]
+  max_diameter: 0.65
+  min_points: 2000
+
+calibration:
+  # Transformation Sensor -> Armbasis (4x4, Meter). Wird bei der Hand-Auge-Kalibrierung ermittelt.
+  matrix:
+    - [1, 0, 0, 0]
+    - [0, 1, 0, 0]
+    - [0, 0, 1, 0]
+    - [0, 0, 0, 1]
+
+plc:
+  url: opc.tcp://127.0.0.1:4840/        # Simulator; für die SPS deren IP eintragen
+  namespace_uri: http://www.siemens.com/simatic-s7-opcua
+  node_template: 'ns={ns};s="DB_Vision"."{name}"'
+  cycle_s: 0.05
+  heartbeat_timeout_s: 1.0

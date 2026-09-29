@@ -1,0 +1,35 @@
+// Schnittstellen-DB Vision-PC <-> SPS, siehe docs/schnittstelle.md
+// Import in TIA Portal: Externe Quellen > Neue externe Datei hinzufügen > Bausteine aus Quelle generieren
+// In den Eigenschaften "Erreichbar aus HMI/OPC UA" und "Schreibbar aus HMI/OPC UA" aktivieren.
+DATA_BLOCK "DB_Vision"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+NON_RETAIN
+   VAR
+      // SPS -> PC
+      HeartbeatPLC : Int;
+      Trigger : Bool;
+      ProductId : Int;
+      Reset : Bool;
+      // PC -> SPS
+      HeartbeatPC : Int;
+      Ready : Bool;
+      Busy : Bool;
+      Done : Bool;
+      Error : Bool;
+      ErrorCode : Int;
+      ResultId : DInt;
+      TargetX : Real;   // mm, Armbasis
+      TargetY : Real;
+      TargetZ : Real;
+      NormalX : Real;
+      NormalY : Real;
+      NormalZ : Real;
+      DiameterMm : Real;
+      Confidence : Real;
+      InterfaceVersion : Int;
+   END_VAR
+
+BEGIN
+
+END_DATA_BLOCK

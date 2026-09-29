@@ -1,0 +1,8 @@
+Pos;Bezeichnung;Vorschlag;Menge;Status;Bemerkung
+1;3D-Sensor Kamera;Orbbec Gemini/Femto;1;offen;Vergleich mit Pos. 2 für Bachelorarbeit
+2;3D-Sensor LiDAR;Livox Mid-360;1;offen;optional
+3;Edge-PC;Mini-PC x86 Ubuntu oder NVIDIA Jetson Orin;1;offen;
+4;Industrie-Switch;unmanaged 5 Port;1;offen;
+5;Netzteil;24 V DC;1;offen;
+6;Sensortraverse;Alu-Profil verstellbar 4-6 m;1;offen;
+7;Mock-up Tankdach;Blech mit Domausschnitt, Edelstahl blank;1;offen;Domdurchmesser realer Tankwagen klären

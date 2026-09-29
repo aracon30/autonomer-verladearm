@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lastenheft – Autonomer Verladearm für Tankwagen-Obenbefüllung</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F6F7F8; --paper:#FFFFFF; --ink:#1C2430; --muted:#5B6875; --rule:#D3D9E0;
+  --head:#E9EDF1; --signal:#E8A900; --signal-ink:#3A2A00; --soll:#4E6E8E; --kann:#8A96A3;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#11161C; --paper:#171D24; --ink:#E4E8EC; --muted:#9AA6B2; --rule:#2E3844;
+    --head:#1F2730; --signal:#F2B705; --signal-ink:#1A1300; --soll:#7FA3C7; --kann:#6F7B88;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11161C; --paper:#171D24; --ink:#E4E8EC; --muted:#9AA6B2; --rule:#2E3844;
+  --head:#1F2730; --signal:#F2B705; --signal-ink:#1A1300; --soll:#7FA3C7; --kann:#6F7B88;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Source Sans 3","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:1.0625rem;line-height:1.55}
+.doc{max-width:60rem;margin:0 auto;background:var(--paper);min-height:100vh;
+  border-left:1px solid var(--rule);border-right:1px solid var(--rule)}
+.stripe{height:10px;background:repeating-linear-gradient(135deg,var(--signal) 0 14px,var(--ink) 14px 28px)}
+header{padding:2.5rem 2.5rem 1.5rem}
+h1,h2,h3{font-family:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;line-height:1.15;margin:0}
+h1{font-size:clamp(2rem,5vw,2.9rem);font-weight:700;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:1.15rem;margin:.4rem 0 1.75rem}
+.titleblock{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));
+  border:1.5px solid var(--ink)}
+.titleblock div{padding:.55rem .8rem;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.titleblock small{display:block;color:var(--muted);font-size:.8rem}
+.titleblock b{font-weight:600}
+nav.toc{margin:0 2.5rem 1rem;padding:1rem 1.25rem;background:var(--head)}
+nav.toc h2{font-size:1.1rem;margin-bottom:.4rem}
+nav.toc ol{margin:0;padding-left:1.4rem;columns:2 16rem;column-gap:2rem}
+nav.toc a{color:var(--ink);text-decoration:none}
+nav.toc a:hover,nav.toc a:focus-visible{text-decoration:underline}
+main{padding:0 2.5rem 3rem}
+section{padding-top:2rem}
+h2{font-size:1.65rem;font-weight:600;padding-bottom:.35rem;border-bottom:2px solid var(--ink);margin-bottom:1rem}
+h2 .n{color:var(--muted);margin-right:.5rem}
+h3{font-size:1.2rem;font-weight:600;margin:1.5rem 0 .5rem}
+p{margin:.5rem 0;max-width:72ch}
+ul,ol{max-width:72ch}
+li{margin:.25rem 0}
+.note{border-left:4px solid var(--signal);background:var(--head);padding:.75rem 1rem;margin:1rem 0;max-width:72ch}
+.tw{overflow-x:auto;margin:.75rem 0 1rem}
+table{border-collapse:collapse;width:100%;min-width:34rem;font-size:.97rem}
+th,td{text-align:left;vertical-align:top;padding:.5rem .65rem;border-bottom:1px solid var(--rule)}
+th{background:var(--head);font-family:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;font-weight:600;font-size:1rem}
+td.id{white-space:nowrap;font-weight:600;color:var(--muted);width:4.5rem}
+td.p{width:4.5rem}
+.tag{display:inline-block;min-width:3.4rem;text-align:center;font-size:.8rem;font-weight:600;padding:.1rem .4rem;border-radius:3px}
+.m{background:var(--signal);color:var(--signal-ink)}
+.s{background:var(--soll);color:#fff}
+.k{background:transparent;color:var(--kann);border:1px solid var(--kann)}
+.tbd{color:var(--muted);font-style:italic}
+ol.flow{counter-reset:f;list-style:none;padding:0}
+ol.flow li{counter-increment:f;position:relative;padding:.5rem 0 .5rem 2.8rem;border-bottom:1px dashed var(--rule)}
+ol.flow li::before{content:counter(f);position:absolute;left:0;top:.45rem;width:1.9rem;height:1.9rem;
+  border:1.5px solid var(--ink);display:grid;place-items:center;font-weight:600;font-size:.9rem}
+ol.flow li.auto::before{background:var(--ink);color:var(--paper)}
+.legend{font-size:.9rem;color:var(--muted)}
+footer{padding:1.5rem 2.5rem 2.5rem;color:var(--muted);font-size:.9rem;border-top:1px solid var(--rule)}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+@media (max-width:600px){header,main,footer{padding-left:1.1rem;padding-right:1.1rem}nav.toc{margin:0 1.1rem 1rem}}
+@media print{body{background:#fff}.doc{border:0}nav.toc{break-after:page}section{break-inside:auto}tr{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="doc">
+<div class="stripe" aria-hidden="true"></div>
+<header>
+  <h1>Lastenheft: Autonomer Verladearm</h1>
+  <p class="sub">Automatisierte Obenbefüllung von Tankwagen inklusive Positions- und Füllstandssensorik</p>
+  <div class="titleblock">
+    <div><small>Auftraggeber</small><b>HETA Verfahrenstechnik GmbH, Lich</b></div>
+    <div><small>Ersteller</small><b>Philipp Schreiber</b></div>
+    <div><small>Version / Status</small><b>0.1 – Entwurf</b></div>
+    <div><small>Datum</small><b>29.09.2026</b></div>
+    <div><small>Vertraulichkeit</small><b>Vertraulich</b></div>
+    <div><small>Freigabe</small><b class="tbd">offen</b></div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Inhalt">
+  <h2>Inhalt</h2>
+  <ol>
+    <li><a href="#s1">Einleitung und Zielsetzung</a></li>
+    <li><a href="#s2">Ist-Zustand</a></li>
+    <li><a href="#s3">Soll-Prozess</a></li>
+    <li><a href="#s4">Funktionale Anforderungen</a></li>
+    <li><a href="#s5">Nichtfunktionale Anforderungen</a></li>
+    <li><a href="#s6">Sicherheitsanforderungen</a></li>
+    <li><a href="#s7">Schnittstellen</a></li>
+    <li><a href="#s8">Mechanische Randbedingungen</a></li>
+    <li><a href="#s9">Normen und Richtlinien</a></li>
+    <li><a href="#s10">Leistungsumfang Auftragnehmer</a></li>
+    <li><a href="#s11">Abnahmekriterien</a></li>
+    <li><a href="#s12">Projektrahmen und Termine</a></li>
+    <li><a href="#s13">Offene Punkte</a></li>
+  </ol>
+</nav>
+
+<main>
+<p class="legend"><span class="tag m">Muss</span> zwingend erforderlich &nbsp; <span class="tag s">Soll</span> angestrebt, begründete Abweichung möglich &nbsp; <span class="tag k">Kann</span> optional &nbsp; <span class="tbd">Kursiv</span> = Annahme bzw. zu verifizieren</p>
+
+<section id="s1">
+<h2><span class="n">1</span>Einleitung und Zielsetzung</h2>
+<h3>1.1 Zweck des Dokuments</h3>
+<p>Dieses Lastenheft beschreibt die Anforderungen des Auftraggebers an einen autonomen Verladearm für die Obenbefüllung von Tankwagen. Es dient als Grundlage für die Konzeptentwicklung im Rahmen einer Bachelorarbeit sowie für Anfragen an Partner für Sensorik, Software und Automatisierung.</p>
+<h3>1.2 Projektziel</h3>
+<p>Entwicklung eines autonomen Verladearms als vollständiges, marktfähiges Paket inklusive Sensorik. Der Arm soll die Domöffnung eines Tankwagens selbstständig erkennen, sich positionieren, die Fülllanze einführen, während der Befüllung dem Füllstand folgen und nach Abschluss sicher zurückfahren. Während des automatischen Betriebs soll kein Eingreifen durch Personal erforderlich sein.</p>
+<h3>1.3 Abgrenzung</h3>
+<ul>
+  <li>Das Öffnen und Schließen des Domdeckels erfolgt weiterhin manuell durch den Fahrer.</li>
+  <li>Die Befüllung von IBCs und Fässern ist nicht Gegenstand dieses Projekts.</li>
+  <li>Untenbefüllung ist nicht Gegenstand dieses Projekts.</li>
+</ul>
+</section>
+
+<section id="s2">
+<h2><span class="n">2</span>Ist-Zustand</h2>
+<ul>
+  <li>Die Befüllung erfolgt manuell von oben über die Verladebühne; der Arm wird von Personal positioniert.</li>
+  <li>Die Überfüllsicherung arbeitet mit einem Vibrationsgrenzschalter (Stimmgabel). Schaum wird dabei nicht zuverlässig erkannt, was zu Überläufen führen kann.</li>
+  <li>Nachtropfendes Produkt wird beim Zurückziehen mit einem Eimer aufgefangen, anschließend wird gespült.</li>
+  <li>Das Absperrventil sitzt nahe der Armspitze und erhöht das Gewicht am Armende.</li>
+  <li>Der Arm besitzt eine Bremse, die bei Stromausfall die Position hält.</li>
+  <li>Die bestehende Konstruktion enthält eine Schurre, eine Vorrüstung für einen Ultraschallsensor und Bauraum für weitere Sensoren.</li>
+  <li>Am Arm werden mehrere Produkte verladen; Produktgruppen sind auf verschiedene Verladestationen aufgeteilt.</li>
+  <li>Zu den Produkten gehören teils schäumende und klebrige Medien, u. a. Dispersionsklebstoffe.</li>
+</ul>
+</section>
+
+<section id="s3">
+<h2><span class="n">3</span>Soll-Prozess</h2>
+<p class="legend">Gefüllte Nummern: automatischer Schritt. Leere Nummern: manueller Schritt bzw. Bestätigung.</p>
+<ol class="flow">
+  <li>Tankwagen fährt in die Verladestation und wird abgestellt.</li>
+  <li>Fahrer öffnet den Domdeckel der zu befüllenden Kammer und verlässt den Tankwagen.</li>
+  <li>Fahrer startet den Vorgang am Touchscreen; Freigabe zusätzlich im Prozessleitsystem (PLS).</li>
+  <li class="auto">System prüft Sicherheitsbedingungen: keine Personen im Gefahrenbereich, Verladebühne in sicherer Endlage.</li>
+  <li class="auto">Sensorik erfasst Tankwagen und Domöffnung und berechnet die Zielposition.</li>
+  <li class="auto">Verladearm fährt über die Domöffnung und führt die Lanze bis zur produktspezifischen Tiefe ein.</li>
+  <li class="auto">Befüllung startet; die Lanze folgt dem Füllstand und bleibt unter der Flüssigkeitsoberfläche.</li>
+  <li class="auto">Befüllung stoppt bei Erreichen der Sollmenge oder bei Auslösen der Überfüllsicherung.</li>
+  <li class="auto">Lanze fährt heraus, Tropfschutz schließt bzw. fährt unter die Lanze, Arm fährt in Parkposition.</li>
+  <li>Fahrer schließt den Domdeckel; Vorgang wird im PLS abgeschlossen und dokumentiert.</li>
+</ol>
+</section>
+
+<section id="s4">
+<h2><span class="n">4</span>Funktionale Anforderungen</h2>
+<h3>4.1 Erkennung und Positionierung</h3>
+<div class="tw"><table>
+<thead><tr><th>ID</th><th>Anforderung</th><th>Priorität</th></tr></thead>
+<tbody>
+<tr><td class="id">F-01</td><td>Das System erkennt die geöffnete Domöffnung automatisch und bestimmt deren Mittelpunkt und Ausrichtung im Raum.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">F-02</td><td>Die Erkennung funktioniert bei unterschiedlichen Tankwagentypen, Aufbauhöhen und Abstellpositionen innerhalb des definierten Arbeitsraums.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">F-03</td><td>Die Erkennung funktioniert auf blanken Edelstahl- und lackierten Oberflächen sowie bei Tageslicht, Dunkelheit, Nässe und Verschmutzung.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">F-04</td><td>Der Positionssensor ist bevorzugt zentral oberhalb der Station (z. B. am Dach der Überdachung) montiert; zusätzliche Hardware an der Armspitze ist zu minimieren.</td><td class="p"><span class="tag s">Soll</span></td></tr>
+<tr><td class="id">F-05</td><td>Das System erkennt, wenn keine oder mehrere Domöffnungen geöffnet sind, und bricht in diesem Fall mit Meldung ab.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">F-06</td><td>Die berechnete Zielposition wird vor der Bewegung auf Plausibilität geprüft (Größe, Lage, Wiederholbarkeit mehrerer Messungen).</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">F-07</td><td>Eine Feinpositionierung im Nahbereich (z. B. über die vorgesehene Ultraschall-Vorrüstung) kann die Grobpositionierung ergänzen.</td><td class="p"><span class="tag k">Kann</span></td></tr>
+</tbody></table></div>
+
+<h3>4.2 Befüllung und Füllstandsnachführung</h3>
+<div class="tw"><table>
+<thead><tr><th>ID</th><th>Anforderung</th><th>Priorität</th></tr></thead>
+<tbody>
+<tr><td class="id">F-10</td><td>Die Lanze wird bis zu einer produktspezifischen Eintauchtiefe eingefahren und folgt während der Befüllung dem steigenden Füllstand.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">F-11</td><td>Die Lanzenöffnung bleibt während der Befüllung unter der Flüssigkeitsoberfläche, um Schaumbildung zu minimieren.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">F-12</td><td>Der Füllstand wird kontinuierlich gemessen; die Messung ist bei Schaum, Dampf und Spritzern zuverlässig.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">F-13</td><td>Eine Überfüllsicherung erkennt sowohl Flüssigkeit als auch Schaum und stoppt die Befüllung unabhängig von der Mengenvorgabe.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">F-14</td><td>Sensorik, die mit dem Produkt in Kontakt kommen kann, ist gegen Anhaftungen klebriger Medien beständig oder berührungslos ausgeführt.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+</tbody></table></div>
+
+<h3>4.3 Rückzug und Tropfschutz</h3>
+<div class="tw"><table>
+<thead><tr><th>ID</th><th>Anforderung</th><th>Priorität</th></tr></thead>
+<tbody>
+<tr><td class="id">F-20</td><td>Beim Herausfahren der Lanze wird nachtropfendes Produkt automatisch aufgefangen (z. B. Tropfklappe oder Auffangschale).</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">F-21</td><td>Aufgefangenes Produkt kann gesammelt und abgeführt oder der Auffang gereinigt werden, ohne den Tankwagen zu betreten.</td><td class="p"><span class="tag s">Soll</span></td></tr>
+<tr><td class="id">F-22</td><td>Der Arm fährt nach Abschluss selbstständig in eine definierte Parkposition.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+</tbody></table></div>
+
+<h3>4.4 Steuerung, Bedienung und Produktverwaltung</h3>
+<div class="tw"><table>
+<thead><tr><th>ID</th><th>Anforderung</th><th>Priorität</th></tr></thead>
+<tbody>
+<tr><td class="id">F-30</td><td>Start und Freigabe erfolgen durch den Fahrer am Touchscreen sowie über das Prozessleitsystem (PLS).</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">F-31</td><td>Für jedes Produkt sind Parameter hinterlegbar: Eintauchtiefe, Mindestabstand Lanze–Oberfläche, Positionierungsgrenzen, Füllgeschwindigkeit.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">F-32</td><td>Das HMI zeigt Status, aktuellen Prozessschritt, Füllstand und Störmeldungen im Klartext an.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">F-33</td><td>Ein manueller Betrieb (Tippbetrieb) ist für Einrichtung, Wartung und Störungsbehebung möglich.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">F-34</td><td>Jeder Verladevorgang wird protokolliert (Zeit, Produkt, Menge, Störungen) und an das PLS übergeben.</td><td class="p"><span class="tag s">Soll</span></td></tr>
+<tr><td class="id">F-35</td><td>Sensordaten (z. B. Punktwolken) einzelner Vorgänge können zur Analyse und Optimierung gespeichert werden.</td><td class="p"><span class="tag k">Kann</span></td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s5">
+<h2><span class="n">5</span>Nichtfunktionale Anforderungen</h2>
+<div class="tw"><table>
+<thead><tr><th>ID</th><th>Anforderung</th><th>Priorität</th></tr></thead>
+<tbody>
+<tr><td class="id">N-01</td><td>Positioniergenauigkeit der Lanze relativ zur Domöffnung: <span class="tbd">±20 mm (Annahme, abhängig von Domdurchmesser und Lanzendurchmesser)</span>.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">N-02</td><td>Dauer von Startfreigabe bis Beginn der Befüllung: <span class="tbd">≤ 2 min (Annahme)</span>.</td><td class="p"><span class="tag s">Soll</span></td></tr>
+<tr><td class="id">N-03</td><td>Erfolgsquote der automatischen Positionierung ohne manuellen Eingriff: <span class="tbd">≥ 98 % (Annahme)</span>.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">N-04</td><td>Einsatz im Außenbereich unter Überdachung; Umgebungstemperatur <span class="tbd">−20 °C bis +40 °C (zu prüfen)</span>, Regen, Schnee, Staub, Produktdämpfe.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">N-05</td><td>Schutzart der Sensorik und Elektrik mindestens <span class="tbd">IP65 (zu prüfen)</span>.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">N-06</td><td>Alle Komponenten sind für die festgelegte Ex-Zone geeignet bzw. außerhalb der Zone angeordnet. Zoneneinteilung gemäß Explosionsschutzdokument des Betreibers.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">N-07</td><td>Optische Sensorflächen sind gegen Verschmutzung geschützt und mit geringem Aufwand zu reinigen.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">N-08</td><td>Das System ist als Paket auf andere Verladestationen übertragbar (Nachrüstbarkeit, parametrierbarer Arbeitsraum).</td><td class="p"><span class="tag s">Soll</span></td></tr>
+<tr><td class="id">N-09</td><td>Ersatzteilverfügbarkeit und Software-Support für mindestens <span class="tbd">10 Jahre</span>.</td><td class="p"><span class="tag s">Soll</span></td></tr>
+<tr><td class="id">N-10</td><td>Fernwartung ist möglich, unter Einhaltung der IT-Sicherheitsvorgaben des Betreibers.</td><td class="p"><span class="tag k">Kann</span></td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s6">
+<h2><span class="n">6</span>Sicherheitsanforderungen</h2>
+<div class="tw"><table>
+<thead><tr><th>ID</th><th>Anforderung</th><th>Priorität</th></tr></thead>
+<tbody>
+<tr><td class="id">S-01</td><td>Während der automatischen Bewegung befinden sich keine Personen auf dem Tankwagen oder im Bewegungsbereich des Arms. Dies wird durch eine sicherheitsgerichtete Personenerkennung überwacht.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">S-02</td><td>Die automatische Bewegung ist nur freigegeben, wenn die Verladebühne in ihrer sicheren Endlage ist.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">S-03</td><td>Sicherheitsfunktionen werden mit zertifizierten Komponenten und Sicherheitssteuerung realisiert; der erforderliche Performance Level wird aus der Risikobeurteilung abgeleitet.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">S-04</td><td>Not-Halt ist am Bedienplatz und im Bereich der Station erreichbar.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">S-05</td><td>Bei Energieausfall hält der Arm seine Position (Bremse); die Befüllung wird sicher gestoppt.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">S-06</td><td>Kollisionen des Arms mit Tankwagen, Domrand oder Stationsbauteilen werden durch Arbeitsraumbegrenzung und Kraft- bzw. Momentüberwachung verhindert.</td><td class="p"><span class="tag m">Muss</span></td></tr>
+<tr><td class="id">S-07</td><td>Ein Wegfahren des Tankwagens während der Befüllung wird erkannt und führt zum sofortigen Stopp bzw. Freifahren des Arms.</td><td class="p"><span class="tag s">Soll</span></td></tr>
+<tr><td class="id">S-08</td><td>Ein wiederholtes Aufsetzen des Arms auf dem Domrand ist konstruktiv bzw. steuerungstechnisch zu vermeiden (Schutz des Getriebes).</td><td class="p"><span class="tag s">Soll</span></td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s7">
+<h2><span class="n">7</span>Schnittstellen</h2>
+<div class="tw"><table>
+<thead><tr><th>Schnittstelle</th><th>Beschreibung</th><th>Protokoll</th></tr></thead>
+<tbody>
+<tr><td>PLS ↔ Stations-SPS</td><td>Auftrag, Produkt, Sollmenge, Freigabe, Status, Protokoll</td><td class="tbd">nach Vorgabe Betreiber (z. B. OPC UA, Profinet)</td></tr>
+<tr><td>Auswerterechner ↔ SPS</td><td>Zielkoordinate Domöffnung, Qualitätskennwert, Sensorstatus</td><td class="tbd">OPC UA oder Profinet</td></tr>
+<tr><td>SPS ↔ Antriebe</td><td>Achspositionen, Sollwerte, Bremse, Momente</td><td class="tbd">Feldbus nach Antriebshersteller</td></tr>
+<tr><td>Füllstandssensor ↔ SPS</td><td>Kontinuierlicher Füllstand, Überfüllsignal</td><td class="tbd">4–20 mA / HART bzw. Feldbus</td></tr>
+<tr><td>Sicherheitssensorik ↔ Sicherheits-SPS</td><td>Personenerkennung, Endlage Verladebühne, Not-Halt</td><td class="tbd">sicherer Feldbus bzw. OSSD</td></tr>
+<tr><td>HMI</td><td>Bedienung durch Fahrer und Personal</td><td class="tbd">Touchscreen an der Station</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s8">
+<h2><span class="n">8</span>Mechanische Randbedingungen</h2>
+<ul>
+  <li>Motor und Getriebe sind mit Gewichtsreserve ausgelegt (gefüllte Leitung und Ventil); zusätzliche Sensorik oder eine Tropfklappe mit geringem Gewicht sind zulässig. Konkrete Reserve: <span class="tbd">gemäß Auslegungsdaten Engineering</span>.</li>
+  <li>Bestehender Bauraum an der Schurre sowie die Ultraschall-Vorrüstung können genutzt werden.</li>
+  <li>Die Position des Absperrventils ist zu überprüfen; eine höhere Anordnung zur Entlastung der Armspitze ist anzustreben, sofern prozesstechnisch zulässig.</li>
+  <li>Sensoren sind so anzuordnen, dass sie nicht mit Produkt, Dämpfen oder Spritzern beaufschlagt werden.</li>
+</ul>
+</section>
+
+<section id="s9">
+<h2><span class="n">9</span>Normen und Richtlinien</h2>
+<p>Die Anwendbarkeit ist im Projekt zu prüfen. Mindestens zu berücksichtigen:</p>
+<ul>
+  <li>EU-Maschinenverordnung (EU) 2023/1230, anwendbar ab 20.01.2027, bzw. bis dahin Maschinenrichtlinie 2006/42/EG</li>
+  <li>ATEX-Richtlinie 2014/34/EU und Normenreihe IEC/EN 60079</li>
+  <li>EN ISO 12100 (Risikobeurteilung), EN ISO 13849-1/-2 (Sicherheit von Steuerungen)</li>
+  <li>EN 60204-1 (Elektrische Ausrüstung von Maschinen)</li>
+  <li>Betriebssicherheitsverordnung (BetrSichV) und einschlägige TRBS/TRGS, z. B. TRGS 509 für Füll- und Entleerstellen</li>
+  <li>AwSV bzw. WHG für Abfüllflächen und Tropfmengen</li>
+  <li>Betreiberspezifische Werksnormen und Vorgaben zum Prozessleitsystem</li>
+</ul>
+</section>
+
+<section id="s10">
+<h2><span class="n">10</span>Leistungsumfang Auftragnehmer</h2>
+<p>Erwartete Leistungen eines Partners für Sensorik und Software (Abgrenzung zu Schaltschrankbau und SPS-Programmierung, die bereits abgedeckt sind):</p>
+<ul>
+  <li>Machbarkeitsstudie, idealerweise mit Versuchen an einem Mock-up bzw. im Technikum</li>
+  <li>Auswahl und Lieferung der Positionssensorik inkl. Montagekonzept und Ex-Konzept</li>
+  <li>Auswertesoftware zur Erkennung der Domöffnung inkl. Kalibrierung auf das Koordinatensystem des Arms</li>
+  <li>Schnittstelle zur SPS gemäß Kapitel 7</li>
+  <li>Empfehlung bzw. Lieferung der Füllstands- und Überfüllsensorik</li>
+  <li>Unterstützung bei Inbetriebnahme, Abnahme und Schulung</li>
+  <li>Dokumentation (Bedienung, Wartung, Parametrierung) in deutscher Sprache</li>
+  <li>Langfristiger Support und Software-Pflege</li>
+</ul>
+</section>
+
+<section id="s11">
+<h2><span class="n">11</span>Abnahmekriterien</h2>
+<ul>
+  <li>Nachweis der Positioniergenauigkeit (N-01) über mindestens <span class="tbd">50</span> Anfahrten mit unterschiedlichen Tankwagen bzw. Positionen</li>
+  <li>Nachweis der Erfolgsquote (N-03) im Testbetrieb über <span class="tbd">4 Wochen</span></li>
+  <li>Nachweis der Füllstandsnachführung und Überfüllsicherung mit schäumendem Produkt</li>
+  <li>Validierung aller Sicherheitsfunktionen gemäß Risikobeurteilung</li>
+  <li>Vollständige Dokumentation und CE-Konformität</li>
+</ul>
+</section>
+
+<section id="s12">
+<h2><span class="n">12</span>Projektrahmen und Termine</h2>
+<div class="tw"><table>
+<thead><tr><th>Meilenstein</th><th>Termin</th></tr></thead>
+<tbody>
+<tr><td>Folgetermin Projektteam nach Informationssammlung</td><td>ca. Mitte Oktober 2026</td></tr>
+<tr><td>Erstgespräche mit Sensorik- und Softwarepartnern</td><td class="tbd">Q4 2026</td></tr>
+<tr><td>Abgabe Bachelorarbeit (Idealkonzept, Sensorauswahl, Umsetzbarkeitsbewertung)</td><td>Mitte April 2027</td></tr>
+<tr><td>Prototyp / Pilotstation</td><td class="tbd">offen</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s13">
+<h2><span class="n">13</span>Offene Punkte</h2>
+<div class="tw"><table>
+<thead><tr><th>Nr.</th><th>Thema</th><th>Verantwortlich</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Kontaktdaten Sensorik-Vertrieb (Lasererfassung) weitergeben</td><td>P. Schreiber</td></tr>
+<tr><td>2</td><td>Motor- und Getriebedaten (Typenschild, Drehmoment, Berechnungen) an Bachelorstudenten</td><td>Engineering</td></tr>
+<tr><td>3</td><td>Füllstandserfassung recherchieren, Vorgehen der AdBlue-Abfüllung erfragen</td><td>Bachelorstudent</td></tr>
+<tr><td>4</td><td>Anbieter Lasertriangulation / 3D-Sensorik anfragen, Student in Mailverlauf aufnehmen</td><td>Team</td></tr>
+<tr><td>5</td><td>Grund für Ventilposition nahe Armspitze klären</td><td>Team</td></tr>
+<tr><td>6</td><td>Ex-Zoneneinteilung der Verladestation klären</td><td class="tbd">offen</td></tr>
+<tr><td>7</td><td>Maße Domöffnungen und Lanze, Tankwagenspektrum, Arbeitsraum festlegen</td><td class="tbd">offen</td></tr>
+<tr><td>8</td><td>Produktliste mit Eigenschaften (Schaumneigung, Viskosität, Klebrigkeit)</td><td class="tbd">offen</td></tr>
+</tbody></table></div>
+</section>
+</main>
+
+<footer>HETA Verfahrenstechnik GmbH · Lastenheft Autonomer Verladearm · Version 0.1 (Entwurf) · Vertraulich</footer>
+</div>
+</body>
+</html>

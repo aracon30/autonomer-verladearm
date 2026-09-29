@@ -17,6 +17,10 @@ inneren Auslegers bei J1 = 0), y nach links, z nach oben. Einheit Meter, Winkel 
 
 Die Achsregelung liegt in der SPS. Dieses Modul dient der Planung und Plausibilisierung,
 der Live-Ansicht und als Referenz für die SPS-Programmierung.
+
+Alle anlagenspezifischen Werte (Maße, Servo-Nullstellungen, Grenzen, Parkstellung, Hindernisse)
+kommen aus der Anlagenkonfiguration und werden bei der Inbetriebnahme eingestellt
+(docs/inbetriebnahme.md). Servowerte werden so angegeben, wie sie am Antrieb abgelesen werden.
 """
 
 from dataclasses import dataclass, field
@@ -43,6 +47,43 @@ def _rz(t):
 _HALF_PI = np.pi / 2
 
 
+JOINTS = ("q1", "q2", "q3")
+
+
+@dataclass
+class Joint:
+    """Servoachse. Alle Werte in Servo-Grad, wie am Antrieb angezeigt."""
+
+    min: float
+    max: float
+    park: float
+    zero: float = 0.0  # Servowert in Nullstellung des Modells (Ausleger gestreckt nach vorne)
+    direction: int = 1  # +1: Servo positiv = links drehen (J1, J2) bzw. heben (J3); sonst -1
+
+    def to_model(self, servo_deg):
+        return np.radians(self.direction * (np.asarray(servo_deg, dtype=float) - self.zero))
+
+    def to_servo(self, q):
+        return self.zero + self.direction * np.degrees(q)
+
+
+@dataclass
+class Obstacle:
+    """Sperrbereich als Quader in Armbasis-Koordinaten [m]."""
+
+    name: str
+    min: list
+    max: list
+
+
+def _default_joints():
+    return {
+        "q1": {"min": -120, "max": 120, "park": 70},
+        "q2": {"min": -170, "max": 170, "park": -150},
+        "q3": {"min": -35, "max": 35, "park": 10},
+    }
+
+
 @dataclass
 class ArmGeometry:
     base_height: float = 5.0  # Höhe J1 über Fahrbahn [m]
@@ -53,22 +94,81 @@ class ArmGeometry:
     outer_length: float = 2.4
     offset_left: float = 0.35
     outlet_length: float = 1.2
-    limits_deg: dict = field(
-        default_factory=lambda: {"q1": [-120, 120], "q2": [-170, 170], "q3": [-35, 35]}
-    )
-    park_deg: list = field(default_factory=lambda: [70.0, -150.0, 10.0])
+    joints: dict = field(default_factory=_default_joints)
+    obstacles: list = field(default_factory=list)
+    clearance: float = 0.15  # Mindestabstand Rohrachse zu Hindernissen [m]
     approach_height: float = 0.3  # Anfahrpunkt über der Domöffnung [m]
-    insertion_depth: float = 0.4  # Eintauchtiefe unter der Domöffnung [m], produktspezifisch
+    insertion_depth: float = 0.4  # Eintauchtiefe, wenn für das Produkt nichts hinterlegt ist [m]
+
+    def __post_init__(self):
+        self.joints = {
+            k: j if isinstance(j, Joint) else Joint(**j) for k, j in self.joints.items()
+        }
+        self.obstacles = [o if isinstance(o, Obstacle) else Obstacle(**o) for o in self.obstacles]
 
     @property
     def bounds(self):
-        lo = np.radians([self.limits_deg[k][0] for k in ("q1", "q2", "q3")])
-        hi = np.radians([self.limits_deg[k][1] for k in ("q1", "q2", "q3")])
-        return lo, hi
+        a = np.array([self.joints[k].to_model([self.joints[k].min, self.joints[k].max])
+                      for k in JOINTS])
+        return a.min(axis=1), a.max(axis=1)
 
     @property
     def park(self) -> np.ndarray:
-        return np.radians(self.park_deg)
+        return np.array([self.joints[k].to_model(self.joints[k].park) for k in JOINTS])
+
+    def to_servo(self, q) -> list:
+        return [round(float(self.joints[k].to_servo(v)), 2) for k, v in zip(JOINTS, q, strict=True)]
+
+
+def product_insertion_depth(products: dict | None, product_id: int, fallback: float) -> float:
+    """Eintauchtiefe für ProductId aus der Produkttabelle (Eintrag `default` als Rückfall)."""
+    products = products or {}
+    entry = products.get(product_id) or products.get(str(product_id)) or products.get("default")
+    return float((entry or {}).get("insertion_depth", fallback))
+
+
+def collision(geom: ArmGeometry, pts, step: float = 0.05) -> str | None:
+    """Name des ersten Hindernisses, dem die Rohrführung näher als `clearance` kommt."""
+    if not geom.obstacles:
+        return None
+    pts = np.asarray(pts)
+    samples = [pts[:1]]
+    for a, b in zip(pts[:-1], pts[1:], strict=True):
+        n = max(2, int(np.ceil(np.linalg.norm(b - a) / step)) + 1)
+        samples.append(a + np.linspace(0, 1, n)[:, None] * (b - a))
+    samples = np.vstack(samples)
+    for o in geom.obstacles:
+        lo = np.asarray(o.min) - geom.clearance
+        hi = np.asarray(o.max) + geom.clearance
+        if np.any(np.all((samples >= lo) & (samples <= hi), axis=1)):
+            return o.name
+    return None
+
+
+def validate(geom: ArmGeometry) -> list[str]:
+    """Plausibilitätsprüfung der Parameter; leere Liste = in Ordnung."""
+    problems = []
+    for name in ("inner_length", "drop", "offset_right", "outer_length", "offset_left",
+                 "outlet_length", "base_height"):
+        if getattr(geom, name) <= 0:
+            problems.append(f"{name} muss größer 0 sein")
+    for k in JOINTS:
+        j = geom.joints.get(k)
+        if j is None:
+            problems.append(f"Achse {k} fehlt")
+            continue
+        if j.min >= j.max:
+            problems.append(f"{k}: min muss kleiner max sein")
+        if not j.min <= j.park <= j.max:
+            problems.append(f"{k}: Parkstellung {j.park}° außerhalb {j.min}…{j.max}°")
+        if j.direction not in (1, -1):
+            problems.append(f"{k}: direction muss 1 oder -1 sein")
+    for o in geom.obstacles:
+        if np.any(np.asarray(o.min) >= np.asarray(o.max)):
+            problems.append(f"Hindernis {o.name}: min muss in allen Achsen kleiner max sein")
+    if not problems and (hit := collision(geom, forward(geom, geom.park))):
+        problems.append(f"Parkstellung kollidiert mit {hit}")
+    return problems
 
 
 def forward(geom: ArmGeometry, q) -> np.ndarray:
@@ -147,7 +247,8 @@ def inverse(geom: ArmGeometry, target, q0=None, tol: float = 0.002) -> IkResult:
     return IkResult(ok=err < tol, q=q, error=err)
 
 
-def plan_motion(geom: ArmGeometry, target_mm, normal, move_steps: int = 36, insert_steps: int = 16):
+def plan_motion(geom: ArmGeometry, target_mm, normal, insertion_depth: float | None = None,
+                move_steps: int = 36, insert_steps: int = 16):
     """Bahn für die Anzeige: Parkstellung -> Anfahrpunkt über dem Dom -> Eintauchpunkt.
 
     Anfahrt im Gelenkraum, Eintauchen als senkrechte Bahn des Auslassendes.
@@ -157,9 +258,11 @@ def plan_motion(geom: ArmGeometry, target_mm, normal, move_steps: int = 36, inse
     n = np.asarray(normal, dtype=float)
     n /= np.linalg.norm(n)
     above = center + n * geom.approach_height
-    inside = center - n * geom.insertion_depth
+    depth = geom.insertion_depth if insertion_depth is None else insertion_depth
+    inside = center - n * depth
 
-    plan = {"park": forward(geom, geom.park).round(4).tolist(), "ok": False}
+    plan = {"park": forward(geom, geom.park).round(4).tolist(), "ok": False,
+            "insertion_depth": depth}
     first = inverse(geom, above)
     if not first.ok:
         plan["reason"] = (
@@ -172,20 +275,28 @@ def plan_motion(geom: ArmGeometry, target_mm, normal, move_steps: int = 36, inse
         forward(geom, geom.park + (first.q - geom.park) * u)
         for u in np.linspace(0, 1, move_steps)
     ]
-    q, qs, insert = first.q, [first.q], []
+    for m in move:
+        if hit := collision(geom, m):
+            plan["reason"] = f"Kollision mit {hit} bei der Anfahrt"
+            return plan
+    q, insert = first.q, []
     for u in np.linspace(0, 1, insert_steps):
         res = inverse(geom, above + (inside - above) * u, q0=q)
         if not res.ok:
             plan["reason"] = f"Eintauchtiefe nicht erreichbar ({u * 100:.0f} % der Bahn)"
             return plan
         q = res.q
-        qs.append(q)
         insert.append(forward(geom, q))
+        if hit := collision(geom, insert[-1]):
+            plan["reason"] = f"Kollision mit {hit} beim Eintauchen"
+            return plan
 
     plan.update(
         ok=True,
         q_above_deg=np.degrees(first.q).round(2).tolist(),
         q_inside_deg=np.degrees(q).round(2).tolist(),
+        servo_above_deg=geom.to_servo(first.q),
+        servo_inside_deg=geom.to_servo(q),
         move=[m.round(4).tolist() for m in move],
         insert=[m.round(4).tolist() for m in insert],
     )

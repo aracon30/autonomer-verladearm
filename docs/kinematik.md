@@ -1,18 +1,20 @@
 # Kinematik Verladearm
 
-Modell: `vision/src/verladearm_vision/kinematics.py`, Maße in `vision/config/default.yaml` (`arm`).
-**Die Maße dort sind Platzhalter** und müssen durch die Werte der realen Anlage ersetzt werden.
+Modell: `vision/src/verladearm_vision/kinematics.py`. Maße, Servowerte, Parkstellung und
+Hindernisse sind für jeden Verladearm verschieden und stehen in der Anlagendatei
+(`vision/config/anlagen/<anlage>.yaml`, Ablauf siehe [Inbetriebnahme](inbetriebnahme.md)).
+`default.yaml` enthält nur Platzhalter für Entwicklung und Simulation.
 
 ## Aufbau (vom Haltepunkt zum Auslass)
 
 | Nr. | Element | Antrieb | Parameter |
 |---|---|---|---|
-| J1 | Drehgelenk am Haltepunkt (Schnittstelle Rohrleitung), senkrechte Achse, links/rechts | Servo | `limits_deg.q1` |
+| J1 | Drehgelenk am Haltepunkt (Schnittstelle Rohrleitung), senkrechte Achse, links/rechts | Servo | `joints.q1` |
 | | innerer Ausleger nach vorne, fallend | | `inner_length`, `incline_deg` |
 | | 90°-Winkel nach unten, Fallrohr | | `drop` |
-| J2 | Drehgelenk um die Achse des Fallrohrs, links/rechts | Servo | `limits_deg.q2` |
+| J2 | Drehgelenk um die Achse des Fallrohrs, links/rechts | Servo | `joints.q2` |
 | | 90°-Winkel nach rechts | | `offset_right` |
-| J3 | Drehgelenk um diese Querachse, Ausleger heben/senken | Servo | `limits_deg.q3` |
+| J3 | Drehgelenk um diese Querachse, Ausleger heben/senken | Servo | `joints.q3` |
 | | 90°-Winkel nach vorne, äußerer Ausleger (bei J3 = 0 ebenfalls fallend) | | `outer_length` |
 | | 90°-Winkel nach links | | `offset_left` |
 | J4 | freies Drehgelenk, Achse parallel zu J3 | ohne Motor | |
@@ -27,8 +29,10 @@ Auslass bei stark eingeschwenktem J2 um einige Zentimeter aus; das Modell berüc
 
 Ursprung auf der Achse J1 am Haltepunkt, **x** nach vorne (innerer Ausleger bei J1 = 0),
 **y** nach links, **z** nach oben. `TargetX/Y/Z` im `DB_Vision` beziehen sich darauf (mm).
-J1 = J2 = J3 = 0: beide Ausleger zeigen gestreckt nach vorne.
-Positive Winkel: J1 und J2 drehen nach links (von oben gesehen gegen den Uhrzeigersinn), J3 hebt.
+Modellwinkel J1 = J2 = J3 = 0: beide Ausleger zeigen gestreckt nach vorne.
+Positive Modellwinkel: J1 und J2 drehen nach links (von oben gesehen gegen den Uhrzeigersinn),
+J3 hebt. Die Servowerte der Anlage werden über `zero` (Servowert in Nullstellung) und
+`direction` (±1) umgerechnet: Servo = zero + direction · Modellwinkel.
 
 Die Kalibriermatrix (`calibration.matrix`) rechnet Sensorkoordinaten in dieses System um.
 Der Platzhalter nimmt einen Sensor 3 m vor J1 und 2,1 m über J1 an, senkrecht nach unten blickend.
@@ -49,9 +53,8 @@ Plausibilisierung und als Referenz für die SPS-Programmierung.
 
 ## Offene Punkte
 
-- Reale Maße, Achsgrenzen und Parkstellung eintragen (inkl. Lage J1 über Fahrbahn)
-- Nullstellungen und Drehsinn der Servos mit dem Modell abgleichen
-- Kollisionsbereiche (Stützen, Bühne, Geländer) als Sperrbereiche ergänzen
+- Sperrbereiche sind achsparallele Quader; schräge oder runde Hindernisse großzügig umschließen
+- Kollision nur zwischen Rohrführung und Sperrbereichen, nicht mit dem Tankwagen selbst
 - Pendeln des Auslasses beim Anfahren (J4 frei): Beschleunigungen begrenzen, Beruhigungszeit
   vor dem Eintauchen
 - Hand-Auge-Kalibrierung, siehe Schnittstelle (`docs/kalibrierung.md`, offen)

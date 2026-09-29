@@ -54,15 +54,21 @@ Mit `--opcua` liest die Ansicht `DB_Vision` per OPC UA (nur lesend) und zeigt Ha
 Heartbeats und jedes neue Ergebnis. Die zugehörige Punktwolke legt der Vision-Dienst unter
 `snapshot.path` ab (Standard `data/last_measurement.npy`).
 
+Inbetriebnahme einer Anlage (Parameter je Verladearm, siehe [docs/inbetriebnahme.md](docs/inbetriebnahme.md)):
+
+```bash
+python -m verladearm_vision.commissioning --config vision/config/anlagen/beispiel.yaml
+```
+
 ## Struktur
 
 | Ordner | Inhalt |
 |---|---|
-| `docs/` | Lastenheft, Schnittstelle, Kinematik, Architekturentscheidungen |
+| `docs/` | Lastenheft, Schnittstelle, Kinematik, Inbetriebnahme, Architekturentscheidungen |
 | `hardware/` | Stückliste, Halterungen, Elektro |
 | `plc/` | Schnittstellen-DB für TIA Portal |
 | `vision/src/verladearm_vision/` | acquisition, detection, calibration, kinematics, plc, service, viewer |
-| `vision/config/` | Konfiguration |
+| `vision/config/` | Konfiguration: `default.yaml`, Anlagendateien unter `anlagen/` |
 | `vision/tests/` | Tests |
 | `tools/` | SPS-Simulator, Testdatengenerator |
 

@@ -26,7 +26,10 @@ calibration:
     - [0, 0, 0, 1]
 
 arm:
-  # Geometrie des Verladearms, siehe docs/kinematik.md. PLATZHALTER, echte Maße eintragen. [m, Grad]
+  # Geometrie des Verladearms, siehe docs/kinematik.md. [m, Grad]
+  # Die Werte hier sind PLATZHALTER für Entwicklung und Simulation. Jede Anlage bekommt eine
+  # eigene Datei unter vision/config/anlagen/, die bei der Inbetriebnahme ausgefüllt wird
+  # (docs/inbetriebnahme.md).
   base_height: 5.0        # Höhe Achse J1 über Fahrbahn
   incline_deg: 3.0        # Gefälle innerer und äußerer Ausleger
   inner_length: 2.2       # J1 bis Winkel nach unten
@@ -35,10 +38,24 @@ arm:
   outer_length: 2.4       # äußerer Ausleger bis Winkel nach links
   offset_left: 0.35       # Winkel nach links bis freies Drehgelenk J4
   outlet_length: 1.2      # J4 bis Auslassende
-  limits_deg: {q1: [-120, 120], q2: [-170, 170], q3: [-35, 35]}
-  park_deg: [70, -150, 10]
+  joints:                 # Servo-Grad wie am Antrieb angezeigt
+    q1: {min: -120, max: 120, park: 70, zero: 0, direction: 1}
+    q2: {min: -170, max: 170, park: -150, zero: 0, direction: 1}
+    q3: {min: -35, max: 35, park: 10, zero: 0, direction: 1}
+  obstacles: []           # Sperrbereiche, siehe anlagen/beispiel.yaml
+  clearance: 0.15         # Mindestabstand Rohrachse zu Hindernissen
   approach_height: 0.3    # Anfahrpunkt über der Domöffnung
-  insertion_depth: 0.4    # Eintauchtiefe, später produktspezifisch (F-31)
+  insertion_depth: 0.4    # Eintauchtiefe, falls für das Produkt nichts hinterlegt ist
+
+products:
+  # Eintauchtiefe je ProductId (aus DB_Vision); "default" gilt für alle anderen
+  default: {insertion_depth: 0.4}
+
+commissioning:
+  # Bereich, in dem die Domöffnung liegen kann (Armbasis, m), für die Reichweitenprüfung
+  workspace_min: [2.6, -0.6, -2.0]
+  workspace_max: [3.6, 0.6, -0.9]
+  step: 0.2
 
 snapshot:
   # Letzte Punktwolke für die Live-Ansicht (python -m verladearm_vision.viewer --opcua). Leer = aus.

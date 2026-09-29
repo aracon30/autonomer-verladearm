@@ -1,7 +1,15 @@
 import numpy as np
 import pytest
 
-from verladearm_vision.kinematics import ArmGeometry, forward, inverse, plan_motion, tip
+from verladearm_vision.kinematics import (
+    ArmGeometry,
+    forward,
+    inverse,
+    plan_motion,
+    product_insertion_depth,
+    tip,
+    validate,
+)
 
 
 def test_grundstellung():
@@ -55,3 +63,46 @@ def test_bahnplanung():
     # Eintauchen senkrecht: Auslassende bleibt über der Öffnung
     xy = np.array([s[-1][:2] for s in plan["insert"]])
     assert np.abs(xy - [3.1, -0.2]).max() < 0.002
+
+
+def test_servo_nullstellung_und_drehrichtung():
+    g = ArmGeometry(joints={
+        "q1": {"min": 60, "max": 300, "park": 250, "zero": 180, "direction": -1},
+        "q2": {"min": -170, "max": 170, "park": -150},
+        "q3": {"min": -35, "max": 35, "park": 10},
+    })
+    # Servo 250° bei Null 180° und umgekehrter Richtung = Modell -70°
+    assert np.degrees(g.park[0]) == pytest.approx(-70)
+    lo, hi = g.bounds
+    assert np.degrees([lo[0], hi[0]]) == pytest.approx([-120, 120])
+    assert g.to_servo(g.park)[0] == pytest.approx(250)
+
+
+def test_hindernis_blockiert_bahn():
+    free = ArmGeometry()
+    target = [3100.0, -200.0, -1500.0]
+    assert plan_motion(free, target, [0, 0, 1])["ok"]
+    # Quader genau über dem Anfahrweg des äußeren Auslegers
+    blocked = ArmGeometry(obstacles=[{"name": "Stütze", "min": [2.9, -0.4, -1.3],
+                                      "max": [3.3, 0.0, -0.9]}])
+    plan = plan_motion(blocked, target, [0, 0, 1])
+    assert not plan["ok"] and "Stütze" in plan["reason"]
+
+
+def test_parameterpruefung():
+    assert validate(ArmGeometry()) == []
+    bad = ArmGeometry(outer_length=0, joints={
+        "q1": {"min": 10, "max": -10, "park": 0},
+        "q2": {"min": -170, "max": 170, "park": 180},
+        "q3": {"min": -35, "max": 35, "park": 0, "direction": 2},
+    })
+    problems = " | ".join(validate(bad))
+    for text in ("outer_length", "q1: min", "q2: Parkstellung", "q3: direction"):
+        assert text in problems
+
+
+def test_eintauchtiefe_je_produkt():
+    products = {"default": {"insertion_depth": 0.4}, 2: {"insertion_depth": 0.7}}
+    assert product_insertion_depth(products, 2, 0.3) == 0.7
+    assert product_insertion_depth(products, 5, 0.3) == 0.4
+    assert product_insertion_depth(None, 5, 0.3) == 0.3

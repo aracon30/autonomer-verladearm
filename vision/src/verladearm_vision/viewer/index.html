@@ -72,9 +72,9 @@ ol.steps li.done::before{border-color:var(--ink)}
 ol.steps li.active{color:var(--ink);font-weight:600}
 ol.steps li.active::before{background:var(--signal);border-color:var(--signal);color:var(--signal-ink)}
 ol.steps li.fail::before{background:var(--err);border-color:var(--err);color:var(--panel)}
-dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:baseline}
+dl{margin:0;display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:4px 12px;align-items:baseline}
 dt{color:var(--muted);font-size:.88rem}
-dd{margin:0;text-align:right;font-family:var(--f-mono);font-size:.88rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+dd{margin:0;min-width:0;text-align:right;font-family:var(--f-mono);font-size:.88rem;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 button{font-family:var(--f-display);font-weight:600;font-size:1rem;letter-spacing:.03em;
   padding:.45rem .9rem;border:1.5px solid var(--ink);background:var(--signal);color:var(--signal-ink);cursor:pointer}
@@ -156,7 +156,8 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         <dt>DiameterMm</dt><dd id="v-dia">–</dd>
         <dt>Confidence</dt><dd id="v-conf">–</dd>
         <dt>ErrorCode</dt><dd id="v-err">–</dd>
-        <dt>J1 / J2 / J3 (Ziel)</dt><dd id="v-joints">–</dd>
+        <dt>Servo J1/J2/J3</dt><dd id="v-joints">–</dd>
+        <dt>Eintauchtiefe</dt><dd id="v-depth">–</dd>
         <dt>Messpunkte</dt><dd id="v-pts">–</dd>
         <dt>Rechenzeit</dt><dd id="v-ms">–</dd>
       </dl>
@@ -176,8 +177,9 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         <li><span class="sw" style="background:var(--clutter)"></span>Störpunkte (Geländer, Arm …)</li>
         <li><span class="sw" style="background:var(--signal)"></span>Domöffnung, Rohrführung</li>
         <li><span class="sw" style="background:var(--steel)"></span>Freies Drehgelenk J4 (dunkel: Servos J1–J3)</li>
+        <li><span class="sw" style="background:var(--clutter);opacity:.5"></span>Sperrbereich (Hindernis)</li>
       </ul>
-      <p class="note">Armmaße sind Platzhalter aus der Konfiguration (arm). Die Gelenkwinkel stammen aus der Rückwärtsrechnung, die Achsregelung übernimmt die SPS.</p>
+      <p class="note">Armmaße, Servowerte und Sperrbereiche kommen aus der Anlagenkonfiguration. Die Achsregelung übernimmt die SPS.</p>
     </section>
   </aside>
 </div>
@@ -294,6 +296,22 @@ ul.legend li{display:flex;align-items:center;gap:8px}
   scene.add(nozzle);
   const UP = new THREE.Vector3(0, 1, 0);
   let armPts = null;
+  const obstacleMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.28, depthWrite: false });
+  const obstacleGroup = new THREE.Group();
+  scene.add(obstacleGroup);
+  let obstacleKey = "";
+  function drawObstacles(list) {
+    const key = JSON.stringify(list || []);
+    if (key === obstacleKey) return;
+    obstacleKey = key;
+    obstacleGroup.clear();
+    for (const o of list || []) {
+      const a = toView(...o.min), b = toView(...o.max);
+      const box = new THREE.Mesh(new THREE.BoxGeometry(Math.abs(b.x - a.x), Math.abs(b.y - a.y), Math.abs(b.z - a.z)), obstacleMat);
+      box.position.set((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+      obstacleGroup.add(box);
+    }
+  }
 
   function alongAxis(mesh, pos, a, b) {
     mesh.position.copy(pos);
@@ -336,6 +354,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     normalArrow.setColor(C.signal);
     armMat.color = C.signal;
     freeMat.color = C.steel;
+    obstacleMat.color = C.clutter;
     if (current) colorPoints(phase === "scan" ? false : current.result.ok);
   }
 
@@ -371,6 +390,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     traverse.position.copy(sensor.position).add(new THREE.Vector3(0, 0.1, 0));
     if (f.arm) {
       setGround(f.arm.ground_z);
+      drawObstacles(f.arm.obstacles);
       if (!armPts) drawArm(f.arm.park);
     }
     colorPoints(false);
@@ -418,7 +438,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
       set("v-dia", fmt(r.diameter_mm) + " mm");
       set("v-conf", fmt(r.confidence, 2));
     } else {
-      for (const id of ["v-target", "v-normal", "v-dia", "v-conf", "v-joints"]) set(id, "–");
+      for (const id of ["v-target", "v-normal", "v-dia", "v-conf", "v-joints", "v-depth"]) set(id, "–");
     }
   }
   const set = (id, t) => (document.getElementById(id).textContent = t);
@@ -577,7 +597,8 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         ring.scale.setScalar(1);
         const a = current.arm;
         if (a && a.ok) {
-          set("v-joints", a.q_inside_deg.map(v => v.toFixed(1).replace(".", ",")).join(" / ") + " °");
+          set("v-joints", a.servo_inside_deg.map(v => v.toFixed(1).replace(".", ",")).join(" / ") + " °");
+          set("v-depth", Math.round(a.insertion_depth * 1000) + " mm · Produkt " + a.product_id);
           enter("move");
         } else {
           setStatus("err", "Ziel nicht anfahrbar", a ? a.reason : "Keine Armdaten vom Server");

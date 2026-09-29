@@ -12,8 +12,10 @@ Füllstand / Überfüllsicherung ───────────────�
 Sicherheitssensorik ──► Sicherheits-SPS ──────────►┘──► PLS
 ```
 
-Der Vision-PC liefert **nur die Zielkoordinate**. Bewegung, Ablauf und Sicherheit liegen in der SPS
-(siehe [ADR 0001](docs/adr/0001-architektur.md) und [Schnittstelle](docs/schnittstelle.md)).
+Der Vision-PC misst Domöffnung, Tank und offenen Deckel und liefert eine **kollisionsgeprüfte Bahn
+als Stützpunkte in Servo-Grad**. Die SPS prüft sie und fährt; Ablauf und Sicherheit liegen in der
+SPS (siehe [ADR 0001](docs/adr/0001-architektur.md), [ADR 0002](docs/adr/0002-gelenkwinkel-vom-pc.md),
+[Schnittstelle](docs/schnittstelle.md), [Kinematik und Bahnplanung](docs/kinematik.md)).
 
 ## Schnellstart
 

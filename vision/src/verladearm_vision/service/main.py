@@ -45,6 +45,7 @@ from verladearm_vision.plc import (
     Request,
 )
 from verladearm_vision.recording import Recorder
+from verladearm_vision.scene import SceneConfig, build_obstacles
 
 log = logging.getLogger("verladearm")
 
@@ -103,10 +104,12 @@ class VisionService:
         self.source = build_source(cfg["source"], cfg)
         self.det_cfg = DetectorConfig(**cfg.get("detection", {}))
         self.outlet_cfg = OutletConfig(**cfg.get("outlet", {}))
+        self.scene_cfg = SceneConfig(**cfg.get("scene", {}))
         self.products = cfg.get("products")
         planning = cfg.get("planning", {})
         self.move_waypoints = int(planning.get("move_waypoints", 3))
         self.insert_waypoints = int(planning.get("insert_waypoints", 5))
+        self.plan_time_limit = float(planning.get("time_limit_s", 3.5))
         snapshot = (cfg.get("snapshot") or {}).get("path")
         self.snapshot = Path(snapshot) if snapshot else None
         self.last = None  # Ziel aus Job 1: target_mm, normal, depth, diameter, confidence
@@ -147,6 +150,17 @@ class VisionService:
         if len(wps) > MAX_WAYPOINTS:
             raise ValueError(f"{len(wps)} Stützpunkte, maximal {MAX_WAYPOINTS}")
         return [tuple(w) for w in wps], approach
+
+    def _move_segment(self, plan, q_start, n):
+        """Anfahrt: Zwischenziele eines Umwegs oder gleichmäßig verteilte Punkte der Direktfahrt."""
+        vias = plan.get("move_vias") or []
+        if len(vias) > 1:
+            return [q_start] + vias, len(vias)
+        return plan["q_move"], n
+
+    def _scene_geom(self):
+        """Armgeometrie mit den Hindernissen des aktuellen Tankwagens (aus Job 1)."""
+        return self.geom.with_obstacles((self.last or {}).get("obstacles"))
 
     def _fail(self, code, message, **kw):
         log.warning("%s (Code %d)", message, code)
@@ -190,22 +204,30 @@ class VisionService:
         return res, op
 
     def _job_measure_plan(self, req: Request, q_act) -> MeasureResult:
-        res, _ = self._measure(req)
+        res, op = self._measure(req)
         if not res.ok:
             self.last = None
             return res
         depth = product_insertion_depth(self.products, req.product_id, self.geom.insertion_depth)
-        plan = plan_motion(self.geom, res.target_mm, res.normal, insertion_depth=depth,
-                           q_start=q_act)
+        # Tankkörper, Domkragen und offener Deckel als Hindernisse für alle folgenden Bahnen
+        obstacles, scene_info = build_obstacles(op, self.transform, self._points,
+                                                self.outlet_cfg, self.scene_cfg)
         self.last = dict(target_mm=res.target_mm, normal=res.normal, depth=depth,
-                         diameter_mm=res.diameter_mm, confidence=res.confidence)
-        self._info["eintauchtiefe_m"] = depth
+                         diameter_mm=res.diameter_mm, confidence=res.confidence,
+                         obstacles=obstacles)
+        plan = plan_motion(self._scene_geom(), res.target_mm, res.normal, insertion_depth=depth,
+                           q_start=q_act, time_limit=self.plan_time_limit)
+        self._info.update(eintauchtiefe_m=depth, szene=scene_info,
+                          umweg=len(plan.get("move_vias") or []) > 1)
+        if plan["ok"]:  # geprüfter Anfahrweg bis zum Vorpunkt, rückwärts Notweg für Job 3
+            self.last["approach"] = [q_act.tolist()] + plan["move_vias"][:-1]
         if not plan["ok"]:
             return self._fail(plan["code"], plan["reason"], target_mm=res.target_mm,
                               normal=res.normal, diameter_mm=res.diameter_mm,
                               confidence=res.confidence)
+        move, n_move = self._move_segment(plan, q_act, self.move_waypoints)
         res.waypoints, res.approach_index = self._waypoints(
-            (plan["q_move"], self.move_waypoints, True),
+            (move, n_move, True),
             (plan["q_insert"], self.insert_waypoints, False),
         )
         return res
@@ -223,8 +245,8 @@ class VisionService:
                                 self.transform.point(np.zeros(3)), self.outlet_cfg)
         except DetectionError as e:
             return self._fail(e.code, str(e), **keep)
-        plan = plan_correction(self.geom, q_act, tip, last["target_mm"], last["normal"],
-                               last["depth"])
+        plan = plan_correction(self._scene_geom(), q_act, tip, last["target_mm"],
+                               last["normal"], last["depth"])
         self._info.update(auslass_gemessen_mm=(tip * 1000).round(1),
                           modellabweichung_mm=plan["model_offset_mm"])
         corr = tuple(plan["correction_mm"][:2])
@@ -238,15 +260,18 @@ class VisionService:
 
     def _job_retract(self, q_act) -> MeasureResult:
         if self.last is not None:
-            lift = self.geom.approach_height + self.last["depth"]
+            lift = self.geom.approach_height + self.geom.approach_lift + self.last["depth"]
         else:  # z. B. nach Neustart: größte hinterlegte Eintauchtiefe annehmen
             depths = [product_insertion_depth(self.products, k, self.geom.insertion_depth)
                       for k in (self.products or {})] or [self.geom.insertion_depth]
-            lift = self.geom.approach_height + max(depths)
-        plan = plan_retract(self.geom, q_act, lift)
+            lift = self.geom.approach_height + self.geom.approach_lift + max(depths)
+        plan = plan_retract(self._scene_geom(), q_act, lift,
+                            fallback=(self.last or {}).get("approach"))
+        self._info["rueckfahrt_rueckwaerts"] = bool(plan.get("reversed"))
         if not plan["ok"]:
             return self._fail(plan["code"], plan["reason"])
-        wps, _ = self._waypoints((plan["q_lift"], 2, False), (plan["q_move"], 3, False))
+        move, n_move = self._move_segment(plan, plan["q_lift"][-1], 3)
+        wps, _ = self._waypoints((plan["q_lift"], 2, False), (move, n_move, False))
         self.last = None
         return MeasureResult(ok=True, waypoints=wps, approach_index=0)
 

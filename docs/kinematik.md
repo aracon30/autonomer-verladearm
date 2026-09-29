@@ -45,16 +45,70 @@ Der Platzhalter nimmt einen Sensor 3 m vor J1 und 2,1 m über J1 an, senkrecht n
 - **Rückwärts:** Zielpunkt des Auslassendes → J1, J2, J3, numerisch innerhalb der Achsgrenzen.
   Ohne Startwert wird die Lösung nahe der Parkstellung gewählt, beim Eintauchen die zur
   vorherigen Stellung nächstgelegene (stetige Bahn).
-- **Bahn:** Parkstellung → Anfahrpunkt `approach_height` über der Öffnung (Gelenkraum) →
-  senkrecht auf `insertion_depth` unter die Öffnung (kartesisch, J3 senkt, J1/J2 gleichen aus).
+- **Bahn (Job 1):** Istlage → **Vorpunkt** `approach_height + approach_lift` über der Öffnung
+  (Gelenkraum, synchron) → senkrecht auf den Anfahrpunkt `approach_height` → senkrecht auf
+  `insertion_depth` unter die Öffnung (kartesisch, J3 senkt, J1/J2 gleichen aus).
+  Durch das senkrechte Absenken streift der Arm weder Domkragen noch Deckel.
+
+## Kollisionsfreie Bahnen
+
+Jede geplante Stellung wird gegen alle Hindernisse geprüft: Rohrführung vom Haltepunkt bis zum
+Auslassende, als Linienzug alle 5 cm abgetastet, Abstand mindestens `clearance`. Zwischen zwei
+Stützpunkten fährt die SPS synchron im Gelenkraum; die Prüfung tastet diese Bewegung so fein ab,
+dass sich kein Punkt des Arms zwischen zwei Prüfstellungen mehr als 3 cm bewegt.
+
+**Hindernisse**
+
+| Herkunft | Hindernis | Form |
+|---|---|---|
+| Anlagendatei `arm.obstacles` | Stützen, Geländer, Bühne … | `quader` (achsparallel), `quader_gedreht`, `zylinder` |
+| jede Messung (Job 1) | Tankkörper | Zylinder entlang der gemessenen Tankachse (Radius aus der Messung); ebenes Dach: Quader |
+| jede Messung | Domkragen | senkrechter Zylinder, Öffnung + Wandstärke |
+| jede Messung | **offener Domdeckel** | gedrehter Quader aus den Deckelpunkten |
+
+Tank und Domkragen lassen über der Öffnung einen senkrechten **Durchgang** frei
+(Radius = Öffnung − max(Rohr, Markierungsscheibe) − `passage_margin`, bei 500 mm Öffnung ≈ 88 mm).
+Nur dort darf der Auslass hinein. Die Hindernisse aus Job 1 gelten auch für Job 2 und Job 3.
+
+**Deckelerkennung:** Punkte seitlich der Öffnung (bis `lid_search` außerhalb) und über der
+Domoberkante (bis `lid_max_above`) werden auf ein 4-cm-Raster gelegt. Die größte zusammenhängende
+Gruppe dicht belegter Zellen ist der Deckel; Geländer oder einzelne Störpunkte hängen nicht daran.
+Daraus wird ein am Deckel ausgerichteter Quader (radial, entlang des Scharniers, senkrecht) mit
+den 1-/99-%-Perzentilen plus `lid_margin`. Die Richtung des Deckels (Azimut) und seine Höhe
+stehen im Protokoll (`szene.deckel`) und in der Live-Ansicht.
+
+**Suche nach dem Weg** (Job 1), der Reihe nach:
+
+1. beide Armstellungen am Dom (Ellenbogen links/rechts): Eintauchen muss frei sein. Der Rohrbogen
+   an J4 darf dabei z. B. nicht über dem Deckel stehen.
+2. Vorpunkthöhen `approach_lift`, 0,35, 0,2, 0,1 m: senkrechtes Absenken muss frei sein.
+3. direkte synchrone Fahrt; wenn nicht frei: J3 anheben, schwenken, J3 senken.
+4. erst wenn für keine Möglichkeit eine direkte Fahrt frei ist, **Umwege**: senkrecht auf sichere
+   Höhe, waagerecht über den Vorpunkt, oder seitlich in 8 Richtungen 1 m am Dom vorbei (wenn der
+   Deckel höher ist, als der Arm den Auslass heben kann). Höchstens 8 Zwischenstützpunkte.
+5. nichts frei → **Fehler 31**, der Arm fährt nicht. Die Meldung nennt das Hindernis.
+
+Die Suche ist auf `planning.time_limit_s` (Standard 3,5 s) begrenzt. Auf dem Entwicklungsrechner
+braucht Job 1 im Mittel 0,5 s und höchstens 2,7 s.
+
+**Rückfahrt (Job 3):** senkrecht heraus (so hoch wie möglich), dann wie oben in die Parkstellung.
+Gibt es keinen neuen Weg, fährt der Arm senkrecht bis auf den Vorpunkt und den **in Job 1
+geprüften Anfahrweg rückwärts** (`rueckfahrt_rueckwaerts` im Protokoll).
+
+**Grenzen:** Die Hindernisse kommen aus einer Aufnahme. Was der Sensor nicht sieht (verdeckte
+Teile, Personen), ist nicht enthalten; dafür bleibt die Sicherheitstechnik der Anlage zuständig.
+In der Simulation (Deckel zufällig ausgerichtet, 95–115° geöffnet, 40 Verladungen Lkw und
+Kesselwagen) meldete die Planung 3 × Fehler 31; alle Bahnen der übrigen Verladungen sind
+kollisionsfrei. Das waren Kesselwagen, bei denen der Deckel so steht, dass der Rohrbogen an J4
+in beiden Armstellungen über ihm stünde. Abhilfe: Deckel weiter öffnen oder in eine andere
+Richtung stellen, Fahrzeug versetzen.
 
 Die Achsregelung liegt in der SPS. Das Python-Modell dient der Planung, der Live-Ansicht, der
 Plausibilisierung und als Referenz für die SPS-Programmierung.
 
 ## Offene Punkte
 
-- Sperrbereiche sind achsparallele Quader; schräge oder runde Hindernisse großzügig umschließen
-- Kollision nur zwischen Rohrführung und Sperrbereichen, nicht mit dem Tankwagen selbst
+- Rohrdurchmesser nur über `clearance` berücksichtigt (Rohrachse als Linie)
 - Pendeln des Auslasses beim Anfahren (J4 frei): Beschleunigungen begrenzen, Beruhigungszeit
   vor dem Eintauchen
 - Hand-Auge-Kalibrierung, siehe Schnittstelle (`docs/kalibrierung.md`, offen)

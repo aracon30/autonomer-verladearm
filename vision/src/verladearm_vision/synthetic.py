@@ -49,12 +49,16 @@ def make_tank_vehicle(
     openings=1,
     lid_closed=False,
     fill_depth=1.2,
+    lid_azimuth_deg=None,
+    lid_open_deg=105.0,
     seed=0,
 ) -> np.ndarray:
     """Runder Tank (Lkw oder Kesselwagen), Achse entlang Sensor-y, Dom mit Kragen oben.
 
     `center_xy` ist die Lage des ersten Doms, `height` der Abstand Sensor -> Oberkante Domkragen.
     Durch die offene Öffnung sieht der Sensor Produkt bzw. Tankinneres in `fill_depth` Tiefe.
+    `lid_azimuth_deg`: offener Deckel, am Kragenrand in dieser Richtung angeschlagen (Sensor-xy,
+    0° = +x) und um `lid_open_deg` aufgeklappt (90° = senkrecht, mehr = nach außen geneigt).
     """
     v = VEHICLES[kind]
     rng = np.random.default_rng(seed)
@@ -94,7 +98,24 @@ def make_tank_vehicle(
         else:  # Blick ins Tankinnere
             parts.append(np.column_stack([disc, np.full(n_in, apex + fill_depth)]))
 
+    if lid_azimuth_deg is not None and not lid_closed:
+        parts.append(_open_lid(domes[0], r_out, height, lid_azimuth_deg, lid_open_deg, rng))
     pts = np.vstack(parts)
     pts += rng.normal(0, noise, pts.shape)
     clutter = rng.uniform([-1.5, -1.5, 1.0], [1.5, 1.5, height - 0.8], (300, 3))
     return np.vstack([pts, clutter])
+
+
+def _open_lid(dome_xy, r_out, rim_depth, azimuth_deg, open_deg, rng, n=2500):
+    """Punkte eines aufgeklappten Domdeckels (Sensorkoordinaten, z = Tiefe, oben = -z)."""
+    phi, alpha = np.radians(azimuth_deg), np.radians(open_deg)
+    radius = r_out + 0.02
+    e_r = np.array([np.cos(phi), np.sin(phi), 0.0])  # nach außen
+    t = np.array([-np.sin(phi), np.cos(phi), 0.0])  # Scharnierachse
+    up = np.array([0.0, 0.0, -1.0])
+    hinge = np.array([dome_xy[0], dome_xy[1], rim_depth]) + r_out * e_r
+    v = -np.cos(alpha) * e_r + np.sin(alpha) * up  # vom Scharnier zur Deckelmitte
+    center = hinge + radius * v
+    a = rng.uniform(0, 2 * np.pi, n)
+    rr = radius * np.sqrt(rng.uniform(0, 1, n))
+    return center + np.outer(rr * np.cos(a), t) + np.outer(rr * np.sin(a), v)

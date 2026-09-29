@@ -67,7 +67,14 @@ def _marker_center(sel: np.ndarray, cfg: OutletConfig):
     if len(layer) < cfg.min_points:
         return None
     xy = layer[:, :2]
-    c = xy.mean(axis=0)
+    # nur die Scheibe: um den Median sammeln (Domdeckel o. ä. in derselben Höhe fallen heraus)
+    c = np.median(xy, axis=0)
+    for _ in range(3):
+        xy_near = xy[np.hypot(*(xy - c).T) < 1.5 * cfg.marker_radius]
+        if len(xy_near) < cfg.min_points:
+            return None
+        c = xy_near.mean(axis=0)
+    xy = xy_near
     r = np.hypot(*(xy - c).T)
     # Scheibe erkennbar an ihrer Ausdehnung (größer als jedes Rohr darüber)
     if np.percentile(r, 95) < 0.6 * cfg.marker_radius:

@@ -8,7 +8,7 @@
 
 | Ebene | Aufgabe |
 |---|---|
-| **Vision-PC** (nicht sicherheitsgerichtet) | Dom messen, Kinematik, Rückwärtsrechnung, Kollisionsprüfung gegen Sperrbereiche, Bahn als **Stützpunkte in Servo-Grad**, Nachmessen Auslass ↔ Dom |
+| **Vision-PC** (nicht sicherheitsgerichtet) | Dom messen, **offenen Deckel erkennen**, Kinematik, Rückwärtsrechnung, Kollisionsprüfung gegen Sperrbereiche, Tankkörper, Domkragen und Deckel, Bahn als **Stützpunkte in Servo-Grad**, Nachmessen Auslass ↔ Dom |
 | **SPS** | Ablauf, **Plausibilitätsprüfung jeder Vorgabe**, Referenzfahrt, Positionieren je Achse mit Technologieobjekten (Geschwindigkeit, Beschleunigung, Verzögerung, **Ruck** → sanftes Anfahren und Bremsen), synchrones Anfahren der Stützpunkte, Bremsen, Füllstand, Überfüllsicherung, PLS |
 | **Servoregler** | Strom-, Drehzahl- und Lageregelung (PROFINET, deterministisch) |
 | **Sicherheits-SPS** | Not-Halt, Schutzbereich, sicheres Abschalten (STO/SS1) |
@@ -56,13 +56,15 @@ Begründung: [ADR 0002](adr/0002-gelenkwinkel-vom-pc.md).
 
 | Job | PC tut | Stützpunkte | ApproachIndex |
 |---|---|---|---|
-| 1 | Dom messen, Bahn ab **Istlage** planen | Anfahrt (Gelenkraum, synchron) + Eintauchen (senkrecht) | letzter Anfahrpunkt |
+| 1 | Dom und Deckel messen, Bahn ab **Istlage** planen | Anfahrt (Gelenkraum, synchron, ggf. mit Umweg) + senkrechtes Absenken + Eintauchen (senkrecht) | Anfahrpunkt über dem Dom |
 | 2 | Auslass über dem Dom nachmessen (Markierungsscheibe), Modellabweichung ausgleichen | korrigierter Anfahrpunkt + Eintauchen | 1 |
-| 3 | Rückfahrt ab Istlage planen | senkrecht heraus + synchron in die Parkstellung | 0 |
+| 3 | Rückfahrt ab Istlage planen | senkrecht heraus + synchron in die Parkstellung (Notweg: Anfahrt aus Job 1 rückwärts) | 0 |
 
 Die Anfahrt zwischen zwei Stützpunkten ist als **synchrone Gelenkbewegung** geplant: Alle Achsen
 starten und erreichen den Stützpunkt gleichzeitig. Nur so stimmt die gefahrene Bahn mit der
 kollisionsgeprüften Bahn überein. Stützpunkte nach `ApproachIndex` mit reduzierter Dynamik fahren.
+Tankkörper, Domkragen und offener Deckel werden in Job 1 gemessen und gelten für alle Bahnen bis
+zur Rückfahrt (Details: `docs/kinematik.md`). Umwege brauchen mehr Stützpunkte (höchstens 16).
 
 ## Ablauf einer Verladung (SPS)
 
@@ -85,6 +87,7 @@ Bei Fehler, fehlendem Ergebnis oder Heartbeat-Ausfall: Bewegung stoppen, sichere
 5. PC löscht `Done`.
 
 Zeitüberwachung in der SPS: `Done` muss innerhalb von **5 s** nach `Trigger` kommen, sonst Abbruch.
+Job 1 braucht mit Umwegsuche bis ca. 3 s (begrenzt durch `planning.time_limit_s`).
 
 ## Heartbeat
 
@@ -102,7 +105,7 @@ Beide Seiten prüfen, ob sich der Heartbeat der Gegenseite ändert. Ausfall > **
 | 20 | Keine Domöffnung gefunden (Deckel geschlossen?) |
 | 21 | Mehrere Domöffnungen gefunden |
 | 30 | Ziel außerhalb der Reichweite / Achsgrenzen |
-| 31 | Bahn kollidiert mit Sperrbereich |
+| 31 | Kein kollisionsfreier Weg: Sperrbereich, Tankkörper, Domkragen oder offener Domdeckel im Weg (z. B. Deckel steht so, dass der Arm nicht senkrecht eintauchen kann). Deckel/Fahrzeug prüfen, neu auslösen |
 | 32 | Achsen nicht referenziert oder Istwinkel unplausibel |
 | 33 | Auslass bzw. Markierungsscheibe beim Nachmessen nicht erkannt |
 | 34 | Job 2 ohne vorheriges Ergebnis aus Job 1 |

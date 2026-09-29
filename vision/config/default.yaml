@@ -9,6 +9,7 @@ detection:
   roi_max: [2.0, 2.0, 8.0]
   plane_threshold: 0.015        # [m]
   ransac_iterations: 300
+  ransac_sample: 5000           # Punkte zur Bewertung der RANSAC-Hypothesen
   grid_size: 0.02               # Rasterweite [m], an Punktdichte des Sensors anpassen
   min_diameter: 0.35            # erwarteter Domdurchmesser [m]
   max_diameter: 0.65

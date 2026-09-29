@@ -1,0 +1,9 @@
+__pycache__/
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Messdaten nicht versionieren (siehe data/README.md)
+data/*
+!data/README.md

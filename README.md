@@ -29,7 +29,21 @@ python -m verladearm_vision.service.main --once   # eine Messung ohne SPS
 pytest                              # Tests
 ```
 
-Kompletter Ablauf ohne Hardware (SPS-Simulator mit Achsen, simulierter Sensor mit Getriebespiel):
+### Simulation auf einem Linux-Testserver
+
+Braucht nur Python ab 3.10 (`sudo apt install python3-venv git` unter Debian/Ubuntu):
+
+```bash
+git clone <repo-url> && cd autonomer-verladearm
+tools/simulation.sh          # beim ersten Start wird .venv angelegt und alles installiert
+```
+
+Startet SPS-Simulator, Vision-Dienst und Live-Ansicht mit
+`vision/config/anlagen/simulation.yaml`. Live-Ansicht vom eigenen PC per SSH-Tunnel:
+`ssh -L 8000:127.0.0.1:8000 <benutzer>@<server>`, dann http://127.0.0.1:8000 öffnen.
+Logs unter `data/logs/`, Beenden mit Strg+C.
+
+Kompletter Ablauf ohne Hardware, einzeln gestartet (SPS-Simulator mit Achsen, simulierter Sensor mit Getriebespiel):
 
 ```bash
 # Anlagendatei für die Simulation, z. B. sim.yaml:

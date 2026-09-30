@@ -37,29 +37,29 @@ outlet:
 # Antriebe je Achse, Werte am Gelenk (Details und Herleitung: hardware/antriebe.md)
 drives:
   q1:
-    motor: SEW CM3C71S (Servo, mit Bremse, Multiturn-Absolutgeber – angefragt)
-    gear: P5KG31 i=20 (angefragt 20–25) × Ritzel z18 / Zahnkranz z85 (Modul 3)
+    motor: SEW CM3C71S-20A-D/PK/RH1M/SM1 (Servo, Resolver, ohne Bremse – Angebot 426368452A)
+    gear: P5KG31 i=4 × Ritzel z48 / Zahnkranz z127 (Modul 2) – Konstruktion
     motor_speed: 2000
-    ratio: 94.44          # 20 × 85/18
+    ratio: 10.58          # 4 × 127/48
     speed_limit: 6        # °/s am Gelenk (Anwendung)
     accel_time: 4         # s, großer Arm-Trägheit wegen sanft
-    backlash: 0.1         # ° Annahme (Planetengetriebe 5′ + Zahnflankenspiel)
-    torque: 370
-    torque_peak: 605
-    brake: true
-    encoder: Multiturn absolut
+    backlash: 0.1         # ° Annahme (Planetengetriebe 5′/2,65 + Zahnflankenspiel m 2)
+    torque: 63            # 6,5 Nm × 10,58 × 0,92
+    torque_peak: 190      # 19,5 Nm × 10,58 × 0,92
+    brake: false
+    encoder: Resolver RH1M (Referenzfahrt nötig)
   q2:
-    motor: SEW CM3C71S (Servo, mit Bremse, Multiturn-Absolutgeber – angefragt)
-    gear: P5KG31 i=20 (angefragt 20–25) × Ritzel z18 / Zahnkranz z85 (Modul 3)
+    motor: SEW CM3C71S-20A-D/PK/RH1M/SM1 (Servo, Resolver, ohne Bremse – Angebot 426368452A)
+    gear: P5KG31 i=4 × Ritzel z48 / Zahnkranz z127 (Modul 2) – Konstruktion
     motor_speed: 2000
-    ratio: 94.44
+    ratio: 10.58
     speed_limit: 6
     accel_time: 2
     backlash: 0.1
-    torque: 370
-    torque_peak: 605
-    brake: true
-    encoder: Multiturn absolut
+    torque: 63
+    torque_peak: 190
+    brake: false
+    encoder: Resolver RH1M (Referenzfahrt nötig)
   q3:
     motor: SEW RF47 DRN80M4/BE05/TF (Asynchron, Bremse 1,8 Nm, Geber angefragt)
     gear: RF47 i=42,87 × IMO WD-E 0223/3 i=34 (Schnecke)

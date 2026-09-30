@@ -214,8 +214,28 @@ Auslegung innerhalb dieser Konstruktion (Ritzel z 48 / Zahnkranz z 127, Modul 2,
 7. **Zahnspiel:** Zielposition immer aus derselben Richtung anfahren (Software/SPS), Rest über
    Job 2.
 
-> **Entscheidung 30.09.2026:** Variante 2 (m 3, b 30, z 18 / 85, Achsabstand 154,5 mm) wird umgesetzt;
-> SEW-Angebot auf P5KG31 i ≈ 20–25, Bremse, Multiturn-Absolutgeber anpassen.
+> ~~Entscheidung 30.09.2026: Variante 2 (m 3, b 30, z 18 / 85) wird umgesetzt~~ – **aufgehoben**, siehe unten.
+
+### Stand 30.09.2026 (Konstruktion): Auslegung bleibt wie berechnet
+
+Laut Konstruktion sind Servomotoren und Zahnräder berechnet und werden **vorerst unverändert
+beibehalten**: CM3C71S + P5KG31 i = 4 (SEW-Angebot 426368452A, Resolver, ohne Bremse), Ritzel
+z 48 / Zahnkranz z 127, Modul 2. Gesamtübersetzung **10,58**, am Gelenk ca. **63 Nm dauernd /
+190 Nm Spitze** (Motorgrenze). Die Überschläge und Varianten oben bleiben als Hintergrund stehen.
+
+In Software und Simulation (`vision/config/anlagen/heta_prototyp.yaml`) ist dieser Stand
+eingetragen. Bei der Inbetriebnahme am Prototyp prüfen:
+
+- **Rampen:** J1 Rampe 4 s auf 6 °/s (ca. 45 Nm bei grob 1 700 kg·m²), J2 2 s. Schleppfehler und
+  Motorstrom beobachten; bei Stromgrenze Rampe verlängern.
+- **Reibmoment** der Drehgelenke messen (mit Betriebsdruck) und mit den 63 Nm vergleichen.
+- **Regelung:** Reglereinstellung mit SEW (großes Trägheitsverhältnis), Pendeln beim Anhalten
+  beobachten.
+- **Resolver:** nach dem Einschalten Referenzfahrt (Endschalter/Nocken) oder Gelenkgeber
+  (Stückliste Pos. 16) als Absolutwert.
+- **Ohne Bremse:** Verhalten bei STO/Not-Halt und Wind in der Parkstellung beobachten
+  (Arretierung).
+- **Drehbereich** innerhalb des verzahnten Bereichs (ca. 296°).
 
 ### Zahnradpaar J1/J2 anpassen (Überschlag, Zahnfuß vereinfacht nach Lewis/ISO 6336, YFa·YSa)
 

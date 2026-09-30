@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Komplette Simulation auf einem Linux-Rechner ohne Hardware:
+#   SPS-Simulator (OPC UA) + Vision-Dienst (simulierter Sensor) + Live-Ansicht (Browser)
+#
+#   tools/simulation.sh                 Live-Ansicht nur lokal (Zugriff per SSH-Tunnel)
+#   tools/simulation.sh --netz          Live-Ansicht im Netzwerk erreichbar (0.0.0.0)
+#   PORT=8080 tools/simulation.sh       anderer Port für die Live-Ansicht
+#
+# Vom eigenen PC per SSH-Tunnel:  ssh -L 8000:127.0.0.1:8000 <benutzer>@<server>
+# dann im Browser http://127.0.0.1:8000 öffnen. Beenden mit Strg+C (stoppt alle drei).
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+CONFIG=vision/config/anlagen/simulation.yaml
+PORT="${PORT:-8000}"
+HOST=127.0.0.1
+[[ "${1:-}" == "--netz" ]] && HOST=0.0.0.0
+
+if [[ ! -x .venv/bin/python ]]; then
+  echo "Erstinstallation: virtuelle Umgebung .venv anlegen ..."
+  python3 -m venv .venv
+  .venv/bin/pip install -q --upgrade pip
+  .venv/bin/pip install -q -e ".[dev]"
+fi
+PY=.venv/bin/python
+mkdir -p data/logs
+
+pids=()
+cleanup() { echo; echo "Stoppe Simulation ..."; kill "${pids[@]}" 2>/dev/null || true; wait; }
+trap cleanup EXIT INT TERM
+
+$PY tools/plc_simulator.py --config "$CONFIG" > data/logs/sps.log 2>&1 & pids+=($!)
+sleep 2
+$PY -m verladearm_vision.service.main --config "$CONFIG" > data/logs/vision.log 2>&1 & pids+=($!)
+$PY -m verladearm_vision.viewer --opcua --config "$CONFIG" --host "$HOST" --port "$PORT" \
+  > data/logs/viewer.log 2>&1 & pids+=($!)
+
+echo "Simulation läuft: SPS-Simulator, Vision-Dienst, Live-Ansicht"
+echo "  Live-Ansicht: http://${HOST}:${PORT}"
+echo "  Logs:         data/logs/{sps,vision,viewer}.log"
+echo "  Beenden:      Strg+C"
+tail -n +1 -F data/logs/vision.log

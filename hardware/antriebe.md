@@ -110,6 +110,24 @@ SEW-Angebot **426368452A** vom 18.09.2026 (Version A, Getriebe P5KG31), je Achse
 - **Zahnradstufe (Angabe HETA):** Ritzel auf der Getriebeabtriebswelle, großer Zahnkranz um die
   Rohrleitung, **kein Schneckengetriebe**. Übersetzung i_Z = Zähne Zahnkranz ÷ Zähne Ritzel
   **offen**. Gesamtübersetzung = 4 × i_Z.
+- **Zahnradstufe laut Zeichnung (30100-002 u. a.):** Ritzel Modul 2, **z = 48** (Ø 96, Bohrung
+  22 E8, Passfeder 6 P9 – passt auf P5KG31-Welle), Zahnkranz Modul 2, **z = 127** (Ø 254,
+  Breite 20, geteilt/offen mit 135 mm Öffnung). **i_Z = 2,65**, Gesamtübersetzung **10,6**.
+- **Bewertung mit i_gesamt = 10,6 (kritisch):**
+  - Moment am Gelenk nur ca. **63 Nm dauernd / 190 Nm Spitze**. Beschleunigen des Arms (J1
+    grob 1 700 kg·m²) braucht bei 6 °/s in 2 s bereits ca. 90 Nm; Reibung der Drehgelenke und
+    Wind kommen dazu.
+  - **Trägheitsverhältnis** Last/Motor bei J1 grob 25 000–50 000 : 1 (J2 ca. 7 000–15 000 : 1,
+    Rotorträgheit CM3C71S laut Datenblatt prüfen). Für eine stabile Servoregelung üblich ≤ ca.
+    10–100 : 1 → Regelung praktisch nicht beherrschbar, Spiel verstärkt das Problem.
+  - Motor läuft bei 6 °/s am Gelenk nur mit ca. 11 1/min.
+  - Zahnkranz Modul 2 × 20 mm: bei 1 kNm Last grob 500 MPa Zahnfußspannung → für Windlasten
+    zu schwach (genaue Nachrechnung nach DIN 3990 nötig).
+  - Verzahnter Bereich ca. 296° (Öffnung ca. 64°) → **Verfahrbereich J1/J2 auf den verzahnten
+    Bereich begrenzen** (J2 bisher ±170° = 340° → nicht möglich).
+  → **Empfehlung:** Lastannahme J1/J2 festlegen und mit SEW neu auslegen: deutlich höhere
+  Gesamtübersetzung (Richtwert ≥ 200, z. B. mehrstufiges Planetengetriebe größerer Baugröße)
+  oder Schwenkantrieb wie bei J3; Zahnkranz festigkeitsmäßig nachrechnen bzw. größeres Modul.
 - **Nicht selbsthemmend** (Stirnradstufe) → **Haltebremse am Servo notwendig**.
 - **Moment:** 6,5 Nm × 4 × i_Z × ~0,92 → bei i_Z = 5/8/10: ca. 120/190/240 Nm dauernd,
   Spitze (Motor 19,5 Nm × 4 = 78 Nm am Getriebe) ca. 380/600/760 Nm. Für ca. 1 kNm Dauerlast (Wind, Reibung der

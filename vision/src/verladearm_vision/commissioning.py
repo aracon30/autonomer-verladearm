@@ -70,7 +70,12 @@ def check(cfg: dict, config_name: str, out=sys.stdout) -> bool:
     if geom.obstacles:
         w(f"Mindestabstand Rohrachse: {geom.clearance * 1000:.0f} mm\n\n")
         for o in geom.obstacles:
-            w(f"- {o.name}: {o.min} … {o.max} m\n")
+            if hasattr(o, "min"):
+                w(f"- {o.name}: Quader {o.min} … {o.max} m\n")
+            elif hasattr(o, "radius"):
+                w(f"- {o.name}: Zylinder Achse durch {o.p0}, Radius {o.radius} m\n")
+            else:
+                w(f"- {o.name}: gedrehter Quader um {o.center} m\n")
     else:
         w("- ⚠️ keine Hindernisse hinterlegt – Schwenkbereich vor Ort prüfen\n")
     if hit := collision(geom, park):

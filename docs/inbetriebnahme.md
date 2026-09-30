@@ -4,9 +4,29 @@ Jeder Verladearm hat eigene Maße, Servo-Nullstellungen, Verfahrbereiche, Hinder
 Produkte. Diese Werte stehen in einer **Anlagendatei** und werden vor Ort eingestellt.
 Alles andere (Erkennung, Schnittstelle, Standardwerte) kommt aus `vision/config/default.yaml`.
 
+Die Software ist für diese **Bauart** ausgelegt: J1 dreht am Haltepunkt, innerer Ausleger mit
+Gefälle, Fallrohr mit J2, Winkel nach rechts mit J3 (heben/senken), äußerer Ausleger, Winkel nach
+links, freies Gelenk J4, Auslass hängt durch die Schwerkraft (docs/kinematik.md). Alle Maße,
+Winkel, Achsbereiche, Hindernisse und Produkte werden je Arm bei der Ersteinrichtung festgelegt.
+
+## Ersteinrichtung im Dialog (empfohlen)
+
+```bash
+python -m verladearm_vision.einrichtung --name lich_station3 --from-plc
+```
+
+Der Dialog führt durch die Schritte 1–6 unten, prüft jeden Wert auf Plausibilität und schreibt
+`vision/config/anlagen/lich_station3.yaml`. Mit `--from-plc` liest er Nullstellung,
+Drehrichtung und Parkstellung direkt aus der SPS: Arm im Handbetrieb in die angesagte Stellung
+fahren, Enter drücken. Ohne `--from-plc` werden die Servowerte eingegeben. Zum Schluss zeigt er
+Reichweite und Höhen des Auslassendes zum Vergleich mit der realen Anlage. Erneuter Aufruf mit
+demselben Namen = Anlagendatei ändern (bisherige Werte sind die Vorschläge).
+
+Danach weiter mit Schritt 7 (Kalibrierung).
+
 ## Ablauf
 
-1. **Anlagendatei anlegen**
+1. **Anlagendatei anlegen** (oder Dialog oben)
    `vision/config/anlagen/beispiel.yaml` kopieren, z. B. als `lich_station3.yaml`.
    Kopf ausfüllen (Anlage, Datum, Name). SPS-Adresse unter `plc.url` eintragen.
 
@@ -33,8 +53,10 @@ Alles andere (Erkennung, Schnittstelle, Standardwerte) kommt aus `vision/config/
    - `park`: Servowerte der Parkstellung.
 
 4. **Hindernisse erfassen** (`arm.obstacles`)
-   Stützen, Bühne, Geländer, Leitungen im Schwenkbereich als Quader in Armbasis-Koordinaten
-   (Ursprung Achse J1, x vorne, y links, z oben; Meter). Großzügig umschließen.
+   Stützen, Bühne, Geländer, Leitungen im Schwenkbereich als Quader, gedrehter Quader oder
+   Zylinder in Armbasis-Koordinaten (Ursprung Achse J1, x vorne, y links, z oben; Meter).
+   Großzügig umschließen. Tankwagen und offener Domdeckel werden bei jeder Messung erfasst und
+   müssen hier nicht eingetragen werden.
    `clearance` ist der zusätzliche Mindestabstand zur Rohrachse.
 
 5. **Produkte** (`products`): Eintauchtiefe je `ProductId`, `default` für alle übrigen.

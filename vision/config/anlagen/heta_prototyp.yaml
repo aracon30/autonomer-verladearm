@@ -37,7 +37,7 @@ outlet:
 # Antriebe je Achse, Werte am Gelenk (Details und Herleitung: hardware/antriebe.md)
 drives:
   q1:
-    motor: SEW CM3C71S-20A-D/PK/RH1M/SM1 (Servo, Resolver, ohne Bremse – Angebot 426368452A)
+    motor: SEW CM3C71S (Servo, ohne Bremse, Multiturn-Absolutgeber – angefragt)
     gear: P5KG31 i=4 × Ritzel z48 / Zahnkranz z127 (Modul 2) – Konstruktion
     motor_speed: 2000
     ratio: 10.58          # 4 × 127/48
@@ -47,9 +47,9 @@ drives:
     torque: 63            # 6,5 Nm × 10,58 × 0,92
     torque_peak: 190      # 19,5 Nm × 10,58 × 0,92
     brake: false
-    encoder: Resolver RH1M (Referenzfahrt nötig)
+    encoder: Multiturn absolut (angefragt)
   q2:
-    motor: SEW CM3C71S-20A-D/PK/RH1M/SM1 (Servo, Resolver, ohne Bremse – Angebot 426368452A)
+    motor: SEW CM3C71S (Servo, mit Bremse, Multiturn-Absolutgeber – angefragt)
     gear: P5KG31 i=4 × Ritzel z48 / Zahnkranz z127 (Modul 2) – Konstruktion
     motor_speed: 2000
     ratio: 10.58
@@ -58,8 +58,8 @@ drives:
     backlash: 0.1
     torque: 63
     torque_peak: 190
-    brake: false
-    encoder: Resolver RH1M (Referenzfahrt nötig)
+    brake: true
+    encoder: Multiturn absolut (angefragt)
   q3:
     motor: SEW RF47 DRN80M4/BE05/TF (Asynchron, Bremse 1,8 Nm, Geber angefragt)
     gear: RF47 i=42,87 × IMO WD-E 0223/3 i=34 (Schnecke)

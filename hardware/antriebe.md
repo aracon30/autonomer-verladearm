@@ -231,11 +231,14 @@ eingetragen. Bei der Inbetriebnahme am Prototyp prüfen:
 - **Reibmoment** der Drehgelenke messen (mit Betriebsdruck) und mit den 63 Nm vergleichen.
 - **Regelung:** Reglereinstellung mit SEW (großes Trägheitsverhältnis), Pendeln beim Anhalten
   beobachten.
-- **Resolver:** nach dem Einschalten Referenzfahrt (Endschalter/Nocken) oder Gelenkgeber
-  (Stückliste Pos. 16) als Absolutwert.
-- **Ohne Bremse:** Verhalten bei STO/Not-Halt und Wind in der Parkstellung beobachten
+- **J1 ohne Bremse:** Verhalten bei STO/Not-Halt und Wind in der Parkstellung beobachten
   (Arretierung).
 - **Drehbereich** innerhalb des verzahnten Bereichs (ca. 296°).
+
+**Festlegung 30.09.2026 (Geber/Bremse):** J1 und J2 bekommen statt Resolver einen
+**Multiturn-Absolutwertgeber** (keine Referenzfahrt), **J2 zusätzlich eine Haltebremse**, J1
+bleibt ohne Bremse. J3 (Bestandsmotor mit Bremse BE05) bekommt ebenfalls einen
+Multiturn-Absolutwertgeber. Anfrage an SEW: `hardware/anfrage_sew_geber_bremse.md`.
 
 ### Zahnradpaar J1/J2 anpassen (Überschlag, Zahnfuß vereinfacht nach Lewis/ISO 6336, YFa·YSa)
 

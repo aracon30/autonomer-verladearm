@@ -395,8 +395,13 @@ def main():
         producer.start()
     else:
         producer = FrameProducer(cfg, args.max_points)
-    server = ThreadingHTTPServer((args.host, args.port), make_handler(producer))
-    log.info("Live-Ansicht: http://%s:%d", args.host, args.port)
+    try:
+        server = ThreadingHTTPServer((args.host, args.port), make_handler(producer))
+    except OSError as e:
+        raise SystemExit(f"Port {args.port} ist nicht verfügbar ({e.strerror}). "
+                         f"Anderen Port wählen, z. B. --port 8080") from None
+    shown = args.host if args.host != "0.0.0.0" else "<IP dieses Rechners>"
+    log.info("Live-Ansicht: http://%s:%d", shown, args.port)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

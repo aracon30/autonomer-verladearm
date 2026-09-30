@@ -1,6 +1,7 @@
 # Sensor SICK Visionary-T Mini CX
 
-3D-Time-of-Flight-Kamera (V3S105-1AAAAAA), 512 × 424 Pixel, ca. 70° × 60°, bis 30 Bilder/s,
+3D-Time-of-Flight-Kamera (Station: **V3S105-1AAAAAD**, Frontscheibe Glas, Art.-Nr. 1132065;
+Prüfstand auch V3S105-1AAAAAA mit PMMA-Scheibe, Art.-Nr. 1112649), 512 × 424 Pixel, ca. 70° × 60°, bis 30 Bilder/s,
 IP65, 24 V DC, Gigabit Ethernet. Treiber: `vision/src/verladearm_vision/acquisition/sick_visionary.py`
 auf Basis der offiziellen SICK-Bibliothek
 [sick_visionary_python_base](https://github.com/SICKAG/sick_visionary_python_base)

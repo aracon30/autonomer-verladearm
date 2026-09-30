@@ -26,9 +26,11 @@ Einschätzung zu Aufwand, Platzbedarf und Termin – für Schaltschrank, Verkabe
     oder verdrahtet) und OPC UA zum IPC
   - **Lizenz „SIMATIC OPC UA S7-1500“** passend zur CPU-Größe (für den OPC-UA-Server)
   - Peripherie: **F-DI** für Not-Halt, Endschalter und Quittierung; **DI/DQ** für Bedienelemente
-    (Start, Stopp, Automatik/Hand, **Fahrzeug bereit**, Meldeleuchten), **Lichtschranke
-    Fahrzeug**, Ampel und Windmesser (optional)
-  - Bedienpanel (optional, z. B. SIMATIC HMI 7″) für Handbetrieb und Meldungen
+    (Produktwahl, Fahrzeug bereit, Start Automatik, Beladung beendet, Stopp, Automatik/Hand,
+    Meldeleuchten), **Endschalter Klapptreppe Ruhelage**, **Lichtschranke Fahrzeug**, Ampel und
+    Windmesser (optional)
+  - Bedienpanel für Produktwahl und Meldungen (z. B. SIMATIC HMI 7″) – bei der Produktwahl
+    wahrscheinlich sinnvoller als Taster
 
 **2. Antriebe im Feld**
 
@@ -57,11 +59,19 @@ Einschätzung zu Aufwand, Platzbedarf und Termin – für Schaltschrank, Verkabe
 **5. SPS-Programm (bitte mit kalkulieren)**
 - Hardwarekonfiguration im TIA Portal: CPU, Peripherie, SEW-Umrichter, OPC-UA-Server
 - Technologieobjekte: 3 Positionierachsen mit Absolutgebern, Grenzen, Rampen, Ruck (mit SEW)
-- **Freigabe Fahrzeug:** Der Bediener bestätigt am Taster/HMI, dass ein LKW bzw. Kesselwagen
-  bereitsteht (ggf. Auswahl LKW/Zug). Zusätzlich optional eine **Lichtschranke** je Stellplatz,
-  die das Fahrzeug erkennt. Verladung startet nur mit Bestätigung **und** belegter Lichtschranke.
-  Fällt die Lichtschranke während der Verladung ab: Bewegung stoppen, Meldung. Optional Ampel
-  für den Fahrer (rot = nicht wegfahren, Arm im Dom).
+- **Bedienablauf:**
+  1. Arm steht in Parkstellung. LKW/Kesselwagen fährt vor, Klapptreppe fährt auf das Fahrzeug,
+     Fahrer öffnet den Dom, Klapptreppe fährt zurück.
+  2. Bediener wählt an der SPS das **Produkt** (bestimmt, wie tief der Arm eintaucht) und
+     bestätigt „Fahrzeug bereit“.
+  3. Bediener startet **„Automatisch beladen“**: Arm fährt selbstständig über den Dom und taucht ein.
+  4. Beladung läuft (nicht Teil dieser Steuerung).
+  5. Bediener meldet **„Beladung beendet“**: Arm fährt zurück in die Parkstellung.
+- **Verriegelungen:** Start nur, wenn Arm in Parkstellung, **Klapptreppe in Ruhelage**
+  (Endschalter) und – optional – **Lichtschranke** Stellplatz belegt. Während der Automatik darf
+  die Klapptreppe nicht ausfahren. Fällt die Lichtschranke ab oder verlässt die Treppe die
+  Ruhelage: Bewegung stoppen, Meldung. Optional Ampel für den Fahrer (rot = nicht wegfahren,
+  Arm im Dom). Steuert ihr die Klapptreppe mit dieser SPS oder mit einer anderen?
 - **Ablauf der Verladung** nach unserer Schnittstellenbeschreibung (`docs/schnittstelle.md`,
   Datenbaustein `plc/DB_Vision.db` als SCL-Quelle liegt vor): Aufträge an den PC (Job 1–3),
   Handshake und Heartbeat, Prüfung der Stützpunkte, **synchrones Fahren** der drei Achsen
@@ -69,7 +79,7 @@ Einschätzung zu Aufwand, Platzbedarf und Termin – für Schaltschrank, Verkabe
   Fehlerbehandlung
 - Handbetrieb: Achsen einzeln tippen, Parkstellung anfahren
 - **Sicherheitsprogramm** (F-CPU): Not-Halt, STO/SS1, Endlagen, Quittierung, inkl. Validierung
-- HMI (optional): Bedienung, Meldungen, Fehlertexte
+- HMI: Produktwahl, Bedienung, Meldungen, Fehlertexte
 - Test: Unsere PC-Software läuft auch als Simulation und kann gegen PLCSIM Advanced getestet
   werden, bevor ihr an den Arm geht.
 - Inbetriebnahme vor Ort (bitte Tage schätzen)

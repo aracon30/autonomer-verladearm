@@ -68,7 +68,9 @@ zur Rückfahrt (Details: `docs/kinematik.md`). Umwege brauchen mehr Stützpunkte
 
 ## Ablauf einer Verladung (SPS)
 
-1. Start durch Fahrer, Freigabe PLS, Sicherheitsbedingungen erfüllt, `AxesHomed = TRUE`.
+1. Bediener bestätigt „Fahrzeug bereit“ (LKW/Kesselwagen), ggf. Lichtschranke Stellplatz belegt,
+   Freigabe PLS, Sicherheitsbedingungen erfüllt, `AxesHomed = TRUE`. Fällt die Lichtschranke
+   während der Verladung ab: Bewegung stoppen, Meldung (reine SPS-Funktion, kein PC-Signal).
 2. **Job 1** → Stützpunkte prüfen (Achsgrenzen, Sprünge) → bis `ApproachIndex` fahren.
 3. Beruhigungszeit, der Auslass pendelt frei (J4).
 4. **Job 2** → Korrektur prüfen (Betrag < Grenzwert, sonst Job 2 wiederholen oder Abbruch) →

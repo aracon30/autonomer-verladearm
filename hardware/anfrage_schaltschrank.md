@@ -26,7 +26,8 @@ Einschätzung zu Aufwand, Platzbedarf und Termin – für Schaltschrank, Verkabe
     oder verdrahtet) und OPC UA zum IPC
   - **Lizenz „SIMATIC OPC UA S7-1500“** passend zur CPU-Größe (für den OPC-UA-Server)
   - Peripherie: **F-DI** für Not-Halt, Endschalter und Quittierung; **DI/DQ** für Bedienelemente
-    (Start, Stopp, Automatik/Hand, Meldeleuchten), Referenzschalter und Windmesser (optional)
+    (Start, Stopp, Automatik/Hand, **Fahrzeug bereit**, Meldeleuchten), **Lichtschranke
+    Fahrzeug**, Ampel und Windmesser (optional)
   - Bedienpanel (optional, z. B. SIMATIC HMI 7″) für Handbetrieb und Meldungen
 
 **2. Antriebe im Feld**
@@ -56,6 +57,11 @@ Einschätzung zu Aufwand, Platzbedarf und Termin – für Schaltschrank, Verkabe
 **5. SPS-Programm (bitte mit kalkulieren)**
 - Hardwarekonfiguration im TIA Portal: CPU, Peripherie, SEW-Umrichter, OPC-UA-Server
 - Technologieobjekte: 3 Positionierachsen mit Absolutgebern, Grenzen, Rampen, Ruck (mit SEW)
+- **Freigabe Fahrzeug:** Der Bediener bestätigt am Taster/HMI, dass ein LKW bzw. Kesselwagen
+  bereitsteht (ggf. Auswahl LKW/Zug). Zusätzlich optional eine **Lichtschranke** je Stellplatz,
+  die das Fahrzeug erkennt. Verladung startet nur mit Bestätigung **und** belegter Lichtschranke.
+  Fällt die Lichtschranke während der Verladung ab: Bewegung stoppen, Meldung. Optional Ampel
+  für den Fahrer (rot = nicht wegfahren, Arm im Dom).
 - **Ablauf der Verladung** nach unserer Schnittstellenbeschreibung (`docs/schnittstelle.md`,
   Datenbaustein `plc/DB_Vision.db` als SCL-Quelle liegt vor): Aufträge an den PC (Job 1–3),
   Handshake und Heartbeat, Prüfung der Stützpunkte, **synchrones Fahren** der drei Achsen

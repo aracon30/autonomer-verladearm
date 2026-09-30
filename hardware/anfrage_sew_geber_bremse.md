@@ -1,11 +1,15 @@
 # Anfrage SEW: Absolutwertgeber, Bremse, Umrichter (Entwurf 30.09.2026)
 
-**Betreff:** Angebot 426368452A – Änderung Geber/Bremse J1/J2, Geber für Bestandsmotor J3,
-Umrichter für 3 Achsen
+**An:** fabian.lay@sew-eurodrive.de
 
-Sehr geehrte Damen und Herren,
+**Betreff:** Angebots-Nr. 426368452A – Änderung Geber/Bremse, Umrichter für 3 Achsen
 
-vielen Dank für Ihr Angebot 426368452A (P5KG31-0004/N/S/0 MD071A CM3C71S-20A-D/PK/RH1M/SM1).
+Guten Tag Fabian Lay,
+
+vielen Dank für Ihr Angebot **Nr. 426368452A** für
+- P5KG31-0004/N/S/0 MD071A CM3C71S-20A-D/PK/RH1M/SM1 und
+- RF47 DRN80M4/BE05/TF Stirnrad-Getriebemotoren R..DRN.. (IE3).
+
 Wir bitten um ein geändertes Angebot mit folgenden Punkten.
 
 **1. Servo J1 (Drehachse am Haltepunkt), 1 Stück**
@@ -22,11 +26,11 @@ Wir bitten um ein geändertes Angebot mit folgenden Punkten.
 - **Haltebremse** 24 V DC. Die Achse ist über eine Stirnradstufe (Ritzel z48 / Zahnkranz z127)
   nicht selbsthemmend und muss bei STO/Not-Halt gegen Windlast halten.
 
-**3. Bestandsmotor J3 (Heben/Senken)**
-- vorhanden: RF47 DRN80M4/BE05/TF (Bremse BE05 vorhanden), dahinter Schneckengetriebe i = 34
-- **Geber:** Multiturn-Absolutwertgeber an diesem Motor. Ist ein Nachrüsten am vorhandenen Motor
-  möglich (Anbausatz, Lüfterhaube), oder brauchen wir einen neuen Motor gleicher Leistung mit
-  Geber? Bitte beides anbieten, falls möglich.
+**3. Getriebemotor J3 (Heben/Senken): RF47 DRN80M4/BE05/TF**
+- wie angeboten, Bremse BE05 ist bereits enthalten; dahinter sitzt ein Schneckengetriebe i = 34
+- **zusätzlich Multiturn-Absolutwertgeber** am Motor
+- Am Prototyp läuft bereits ein baugleicher Motor ohne Geber: Ist dort ein Nachrüsten möglich
+  (Anbausatz, Lüfterhaube)?
 
 **4. Umrichter für alle drei Achsen**
 - bisher MOVITRAC classic MCC91A-0032-5E3-4 (ohne Geberauswertung) an J3

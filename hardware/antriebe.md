@@ -35,6 +35,8 @@ Je Achse: Motor, Getriebe, Geber, Bremse, Ansteuerung. Offene Punkte sind mit **
 | Verzahnungsspiel | **offen** |
 | Beschichtung / Fett | Einschichtlack RAL 9005; Fett DIN 51502 KPF 1 R-20 |
 
+| Umrichter | SEW **MOVITRAC classic MCC91A-0032-5E3-4-…** (Typenschild), 3 × 200–500 V, 1,1 kW ASM, Ausgang 3,2 A (max. 4,8 A), 0–599 Hz, −10 … +40 °C; Gateway laut Typenschild vermutlich CFX11A (PROFINET) – **bestätigen** |
+
 ### Bewertung
 
 - **Kein Servomotor**, sondern Asynchron-Getriebemotor mit Bremse. Sanftes Anfahren/Bremsen
@@ -44,6 +46,15 @@ Je Achse: Motor, Getriebe, Geber, Bremse, Ansteuerung. Offene Punkte sind mit **
   Auflösung am Gelenk sehr fein. Das Getriebespiel wird nicht gemessen – bei J3 unkritisch, weil
   das Gewicht des Auslegers die Zahnflanken immer in dieselbe Richtung andrückt (Spiel ist
   vorgespannt). Restfehler gleicht Job 2 (Nachmessen) aus. Ein Gelenkgeber an J3 entfällt.
+- **Umrichter und Geber:** MOVITRAC classic ist laut SEW für Motoren **ohne Geber** gedacht
+  (Drehzahlsteuerung mit Rampen). Einen Motorgeber wertet er nach unseren Unterlagen nicht aus
+  → mit SEW klären. Wege:
+  1. Umrichter mit Geberauswertung/Positionierung (z. B. MOVITRAC advanced oder MOVIDRIVE)
+     und SEW-Motorgeber.
+  2. MOVITRAC classic behalten (Drehzahl + Rampen über PROFINET) und einen **Absolutwertgeber,
+     den die SPS direkt liest** (PROFINET-Geber am Gelenk oder SSI-Motorgeber an einer
+     SPS-Zählerbaugruppe); S7-1500 Positionierachse mit Drehzahlsollwert + externem Geber.
+- **Bremswiderstand** für das Senken am MOVITRAC prüfen (vorhanden/angeschlossen?).
 - **Absolut oder inkremental:** Multiturn-Absolutwertgeber → Position sofort nach dem
   Einschalten. 90° am Gelenk ≈ 0,25 × 42,87 × i_S Motorumdrehungen (bei i_S = 60 ca. 640) –
   innerhalb von 4096 Umdrehungen üblicher Multiturngeber. Inkrementalgeber → nach jedem

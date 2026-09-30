@@ -74,7 +74,7 @@ def test_servowerte_aus_der_sps(tmp_path):
 
 def test_vorhandene_anlage_bearbeiten(tmp_path):
     target = tmp_path / "a.yaml"
-    run(scripted([("Höhe Achse J1", "6,2")])[0], target)
+    run(scripted([("Höhe Rohrmitte", "6,2")])[0], target)
     d, _, asked, _ = scripted([])
     run(d, target)  # alles mit Enter: Werte bleiben
     cfg = load_config(target)

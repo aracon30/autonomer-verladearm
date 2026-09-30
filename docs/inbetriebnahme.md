@@ -31,11 +31,22 @@ Danach weiter mit Schritt 7 (Kalibrierung).
    Kopf ausfüllen (Anlage, Datum, Name). SPS-Adresse unter `plc.url` eintragen.
 
 2. **Maße aufnehmen** (`arm`)
-   Von Gelenkachse zu Gelenkachse bzw. Rohrmitte zu Rohrmitte messen, in Metern:
+   Von Gelenkachse zu Gelenkachse bzw. Rohrmitte zu Rohrmitte messen, in Metern, nie Außenkanten.
+   Bei 90°-Winkeln zählt der Schnittpunkt der beiden Rohrmittellinien (gedachter Eckpunkt).
+
+   ```
+                 Drehachse J1
+                      │
+   Rohrleitung ═══════╪═════ innerer Ausleger ──(inner_length)──┐ Winkel nach unten
+                      │                                         │ drop
+                      │ base_height                  J2 ────────┘── Winkel nach rechts ...
+                      │
+   ═══════════════════╧══════ Fahrbahn
+   ```
 
    | Parameter | Strecke |
    |---|---|
-   | `base_height` | Achse J1 bis Fahrbahn |
+   | `base_height` | senkrecht: Fahrbahn (Standfläche Tankwagen) bis Rohrmitte innerer Ausleger an der Achse J1 |
    | `inner_length` | Achse J1 bis Mitte Winkel nach unten |
    | `drop` | Winkel nach unten bis Mitte Winkel nach rechts |
    | `offset_right` | Winkel nach rechts bis Mitte Winkel nach vorne |

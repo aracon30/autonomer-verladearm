@@ -24,7 +24,8 @@ ANLAGEN = Path(__file__).resolve().parents[2] / "config" / "anlagen"
 
 # (Schlüssel, Frage, kleinster, größter plausibler Wert) – Maße in m
 DIMENSIONS = [
-    ("base_height", "Höhe Achse J1 über Fahrbahn", 2.0, 12.0),
+    ("base_height", "Höhe Rohrmitte innerer Ausleger an der Achse J1 über Fahrbahn "
+                    "(Standfläche Tankwagen)", 2.0, 12.0),
     ("inner_length", "Innerer Ausleger: Achse J1 bis Mitte Winkel nach unten", 0.3, 10.0),
     ("incline_deg", "Gefälle der Ausleger [Grad, nach unten positiv]", -15.0, 15.0),
     ("drop", "Fallrohr: Winkel nach unten bis Mitte Winkel nach rechts (Achse J2)", 0.05, 3.0),
@@ -100,8 +101,9 @@ class Dialog:
 
 
 def ask_arm(d: Dialog, cur: dict) -> dict:
-    d.step("1. Maße des Arms [m]", "Von Gelenkachse zu Gelenkachse bzw. Rohrmitte zu Rohrmitte "
-           "messen (Skizze: docs/kinematik.md).")
+    d.step("1. Maße des Arms [m]", "Immer Rohrmitte zu Rohrmitte bzw. Gelenkachse zu Gelenkachse "
+           "messen, nie Außenkanten.\nBei 90°-Winkeln zählt der Schnittpunkt der beiden "
+           "Rohrmittellinien (Skizze: docs/inbetriebnahme.md).")
     return {k: d.number(q, cur.get(k), lo, hi) for k, q, lo, hi in DIMENSIONS}
 
 
@@ -274,6 +276,15 @@ def render(meta: dict, plc_url: str, calibration: list, arm: dict, products: dic
     return "\n".join(lines)
 
 
+def python_cmd() -> str:
+    """So, wie der Befehl im Terminal einzugeben ist (z. B. .venv/bin/python)."""
+    exe = Path(sys.executable)
+    try:
+        return exe.relative_to(Path.cwd()).as_posix()
+    except ValueError:
+        return str(exe)
+
+
 def run(d: Dialog, target: Path, reader=None) -> Path | None:
     """`reader(plc_cfg)` liefert die Servo-Istwinkel J1–J3 (z. B. calibrate.read_plc_angles);
     None = Werte werden eingegeben."""
@@ -319,11 +330,13 @@ def run(d: Dialog, target: Path, reader=None) -> Path | None:
     extends = Path(os.path.relpath(ANLAGEN.parent / "default.yaml", target.parent)).as_posix()
     target.write_text(render(meta, plc_url, cur["calibration"]["matrix"], arm, products,
                              workspace, extends), encoding="utf-8")
+    py = python_cmd()
     d.print(f"\nGespeichert: {target}\nNächste Schritte (docs/inbetriebnahme.md):\n"
-            f"  1. Kalibrierung:  python -m verladearm_vision.calibrate --config {target} "
+            f"  1. Prüfung:       {py} -m verladearm_vision.commissioning --config {target}\n"
+            f"  2. Kalibrierung:  {py} -m verladearm_vision.calibrate --config {target} "
             "--from-plc\n"
-            f"  2. Prüfung:       python -m verladearm_vision.commissioning --config {target}\n"
-            f"  3. Sichtprüfung:  python -m verladearm_vision.viewer --opcua --config {target}")
+            "                   (braucht SPS, Sensor und Arm; Probelauf ohne Hardware: --sim)\n"
+            f"  3. Sichtprüfung:  {py} -m verladearm_vision.viewer --opcua --config {target}")
     return target
 
 

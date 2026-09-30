@@ -89,10 +89,43 @@ Je Achse: Motor, Getriebe, Geber, Bremse, Ansteuerung. Offene Punkte sind mit **
 - **Ex-Schutz:** IP55 ohne Ex-Kennzeichnung. Liegt der Arm in einer Ex-Zone, ist ein Motor in
   ATEX-Ausführung nötig (Zoneneinteilung klären, Lastenheft N-06).
 
-## J1 – Drehen am Haltepunkt
+## J1 und J2 – Drehen am Haltepunkt / am Fallrohr
 
-**offen** (Datenblatt folgt)
+SEW-Angebot **426368452A** vom 18.09.2026 (Version A, Getriebe P5KG31), je Achse 1 Stück,
+1.620,78 € netto, Lieferzeit ca. 4–6 Wochen.
 
-## J2 – Drehen am Fallrohr
+| | Wert |
+|---|---|
+| Typ | **P5KG31-0004/N/S/0 MD071A CM3C71S-20A-D/PK/RH1M/SM1** |
+| Planetengetriebe | P5KG31, **i = 4**, Ma_N 81 Nm, Ma_pk 132 Nm, **Verdrehspiel 5′**, IP65, Welle 22 × 36 mit Passfeder |
+| Servomotor | CM3C71S (Synchron-Servo), nN 2000 1/min, **M0 6,5 Nm**, Mpk 19,5 Nm, I0 3,5 A, Imax 12,2 A, 400 V, IP65, S9 |
+| Geber | **RH1M Resolver** (2-polig) – **kein Absolutwert** über mehrere Umdrehungen |
+| Bremse | **keine** (kein /B.. in der Typenbezeichnung) |
+| Temperatur | PK (PT1000) |
+| Anschluss | SM1-Steckverbinder (SpeedTec) |
+| Gewicht | 9,9 kg |
 
-**offen** (Datenblatt folgt)
+### Bewertung
+
+- **Übersetzung i = 4 allein reicht nicht** für den Arm (Motor bei 2000 1/min → 500 1/min am
+  Getriebe). Vermutlich treibt das Planetengetriebe – wie bei J3 – einen **Schwenkantrieb**
+  (Zeichnung: Schwenkantrieb Pos. 4 an Pos. 28 bzw. Drehgelenk Pos. 27). **Offen:** Typ und
+  Übersetzung i_S, Adapterwelle (22 mm Passfeder).
+- **Moment am Gelenk** = 6,5 Nm × 4 × 0,95 × i_S × Wirkungsgrad Schnecke. Bei i_S = 34:
+  ca. 340–420 Nm dauernd, 1,0–1,3 kNm Spitze. Last: Beschleunigen gering (Trägheit J1 grob
+  1 700 kg·m² → ca. 90 Nm für 6 °/s in 2 s), aber **Wind** (ca. 0,9 kNm bei 20 m/s, 1 m²,
+  3 m Hebel) und **Reibung der Rohrdrehgelenke** unter Druck. → Lastannahme J1/J2 festlegen
+  (wie 3,52 kNm für J3 an IMO) und nachrechnen.
+- **Servo braucht Servoumrichter** (z. B. MOVIDRIVE, MOVI-C) – MOVITRAC classic kann ihn nicht
+  betreiben. Passt zu Weg 1 (alle Achsen SEW mit Geberauswertung).
+- **Resolver = nur inkremental über Umdrehungen:** nach jedem Einschalten **Referenzfahrt**
+  (Endschalter/Referenznocken). Besser: bei SEW **Multiturn-Absolutwertgeber** statt RH1M
+  anfragen, oder Absolutwertgeber am Gelenk als zweiten Geber am Umrichter.
+- **Keine Bremse:** J1/J2 drehen um (fast) senkrechte Achsen, Schwerkraft wirkt kaum. Ohne
+  Bremse kann Wind den Arm aber bei abgeschaltetem Antrieb (Not-Halt/STO) verdrehen, und die
+  Schnecke hält nicht sicher → **Haltebremse** empfohlen, sofern der Schwenkantrieb nicht
+  sicher selbsthemmend ist.
+- **Spiel:** Planetengetriebe 5′ (am Gelenk ÷ i_S vernachlässigbar); Spiel des Schwenkantriebs
+  zählt. Anders als bei J3 drückt keine Schwerkraft das Spiel auf eine Seite → Job 2
+  (Nachmessen) gleicht aus.
+- **Ex-Schutz:** IP65, kein Ex – wie bei J3 klären.

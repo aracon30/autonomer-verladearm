@@ -4,7 +4,7 @@ Je Achse: Motor, Getriebe, Geber, Bremse, Ansteuerung. Offene Punkte sind mit **
 
 ## J3 – Ausleger heben/senken (Schwenkantrieb Pos. 4, Motor Pos. 11)
 
-> Zuordnung zu J3 angenommen (Datenblatt ohne Achsangabe übergeben) – **bestätigen**.
+> Zuordnung zu J3 durch den Schwenkantrieb bestätigt (Schwenkwinkel 90° = ±45°).
 
 | | Wert |
 |---|---|
@@ -17,7 +17,17 @@ Je Achse: Motor, Getriebe, Geber, Bremse, Ansteuerung. Offene Punkte sind mit **
 | Geber | **keiner** (kein /EI.. oder /AK.. in der Typenbezeichnung) |
 | Schutzart | IP55, −20 … +40 °C, **kein Ex-Schutz** |
 | Gewicht | 31,3 kg |
-| Schwenkantrieb Pos. 4 | **offen**: Hersteller/Typ, Übersetzung, Abtriebs- und Haltemoment, Spiel, selbsthemmend? |
+| Schwenkantrieb Pos. 4 | **IMO WD-E 0223/3** (Schneckengetriebe), IMO-Projekt 10000481356, Technical Notes 10.12.2025 |
+| Md max (dynamisch, inkl. Stöße) | **9 500 Nm** |
+| Mh max (statisch, Halten) | **11 000 Nm** |
+| Auslegung (Lastfälle HETA) | Betriebs-/Haltemoment 3,52 kNm und 2,24 kNm, Kippmoment 0,657 kNm, Radiallast 2 kN, je 50 % ED |
+| Abtriebsdrehzahl max | **1 1/min** (= 6 °/s) |
+| Einschaltdauer | max. 58 % bzw. 69 % Schwenkzeit je Minute |
+| Lebensdauer (Auslegung) | 480 h Schwenkzeit gesamt |
+| Selbsthemmung | **nicht zugesichert** (theoretisch bei Wirkungsgrad < 50 %), am gelieferten Antrieb prüfen → Bremse nötig |
+| Motoranbindung | Adapterwelle: max. 1 200 Nm (1 1/4"-Keilwelle) bzw. 600 Nm (Ø 25 Passfeder / 1"-Keilwelle) |
+| Einbau | Antriebswelle **nicht oben**; Grundierung reicht außen nicht (Deckanstrich, Dichtungen nicht überstreichen); kein Hochdruckreiniger; −20 … +70 °C |
+| Übersetzung, Spiel | **offen** (nicht in den Technical Notes) |
 
 ### Bewertung
 
@@ -27,14 +37,20 @@ Je Achse: Motor, Getriebe, Geber, Bremse, Ansteuerung. Offene Punkte sind mit **
 - **Positionieren nur mit Geber.** Empfehlung: Absolutwertgeber am Gelenk (Stückliste Pos. 16),
   S7-1500 Positionierachse mit Drehzahlsollwert an den Umrichter und Gelenkgeber als Istwert.
   Alternativ Motorgeber nachrüsten (SEW-Option), dann bleibt das Getriebespiel ungemessen.
-- **Lastmoment J3** (Schätzung, Rohr 114,3 × 3,6, Ausleger waagerecht): ca. 1,6 kNm leer,
-  ca. 2,0 kNm mit gefülltem äußeren Ausleger; zzgl. Flansche/J4 grob mit 30 kg angesetzt.
-  Mit 215 Nm am Getriebeabtrieb reicht das nur mit einer Übersetzung im Schwenkantrieb von
-  **mindestens ca. 20–30** (bei Schnecke Wirkungsgrad ~0,5). Nachrechnen, sobald Pos. 4 bekannt.
-- **Haltebremse:** 1,8 Nm am Motor ergeben mit i = 42,87 und Schwenkantrieb i = 50 rechnerisch
-  ca. 3,9 kNm – ausreichend, falls der Schwenkantrieb nicht ohnehin selbsthemmend ist.
-- **Geschwindigkeit am Gelenk:** 34 1/min ÷ Übersetzung Schwenkantrieb, z. B. i = 50 → 4 °/s,
-  90° in ca. 22 s. Für die Anfahrt ausreichend, beim Eintauchen reduzieren.
+- **Lastmoment J3:** Auslegung IMO mit 3,52 kNm (HETA-Vorgabe); eigene Schätzung (Rohr
+  114,3 × 3,6, Ausleger waagerecht) 1,6 kNm leer, 2,0 kNm gefüllt. Reserve zu Md max 9,5 kNm
+  und Mh max 11 kNm groß.
+- **Motor ↔ Schwenkantrieb:** Getriebemotor max. 300 Nm < 600 Nm (kleinste Adapterwelle) – passt.
+  IMO empfiehlt trotzdem eine **Momentbegrenzung im Umrichter**; zusammen mit der Übersetzung
+  i_S des Schwenkantriebs muss 215 Nm × i_S × Wirkungsgrad (~0,3–0,5) über 3,52 kNm liegen,
+  also i_S ≳ 35–55 – mit Übersetzung aus dem Datenblatt nachrechnen.
+- **Drehzahl:** 34 1/min ÷ i_S darf 1 1/min nicht überschreiten → i_S ≥ 34, sonst im Umrichter
+  begrenzen. **Technologieobjekt J3: v max 6 °/s**, beim Eintauchen deutlich weniger.
+- **Haltebremse:** notwendig (Selbsthemmung nicht zugesichert). 1,8 Nm × 42,87 × i_S am Gelenk,
+  bei i_S = 50 rechnerisch 3,9 kNm – knapp über 3,52 kNm. Bremsmoment der BE05 ggf. höher
+  einstellen lassen (bis 5 Nm möglich), Selbsthemmung bei Inbetriebnahme prüfen.
+- **Lebensdauer:** 480 h Schwenkzeit; bei ca. 1 min J3-Bewegung je Verladung ≈ 29 000
+  Verladungen. Mit der geplanten Verladezahl pro Jahr abgleichen.
 - **Ex-Schutz:** IP55 ohne Ex-Kennzeichnung. Liegt der Arm in einer Ex-Zone, ist ein Motor in
   ATEX-Ausführung nötig (Zoneneinteilung klären, Lastenheft N-06).
 

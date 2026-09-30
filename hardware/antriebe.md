@@ -112,7 +112,7 @@ SEW-Angebot **426368452A** vom 18.09.2026 (Version A, Getriebe P5KG31), je Achse
   **offen**. Gesamtübersetzung = 4 × i_Z.
 - **Nicht selbsthemmend** (Stirnradstufe) → **Haltebremse am Servo notwendig**.
 - **Moment:** 6,5 Nm × 4 × i_Z × ~0,92 → bei i_Z = 5/8/10: ca. 120/190/240 Nm dauernd,
-  Spitze (Getriebe 132 Nm) 640/1 020/1 280 Nm. Für ca. 1 kNm Dauerlast (Wind, Reibung der
+  Spitze (Motor 19,5 Nm × 4 = 78 Nm am Getriebe) ca. 380/600/760 Nm. Für ca. 1 kNm Dauerlast (Wind, Reibung der
   Drehgelenke) wäre eine Gesamtübersetzung von ca. 170 nötig → mit bekanntem i_Z prüfen, ggf.
   Planetengetriebe mit größerer Übersetzung bei SEW anfragen (dreht der Motor dann auch näher
   an seiner Nenndrehzahl statt bei wenigen 100 1/min).

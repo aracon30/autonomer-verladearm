@@ -77,7 +77,17 @@ Einschätzung zu Aufwand, Platzbedarf und Termin – für Schaltschrank, Verkabe
   Handshake und Heartbeat, Prüfung der Stützpunkte, **synchrones Fahren** der drei Achsen
   (alle kommen gleichzeitig am Stützpunkt an), langsames Eintauchen, Zeitüberwachung,
   Fehlerbehandlung
-- Handbetrieb: Achsen einzeln tippen, Parkstellung anfahren
+- **Handbetrieb** (Betriebsartenwahl Automatik/Hand mit Schlüsselschalter):
+  - **Verfahren am Touchscreen:** Achsen J1/J2/J3 einzeln tippen (+/−), nur solange gedrückt
+    (Tippbetrieb), reduzierte Geschwindigkeit, Endlagen aktiv. Am besten **Mobile Panel mit
+    Zustimmtaster und Not-Halt**, damit der Bediener dort steht, wo er Dom und Auslass sieht.
+  - **Von Hand bewegen (J1/J2):** Taster „Bremse lüften“ in Hand, Antrieb dabei in STO, Bremse
+    nur offen, solange der Taster gedrückt ist. Arm am Auslass von Hand führen, wie bisher.
+    **J3 geht nicht von Hand** (Schneckengetriebe selbsthemmend) → J3 immer über Tippen.
+  - Die Absolutgeber zählen dabei weiter, keine Referenzfahrt nötig.
+  - **„Automatisch in Parkstellung“** aus jeder Lage (PC plant die Rückfahrt: erst senkrecht
+    heraus, dann kollisionsfrei in die Parkstellung = Job 3).
+  - Handbetrieb dient auch als **Rückfallebene**, wenn die Kamera/Automatik ausfällt.
 - **Sicherheitsprogramm** (F-CPU): Not-Halt, STO/SS1, Endlagen, Quittierung, inkl. Validierung
 - HMI: Produktwahl, Bedienung, Meldungen, Fehlertexte
 - Test: Unsere PC-Software läuft auch als Simulation und kann gegen PLCSIM Advanced getestet

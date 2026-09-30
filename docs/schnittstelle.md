@@ -88,6 +88,20 @@ Während der Automatik: Klapptreppe verriegelt (darf nicht ausfahren). Fällt di
 oder verlässt die Treppe die Ruhelage: Bewegung stoppen, Meldung (reine SPS-Funktion, kein PC-Signal).
 Bei Fehler, fehlendem Ergebnis oder Heartbeat-Ausfall: Bewegung stoppen, sicherer Zustand.
 
+## Handbetrieb (SPS, ohne PC)
+
+- **Tippen am Panel:** J1/J2/J3 einzeln, nur solange gedrückt, reduzierte Geschwindigkeit,
+  Endlagen aktiv (Mobile Panel mit Zustimmtaster empfohlen).
+- **Von Hand führen (J1/J2):** „Bremse lüften“ nur im Handbetrieb, Antrieb in STO, Bremse offen
+  nur solange gedrückt. J3 ist selbsthemmend (Schnecke) und wird nur getippt.
+- Die Multiturn-Absolutgeber bleiben gültig (`AxesHomed` bleibt `TRUE`), die SPS meldet weiter
+  die Istwinkel.
+- **„Automatisch in Parkstellung“** aus beliebiger Lage = **Job 3**: Der PC plant ab Istlage
+  erst senkrecht heraus (größte hinterlegte Eintauchtiefe, falls kein Job 1 vorliegt), dann
+  kollisionsfrei in die Parkstellung.
+- Hindernisse (Tank, Deckel) aus einem früheren Job 1 gelten nur für dasselbe Fahrzeug. Die SPS
+  startet nach Handbetrieb eine neue Verladung immer mit Job 1 aus der Parkstellung.
+
 ## Handshake
 
 1. SPS setzt `Job`, `ProductId`, Istwerte und dann `Trigger` (nur wenn `Ready = TRUE`).

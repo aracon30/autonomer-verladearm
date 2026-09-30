@@ -1,7 +1,7 @@
 Pos;Bezeichnung;Vorschlag;Menge;Status;Bemerkung
-1;3D-Sensor;SICK Visionary-T Mini CX, Frontscheibe Glas: V3S105-1AAAAAD (Art.-Nr. 1132065);1;offen;ToF, 512x424, IP65, 24 V, GigE; Glas statt PMMA wegen Lösemitteldämpfen/Reinigung/Kratzern an der Verladestelle; für den Prüfstand geht auch V3S105-1AAAAAA (PMMA, 1112649); docs/sensor_sick.md
+1;3D-Sensor;SICK Visionary-T Mini CX, Frontscheibe Glas: V3S105-1AAAAAD (Art.-Nr. 1132065);1;offen;ToF, 512x424, IP65/67/69, 24 V typ. 12 W, GigE, -10..+50 °C, max. 50 klx Fremdlicht, 520 g, 4x M5; Glas statt PMMA wegen Lösemitteldämpfen/Reinigung/Kratzern an der Verladestelle; für den Prüfstand geht auch V3S105-1AAAAAA (PMMA, 1112649); docs/sensor_sick.md
 2;Kabel Ethernet;M12 8-polig X-kodiert auf RJ45, Cat6a, ca. 10 m;1;offen;Länge nach Montagehöhe
-3;Kabel Versorgung Sensor;Anschlussleitung passend zum Versorgungsstecker laut Datenblatt, ca. 10 m;1;offen;24 V DC, typ. 12 W
+3;Kabel Versorgung Sensor;M12 8-polig A-kodiert Buchse, offenes Ende, geschirmt, ca. 10 m;1;offen;24 V DC, typ. 12 W, Spitzenstrom 2 A
 4;Edge-PC Prüfstand;ASUS NUC 14 Pro, Core Ultra 5, 16 GB, 512 GB SSD;1;offen;Ubuntu 24.04; ca. 640 EUR
 5;USB-LAN-Adapter;USB 3 auf Gigabit Ethernet;1;offen;zweites Netz: Sensor getrennt von SPS
 6;Edge-PC Station;Siemens SIMATIC IPC BX-32A, 4 Kerne (Core i5/i7 oder Xeon W, nicht Celeron), 16 GB, SSD, 24 V DC, 4x LAN, Hutschiene, lüfterlos;1;später;Linux-Unterstützung (Ubuntu oder SIMATIC Industrial OS) vor Bestellung klären; Rechenzeit am Prüfstand messen
@@ -15,3 +15,4 @@ Pos;Bezeichnung;Vorschlag;Menge;Status;Bemerkung
 14;Messmittel;Laser-Entfernungsmesser, digitaler Neigungsmesser, Maßband;1;offen;
 15;Markierungsscheibe Auslass;Ringscheibe Ø 250 mm, matt, über dem Auslassende (ca. 150 mm);1;offen;für Nachmessen Job 2, Werkstoff produktverträglich
 16;Drehgeber J1-J2 (J3: SEW-Motorgeber);Absolutwertgeber am Gelenk, PROFINET (Encoder-Profil, Telegramm 81/83), mind. 16 Bit/Umdrehung, IP67, Ex-Ausführung falls in Zone (z. B. POSITAL IXARC Ex, Kübler Sendix Ex, Leine Linde Ex); Anbau über Zahnrad/Zahnriemen am Drehgelenk;3;klären;Ex-Zone klären (Lastenheft N-06); Übersetzung >1:1 -> Multiturn; J4 braucht keinen Geber
+17;Sonnen-/Wetterschutz Sensor;Schutzdach über dem Sensor, Blickfeld 70°x60° frei;1;offen;Datenblatt: max. 50 klx Fremdlicht (direkte Sonne ca. 100 klx), Gehäuse max. 65 °C; ggf. SICK-Kühlkörper

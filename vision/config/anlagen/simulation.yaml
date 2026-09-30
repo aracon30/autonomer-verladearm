@@ -1,10 +1,11 @@
-# Simulation ohne Hardware: simulierter Sensor (Lkw/Kesselwagen mit offenem Deckel,
-# Getriebespiel) und SPS-Simulator auf demselben Rechner. Start: tools/simulation.sh
-extends: beispiel.yaml
+# Simulation ohne Hardware: HETA-Prototyp mit seinen Antrieben (Geschwindigkeiten, Rampen,
+# Getriebespiel), simulierter Sensor (Lkw/Kesselwagen mit offenem Deckel) und SPS-Simulator
+# auf demselben Rechner. Start: tools/simulation.sh
+extends: heta_prototyp.yaml
 
 source:
   type: sim
-  joint_error_deg: [0.3, -0.25, 0.2]   # Getriebespiel, wird in Job 2 nachgemessen
+  joint_error_deg: [0.3, -0.25, 0.2]   # Durchbiegung/Modellfehler, wird in Job 2 nachgemessen
 
 plc:
   url: opc.tcp://127.0.0.1:4840/       # tools/plc_simulator.py

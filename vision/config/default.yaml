@@ -65,6 +65,12 @@ planning:
   insert_waypoints: 5     # Stützpunkte für das senkrechte Eintauchen (max. 16 insgesamt)
   time_limit_s: 3.5       # Suche nach Umwegen begrenzen (Zeitüberwachung SPS: 5 s)
 
+drives: {}
+  # Antriebe je Achse (q1, q2, q3), Werte am Gelenk: motor, gear, motor_speed [1/min], ratio,
+  # speed_limit [°/s], accel_time [s], backlash [°], gravity_preload, torque/torque_peak [Nm],
+  # brake, encoder. Beispiel: anlagen/heta_prototyp.yaml, Herleitung: hardware/antriebe.md.
+  # Genutzt von SPS-Simulator, simuliertem Sensor und Inbetriebnahmeprüfung.
+
 scene:
   # Hindernisse aus jeder Messung (Tankkörper, Domkragen, offener Domdeckel), siehe
   # docs/kinematik.md. Gelten zusätzlich zu arm.obstacles für Anfahrt, Korrektur und Rückfahrt.

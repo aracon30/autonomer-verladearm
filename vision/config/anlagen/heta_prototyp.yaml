@@ -1,0 +1,73 @@
+# Anlagenparameter Verladearm – HETA Prototyp
+# Maße aus der Konstruktionszeichnung, Antriebe aus hardware/antriebe.md.
+# Servowerte (zero, direction, park) sind PLATZHALTER bis zur Einrichtung am Arm
+# (python -m verladearm_vision.einrichtung --name heta_prototyp --from-plc).
+#
+# Anlage:            HETA Prototyp
+# Inbetriebnahme:    offen
+# Freigabe:          offen
+
+extends: beispiel.yaml
+
+arm:
+  base_height: 5.5        # vor Ort messen
+  inner_length: 2.4       # Zeichnung: 2548 − 148
+  incline_deg: 3
+  drop: 0.43              # aus 961 − 404 − 2400·tan 3° (prüfen)
+  offset_right: 0.563
+  outer_length: 2.7
+  offset_left: 0.447
+  outlet_length: 1.408
+  joints:
+    # J1/J2: Zahnkranz mit Öffnung, verzahnt ca. 296° -> Bereich mit Abstand zur Lücke
+    q1: {min: -120, max: 120, park: 70, zero: 0, direction: 1}
+    q2: {min: -140, max: 140, park: -135, zero: 0, direction: 1}
+    # J3: Schwenkantrieb ±45° zur Waagerechten = −42 … 48° zum 3°-Gefälle
+    q3: {min: -42, max: 48, park: 10, zero: 0, direction: 1}
+  obstacles: []           # Stützen, Bühne, Geländer vor Ort erfassen
+  clearance: 0.15
+
+# Antriebe je Achse, Werte am Gelenk (Details und Herleitung: hardware/antriebe.md)
+drives:
+  q1:
+    motor: SEW CM3C71S (Servo, mit Bremse, Multiturn-Absolutgeber – angefragt)
+    gear: P5KG31 i=20 (angefragt 20–25) × Ritzel z18 / Zahnkranz z85 (Modul 3)
+    motor_speed: 2000
+    ratio: 94.44          # 20 × 85/18
+    speed_limit: 6        # °/s am Gelenk (Anwendung)
+    accel_time: 4         # s, großer Arm-Trägheit wegen sanft
+    backlash: 0.1         # ° Annahme (Planetengetriebe 5′ + Zahnflankenspiel)
+    torque: 370
+    torque_peak: 605
+    brake: true
+    encoder: Multiturn absolut
+  q2:
+    motor: SEW CM3C71S (Servo, mit Bremse, Multiturn-Absolutgeber – angefragt)
+    gear: P5KG31 i=20 (angefragt 20–25) × Ritzel z18 / Zahnkranz z85 (Modul 3)
+    motor_speed: 2000
+    ratio: 94.44
+    speed_limit: 6
+    accel_time: 2
+    backlash: 0.1
+    torque: 370
+    torque_peak: 605
+    brake: true
+    encoder: Multiturn absolut
+  q3:
+    motor: SEW RF47 DRN80M4/BE05/TF (Asynchron, Bremse 1,8 Nm, Geber angefragt)
+    gear: RF47 i=42,87 × IMO WD-E 0223/3 i=34 (Schnecke)
+    motor_speed: 1440
+    ratio: 1457.6         # 42,87 × 34
+    speed_limit: 6        # IMO: max. 1 1/min am Abtrieb
+    accel_time: 1.5
+    backlash: 0.1         # ° Annahme, Verzahnungsspiel bei IMO offen
+    gravity_preload: true # Gewicht drückt das Spiel immer auf eine Seite
+    torque: 3300          # 215 Nm × 34 × ~0,45
+    torque_peak: 4500
+    brake: true
+    encoder: Multiturn absolut (angefragt)
+
+commissioning:
+  workspace_min: [2.6, -0.6, -2.3]
+  workspace_max: [3.6, 0.6, -0.5]
+  step: 0.2

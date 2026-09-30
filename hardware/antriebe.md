@@ -2,6 +2,9 @@
 
 Je Achse: Motor, Getriebe, Geber, Bremse, Ansteuerung. Offene Punkte sind mit **offen** markiert.
 
+In der Simulation hinterlegt: `vision/config/anlagen/heta_prototyp.yaml`, Abschnitt `drives`
+(Geschwindigkeit, Rampen, Getriebespiel; Fahrzeiten in der Inbetriebnahmeprüfung).
+
 ## J3 – Ausleger heben/senken (Schwenkantrieb Pos. 4, Motor Pos. 11)
 
 > Zuordnung zu J3 durch den Schwenkantrieb bestätigt (Schwenkwinkel 90° = ±45°).

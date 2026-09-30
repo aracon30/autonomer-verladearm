@@ -94,3 +94,21 @@ def test_flansch_weit_oben_mit_schraeger_rohrachse():
     assert np.linalg.norm(found - tip) < 0.004
     vertical = detect_outlet(pts, dome, cfg=cfg)  # senkrecht angenommen: ca. 36 mm daneben
     assert np.hypot(*(vertical - tip)[:2]) > 0.03
+
+
+def test_flansch_stark_verdeckt_rohrachse_hilft():
+    """Nur ein kurzes Stück Flanschrand sichtbar, das Rohr darüber aber schon."""
+    from verladearm_vision.detection import OutletConfig, detect_marker
+
+    cfg = OutletConfig(marker_radius=0.11, marker_offset=0.823, pipe_radius=0.057)
+    rng = np.random.default_rng(3)
+    m = np.array([2.9, 0.2, -1.0])
+    disc = _disc(m, [0, 0, 1], 0.11, r_in=0.057, n=3000, seed=4)
+    ang = np.degrees(np.arctan2(*(disc[:, :2] - m[:2]).T[::-1]))
+    disc = disc[(ang > 150) | (ang < -160)]  # nur ca. 50° des Flansches sichtbar
+    h = rng.uniform(0.03, 0.5, 800)
+    a = rng.uniform(-np.pi / 2, np.pi / 2, 800)  # dem Sensor zugewandte Rohrhälfte
+    pipe = np.column_stack([m[0] + 0.057 * np.cos(a), m[1] + 0.057 * np.sin(a), m[2] + h])
+    pts = np.vstack([disc, pipe]) + rng.normal(0, 0.002, (len(disc) + len(pipe), 3))
+    found = detect_marker(pts, m - [0, 0, 1.1], cfg, expected=m + [0.025, -0.02, 0.0])
+    assert np.hypot(*(found - m)[:2]) < 0.004

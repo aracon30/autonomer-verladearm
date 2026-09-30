@@ -5,7 +5,7 @@ Produkte. Diese Werte stehen in einer **Anlagendatei** und werden vor Ort einges
 Alles andere (Erkennung, Schnittstelle, Standardwerte) kommt aus `vision/config/default.yaml`.
 
 Die Software ist für diese **Bauart** ausgelegt: J1 dreht am Haltepunkt, innerer Ausleger mit
-Gefälle, Fallrohr mit J2, Winkel nach rechts mit J3 (heben/senken), äußerer Ausleger, Winkel nach
+festem Gefälle, Fallrohr mit J2, Winkel nach rechts mit J3 (heben/senken), äußerer Ausleger, Winkel nach
 links, freies Gelenk J4, Auslass hängt durch die Schwerkraft (docs/kinematik.md). Alle Maße,
 Winkel, Achsbereiche, Hindernisse und Produkte werden je Arm bei der Ersteinrichtung festgelegt.
 
@@ -53,11 +53,11 @@ Danach weiter mit Schritt 7 (Kalibrierung).
    | `outer_length` | Winkel nach vorne bis Mitte Winkel nach links |
    | `offset_left` | Winkel nach links bis Mitte Winkel nach unten (freies Gelenk J4) |
    | `outlet_length` | Winkel nach unten bis Auslassende |
-   | `incline_deg` | Gefälle der Ausleger |
+   | `incline_deg` | festes Gefälle des inneren Auslegers (Fallrohr senkrecht; sonst `drop_tilt_deg`) |
 
 3. **Servoachsen einstellen** (`arm.joints`, alle Werte in Servo-Grad wie am Antrieb angezeigt)
    - `zero`: Arm im Handbetrieb so stellen, dass beide Ausleger gestreckt nach vorne zeigen und
-     der äußere Ausleger im Gefälle liegt. Servowerte J1, J2, J3 ablesen.
+     der äußere Ausleger **waagerecht** liegt (Wasserwaage). Servowerte J1, J2, J3 ablesen.
    - `direction`: Jede Achse ein Stück im positiven Sinn verfahren. Dreht J1 bzw. J2 nach links
      (von oben gesehen gegen den Uhrzeigersinn) bzw. hebt J3 den Ausleger: `1`, sonst `-1`.
    - `min` / `max`: freigegebener Verfahrbereich (nicht die mechanischen Endanschläge).
@@ -75,8 +75,11 @@ Danach weiter mit Schritt 7 (Kalibrierung).
    **Referenz am Auslass** (`outlet`): Markierungsscheibe (Standard Ø 250 mm, 150 mm über dem
    Auslassende) oder ein vorhandener, von oben sichtbarer Flansch am Auslassrohr, z. B. beim
    HETA-Prototyp Flansch Ø 220 mm, Oberkante 823 mm über dem untersten Punkt des Auslasses:
-   `marker_radius: 0.11`, `marker_offset: 0.823`. Die Referenz muss rund, mittig und
-   rechtwinklig zum Auslassrohr sein; der Außenrand darf nicht verdeckt sein (keine Laschen).
+   `marker_radius: 0.11`, `marker_offset: 0.823`, `pipe_radius: 0.057`. Die Referenz muss rund,
+   mittig und rechtwinklig zum Auslassrohr sein; keine Laschen o. ä. über den Außenrand.
+   Eine teilweise Verdeckung durch die Rohrleitung darüber ist zulässig: Die Erkennung sucht
+   den Rand mit bekanntem Durchmesser nahe der vom Armmodell erwarteten Lage und nutzt bei
+   stark verdecktem Rand zusätzlich die Achse des Auslassrohrs über der Referenz.
 
 6. **Arbeitsraum** (`commissioning`): Bereich, in dem die Domöffnung bei dieser Station liegen
    kann (unterschiedliche Tankwagen, Aufbauhöhen, Abstellpositionen).

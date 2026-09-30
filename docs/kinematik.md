@@ -10,7 +10,7 @@ Hindernisse sind für jeden Verladearm verschieden und stehen in der Anlagendate
 | Nr. | Element | Antrieb | Parameter |
 |---|---|---|---|
 | J1 | Drehgelenk am Haltepunkt (Schnittstelle Rohrleitung), senkrechte Achse, links/rechts | Servo | `joints.q1` |
-| | innerer Ausleger nach vorne, fallend | | `inner_length`, `incline_deg` |
+| | innerer Ausleger nach vorne, **fest** fallend (z. B. 3°) | | `inner_length`, `incline_deg` |
 | | 90°-Winkel nach unten, Fallrohr | | `drop` |
 | J2 | Drehgelenk um die Achse des Fallrohrs, links/rechts | Servo | `joints.q2` |
 | | 90°-Winkel nach rechts | | `offset_right` |
@@ -22,8 +22,12 @@ Hindernisse sind für jeden Verladearm verschieden und stehen in der Anlagendate
 
 J1 und J2 positionieren den Auslass in der Waagerechten (wie ein Scara-Roboter), J3 bestimmt die
 Höhe. Weil J4 frei pendelt und parallel zu J3 liegt, hängt der Auslass unabhängig vom Hubwinkel
-senkrecht. Die 3° Gefälle kippen das Fallrohr und damit die Achse J2 um 3°. Dadurch pendelt der
-Auslass bei stark eingeschwenktem J2 um einige Zentimeter aus; das Modell berücksichtigt das.
+senkrecht. Nur der innere Ausleger hat ein festes Gefälle; der Winkel danach hat entsprechend
+90° − Gefälle (z. B. 87° bei 3°), sodass das Fallrohr mit J2 senkrecht steht und J2 um die
+Senkrechte dreht;
+der äußere Ausleger wird über J3 eingestellt (J3 = 0: waagerecht). Ist das Fallrohr an einem
+anderen Arm geneigt, wird das mit `drop_tilt_deg` eingetragen; dann hängt der Auslass je nach J2
+leicht schräg, und das Modell rechnet die Schräglage mit.
 
 ## Koordinatensystem Armbasis
 

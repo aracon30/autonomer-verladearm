@@ -31,7 +31,7 @@ arm:
   outlet_length: 1.2
 
   # Servoachsen in Servo-Grad, wie am Antrieb angezeigt:
-  #   zero       Servowert, wenn beide Ausleger gestreckt nach vorne zeigen (J3: Ausleger im Gefälle)
+  #   zero       Servowert, wenn beide Ausleger gestreckt nach vorne zeigen (J3: Ausleger waagerecht)
   #   direction  +1, wenn steigender Servowert nach links dreht (J1, J2) bzw. hebt (J3), sonst -1
   #   min / max  freigegebener Verfahrbereich
   #   park       Parkstellung

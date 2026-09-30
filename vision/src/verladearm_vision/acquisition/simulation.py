@@ -5,7 +5,9 @@ Stelle und rendert zusätzlich Auslegerende und Auslass in der tatsächlichen St
 `joint_error_deg` simuliert den Unterschied zwischen gemeldetem Servowinkel und realer Gelenklage
 (Getriebespiel, Durchbiegung), damit das Nachmessen in Job 2 etwas zu korrigieren hat.
 Am Auslass sitzt eine Markierungsscheibe (siehe detection/outlet.py); `marker_radius: null`
-simuliert einen Auslass ohne Scheibe. Verdeckungen werden nicht simuliert.
+simuliert einen Auslass ohne Scheibe. Die Markierung wird von Rohrführung und Drehgelenk J4 aus
+Sicht des Sensors teilweise verdeckt (wie am realen Arm); andere Verdeckungen werden nicht
+simuliert.
 `backlash_deg` simuliert das Getriebespiel je Achse (aus dem Abschnitt `drives` der
 Anlagendatei): Das Gelenk bleibt je nach letzter Fahrtrichtung um die halbe Spielweite zurück,
 Hubachsen (`backlash_preload`) hängen immer um die halbe Spielweite tiefer.
@@ -22,11 +24,26 @@ from verladearm_vision.synthetic import make_tank_vehicle
 RIM_HEIGHT = {"lkw": (3.35, 3.6), "kesselwagen": (4.35, 4.55)}
 
 
+def _segment_distance(p, s, a, b) -> np.ndarray:
+    """Kleinster Abstand zwischen den Strecken p_i→s (Sichtlinien) und a→b (Rohrachse)."""
+    d1, d2, r = s - p, b - a, p - a
+    aa, e = np.einsum("ij,ij->i", d1, d1), d2 @ d2
+    bb, c, f = d1 @ d2, np.einsum("ij,ij->i", d1, r), r @ d2
+    den = aa * e - bb * bb
+    sp = np.where(den > 1e-12, np.clip((bb * f - c * e) / np.where(den > 1e-12, den, 1), 0, 1), 0)
+    t = (bb * sp + f) / e
+    lo, hi = t < 0, t > 1
+    sp = np.where(lo, np.clip(-c / aa, 0, 1), np.where(hi, np.clip((bb - c) / aa, 0, 1), sp))
+    t = np.clip(t, 0, 1)
+    return np.linalg.norm(p + d1 * sp[:, None] - (a + d2 * t[:, None]), axis=1)
+
+
 class SimulatedScene:
     def __init__(self, geom: ArmGeometry, transform: SensorToArm, vehicles=("lkw", "kesselwagen"),
                  joint_error_deg=(0.0, 0.0, 0.0), dome_spread=0.35, marker_radius=0.125,
                  marker_offset=0.15, empty=False, sensor_matrix=None, lid=True,
-                 backlash_deg=(0.0, 0.0, 0.0), backlash_preload=(False, False, True), seed=None):
+                 backlash_deg=(0.0, 0.0, 0.0), backlash_preload=(False, False, True),
+                 pipe_radius=0.06, seed=None):
         self.geom, self.transform = geom, transform
         self.vehicles = list(vehicles)
         self.joint_error = np.radians(np.asarray(joint_error_deg, dtype=float))
@@ -35,6 +52,7 @@ class SimulatedScene:
         self.offset = self.joint_error.copy()  # aktuelle Abweichung Gelenk − Modell [rad]
         self.dome_spread = dome_spread
         self.marker_radius, self.marker_offset = marker_radius, marker_offset
+        self.pipe_radius = pipe_radius  # Auslassrohr
         self.rng = np.random.default_rng(seed)
         # sensor_matrix: tatsächliche Montagelage (Sensor -> Armbasis), falls sie von der
         # Konfiguration abweichen soll (Test der Kalibrierung)
@@ -69,7 +87,8 @@ class SimulatedScene:
                                       seed=int(self.rng.integers(1 << 30)))
         self.kind = kind
 
-    def _arm_points(self, q, spacing=0.012, radius=(0.075, 0.075, 0.06)):
+    def _arm_points(self, q, spacing=0.012):
+        radius = (0.075, 0.075, self.pipe_radius)
         pts = forward(self.geom, q)
         sensor = self.true_t[:3, 3]
         out = []
@@ -97,7 +116,15 @@ class SimulatedScene:
             u = np.cross(axis, [1.0, 0.0, 0.0])
             u /= np.linalg.norm(u)
             v = np.cross(axis, u)  # Scheibe/Flansch rechtwinklig zum Rohr
-            out.append(m + (rr * np.cos(ang))[:, None] * u + (rr * np.sin(ang))[:, None] * v)
+            disc = m + (rr * np.cos(ang))[:, None] * u + (rr * np.sin(ang))[:, None] * v
+            side = (pts[4] - pts[5]) / np.linalg.norm(pts[4] - pts[5])
+            blockers = [(pts[3], pts[4], radius[0]), (pts[4], pts[5], radius[1]),
+                        (m, pts[5], radius[2]),  # Auslassrohr über der Markierung
+                        (pts[5] + 0.12 * side, pts[5] + 0.17 * side, 0.11)]  # Flansch J4
+            hidden = np.zeros(len(disc), bool)
+            for a, b, r in blockers:
+                hidden |= _segment_distance(disc, sensor, a, b) < r - 0.002
+            out.append(disc[~hidden])
         return np.vstack(out)
 
     def grab(self) -> np.ndarray:

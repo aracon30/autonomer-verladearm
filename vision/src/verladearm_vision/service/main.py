@@ -30,6 +30,7 @@ from verladearm_vision.drives import Drives
 from verladearm_vision.kinematics import (
     JOINTS,
     ArmGeometry,
+    marker_point,
     outlet_axis,
     pick,
     plan_correction,
@@ -72,7 +73,7 @@ def build_source(cfg: dict, full_cfg: dict | None = None):
         full_cfg = full_cfg or {}
         params = _params_for(SimulatedScene, cfg)
         outlet = full_cfg.get("outlet", {})  # Markierung wie am echten Arm
-        for key in ("marker_radius", "marker_offset"):
+        for key in ("marker_radius", "marker_offset", "pipe_radius"):
             if key in outlet and key not in params:
                 params[key] = outlet[key]
         drives = Drives.from_config(full_cfg.get("drives"))
@@ -253,7 +254,9 @@ class VisionService:
         try:
             tip = detect_outlet(arm_pts, np.asarray(last["target_mm"]) / 1000.0,
                                 self.transform.point(np.zeros(3)), self.outlet_cfg,
-                                axis=outlet_axis(self.geom, q_act))
+                                axis=outlet_axis(self.geom, q_act),
+                                expected=marker_point(self.geom, q_act,
+                                                      self.outlet_cfg.marker_offset))
         except DetectionError as e:
             return self._fail(e.code, str(e), **keep)
         plan = plan_correction(self._scene_geom(), q_act, tip, last["target_mm"],

@@ -46,6 +46,12 @@ Je Achse: Motor, Getriebe, Geber, Bremse, Ansteuerung. Offene Punkte sind mit **
   Auflösung am Gelenk sehr fein. Das Getriebespiel wird nicht gemessen – bei J3 unkritisch, weil
   das Gewicht des Auslegers die Zahnflanken immer in dieselbe Richtung andrückt (Spiel ist
   vorgespannt). Restfehler gleicht Job 2 (Nachmessen) aus. Ein Gelenkgeber an J3 entfällt.
+- **Entscheidung 30.09.2026: Weg 1** – SEW-Umrichter mit Geberauswertung und Positionierung
+  (z. B. MOVITRAC advanced oder MOVIDRIVE) + SEW-Motorgeber (Absolutwert multiturn). Anfrage an
+  SEW läuft. Offen: Positionierung im Umrichter (SPS gibt Ziel und Geschwindigkeit je Stützpunkt
+  vor) oder als Positionierachse in der S7-1500 (PROFIdrive) – mit SEW und SPS-Programmierer
+  festlegen; für die synchrone Fahrt der drei Achsen muss die SPS je Stützpunkt die
+  Geschwindigkeiten so skalieren, dass alle Achsen gleichzeitig ankommen.
 - **Umrichter und Geber:** MOVITRAC classic ist laut SEW für Motoren **ohne Geber** gedacht
   (Drehzahlsteuerung mit Rampen). Einen Motorgeber wertet er nach unseren Unterlagen nicht aus
   → mit SEW klären. Wege:

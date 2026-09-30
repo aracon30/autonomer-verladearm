@@ -214,7 +214,7 @@ Auslegung innerhalb dieser Konstruktion (Ritzel z 48 / Zahnkranz z 127, Modul 2,
 7. **Zahnspiel:** Zielposition immer aus derselben Richtung anfahren (Software/SPS), Rest über
    Job 2.
 
-> **Entscheidung 30.09.2026:** Variante 2 (m 3, b 30, z 18 / 85, Achsabstand 154 mm) wird umgesetzt;
+> **Entscheidung 30.09.2026:** Variante 2 (m 3, b 30, z 18 / 85, Achsabstand 154,5 mm) wird umgesetzt;
 > SEW-Angebot auf P5KG31 i ≈ 20–25, Bremse, Multiturn-Absolutgeber anpassen.
 
 ### Zahnradpaar J1/J2 anpassen (Überschlag, Zahnfuß vereinfacht nach Lewis/ISO 6336, YFa·YSa)
@@ -223,11 +223,11 @@ Auslegung innerhalb dieser Konstruktion (Ritzel z 48 / Zahnkranz z 127, Modul 2,
 |---|---|---|---|---|---|---|
 | Ist | m 2 / 20 | z 48 / 127 | 2,65 | 175 | 210 / 340 Nm | ca. 165 / 270 MPa |
 | 1: nur Ritzel kleiner | m 2 / 20 | z 24 / 127 | 5,29 | 151 | Zahnkranz begrenzt auf ca. 200–250 Nm | bei vollem Moment ca. 350 / 570 MPa – zu hoch |
-| **2: beide neu (Empfehlung)** | **m 3 / 30** | **z 18 / 85** | **4,72** | **154** | **370 / 605 Nm** | **ca. 145 / 235 MPa** |
+| **2: beide neu (Empfehlung)** | **m 3 / 30** | **z 18 / 85** | **4,72** | **154,5** | **370 / 605 Nm** | **ca. 145 / 235 MPa** |
 
 - Variante 2: Kranz Ø 255 (Kopfkreis ca. 261, wie bisher), Ritzel Ø 54 auf Welle 22 mm mit
   Passfeder (Rand über Nut ca. 9 mm), z 18 ohne Unterschnitt. Ritzel 42CrMo4 vergütet,
-  Kranz C45/42CrMo4 vergütet. Motorkonsole für Achsabstand 154 mm mit Langlöchern zum
+  Kranz C45/42CrMo4 vergütet. Motorkonsole für Achsabstand 154,5 mm mit Langlöchern zum
   Einstellen des Flankenspiels.
 - Planetengetriebe dann **i_P ≈ 20–25** (Gesamt ca. 95–118).
 - Endgültige Nachrechnung (Zahnfuß, Flanke, statisch) durch die Konstruktion nach ISO 6336 /
@@ -242,6 +242,6 @@ Auslegung innerhalb dieser Konstruktion (Ritzel z 48 / Zahnkranz z 127, Modul 2,
 | Zahnbreite | 30 mm | 35 mm (etwas breiter als der Kranz) |
 | Innenkontur | wie bisher: Öffnung 135 mm, R 67,5, Lochkreis R 74,5, Bohrungen Ø 11 | Bohrung 22 E8, Nut 6 P9, 13,8 +0,1 |
 | verzahnter Bereich | ca. 294° (Lücke ca. 66°) | – |
-| Achsabstand | 154 mm (Langlöcher für Flankenspiel ca. 0,1–0,2 mm) | |
+| Achsabstand | 154,5 mm (Langlöcher für Flankenspiel ca. 0,1–0,2 mm) | |
 | Werkstoff | C45 oder 42CrMo4 vergütet | 42CrMo4 vergütet |
 | Verzahnungsqualität | DIN 3962 Q8–9 reicht (langsam) | |

@@ -24,7 +24,8 @@ ANLAGEN = Path(__file__).resolve().parents[2] / "config" / "anlagen"
 
 # (Schlüssel, Frage, kleinster, größter plausibler Wert) – Maße in m
 DIMENSIONS = [
-    ("base_height", "Höhe Achse J1 über Fahrbahn", 2.0, 12.0),
+    ("base_height", "Höhe Rohrmitte innerer Ausleger an der Achse J1 über Fahrbahn "
+                    "(Standfläche Tankwagen)", 2.0, 12.0),
     ("inner_length", "Innerer Ausleger: Achse J1 bis Mitte Winkel nach unten", 0.3, 10.0),
     ("incline_deg", "Gefälle der Ausleger [Grad, nach unten positiv]", -15.0, 15.0),
     ("drop", "Fallrohr: Winkel nach unten bis Mitte Winkel nach rechts (Achse J2)", 0.05, 3.0),
@@ -100,8 +101,9 @@ class Dialog:
 
 
 def ask_arm(d: Dialog, cur: dict) -> dict:
-    d.step("1. Maße des Arms [m]", "Von Gelenkachse zu Gelenkachse bzw. Rohrmitte zu Rohrmitte "
-           "messen (Skizze: docs/kinematik.md).")
+    d.step("1. Maße des Arms [m]", "Immer Rohrmitte zu Rohrmitte bzw. Gelenkachse zu Gelenkachse "
+           "messen, nie Außenkanten.\nBei 90°-Winkeln zählt der Schnittpunkt der beiden "
+           "Rohrmittellinien (Skizze: docs/inbetriebnahme.md).")
     return {k: d.number(q, cur.get(k), lo, hi) for k, q, lo, hi in DIMENSIONS}
 
 

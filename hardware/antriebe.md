@@ -210,3 +210,19 @@ Auslegung innerhalb dieser Konstruktion (Ritzel z 48 / Zahnkranz z 127, Modul 2,
    Endschalter entsprechend; Grenzen in der Anlagendatei.
 7. **Zahnspiel:** Zielposition immer aus derselben Richtung anfahren (Software/SPS), Rest über
    Job 2.
+
+### Zahnradpaar J1/J2 anpassen (Überschlag, Zahnfuß vereinfacht nach Lewis/ISO 6336, YFa·YSa)
+
+| Variante | Modul / Breite | Ritzel / Kranz | i_Z | Achsabstand | Gelenk dauernd / Spitze (P5KG31 81/132 Nm) | Zahnfuß Ritzel dauernd / Spitze |
+|---|---|---|---|---|---|---|
+| Ist | m 2 / 20 | z 48 / 127 | 2,65 | 175 | 210 / 340 Nm | ca. 165 / 270 MPa |
+| 1: nur Ritzel kleiner | m 2 / 20 | z 24 / 127 | 5,29 | 151 | Zahnkranz begrenzt auf ca. 200–250 Nm | bei vollem Moment ca. 350 / 570 MPa – zu hoch |
+| **2: beide neu (Empfehlung)** | **m 3 / 30** | **z 18 / 85** | **4,72** | **154** | **370 / 605 Nm** | **ca. 145 / 235 MPa** |
+
+- Variante 2: Kranz Ø 255 (Kopfkreis ca. 261, wie bisher), Ritzel Ø 54 auf Welle 22 mm mit
+  Passfeder (Rand über Nut ca. 9 mm), z 18 ohne Unterschnitt. Ritzel 42CrMo4 vergütet,
+  Kranz C45/42CrMo4 vergütet. Motorkonsole für Achsabstand 154 mm mit Langlöchern zum
+  Einstellen des Flankenspiels.
+- Planetengetriebe dann **i_P ≈ 20–25** (Gesamt ca. 95–118).
+- Endgültige Nachrechnung (Zahnfuß, Flanke, statisch) durch die Konstruktion nach ISO 6336 /
+  DIN 3990, z. B. mit KISSsoft.

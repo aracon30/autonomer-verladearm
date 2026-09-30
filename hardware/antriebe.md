@@ -186,3 +186,27 @@ Planetengetriebe i ≈ 70–100 (Gesamt 185–265) und Baugröße mit ≥ ca. 40
 (P5KG31 hat 81 Nm), Zahnkranz/Ritzel auf ≥ 1 kNm neu auslegen (Modul 3–4, breiter),
 Bremse zwingend, Zahnspiel in beide Richtungen, Drehbereich durch die Öffnung auf ca. 296°
 begrenzt. Mehr Konstruktionsaufwand bei schlechterem Ergebnis.
+
+### Entscheidung 30.09.2026: Zahnkranz-Lösung der Konstruktion (kein IMO an J1/J2)
+
+Auslegung innerhalb dieser Konstruktion (Ritzel z 48 / Zahnkranz z 127, Modul 2, SEW-Servo):
+
+1. **Planetengetriebe mit größerer Übersetzung**, gleiche Baugröße P5KG31 (Anbau, Welle 22 mm
+   bleiben): **i_P ≈ 40–50** (zweistufig, bei SEW verfügbare Übersetzung erfragen). Gesamt
+   106–132. Trägheitsverhältnis J1 ca. 240–380 : 1, J2 ca. 70–110 : 1 (mit i_P = 4: 25 000 :
+   1). Regelbarkeit mit SEW anhand der Trägheiten bestätigen lassen.
+2. **Momentgrenze durch das Getriebe:** P5KG31 81 Nm / 132 Nm → am Gelenk ca. **210 Nm dauernd,
+   340 Nm Spitze**. Zahnkranz dabei ca. 170 MPa Zahnfuß (Überschlag) – Momentgrenze im Umrichter
+   auf diese Werte setzen, schützt Getriebe und Zahnkranz.
+3. **Lastbudget J1 (ca. 210 Nm):** Beschleunigen mit sanfter Rampe (6 °/s in 4 s) ca. 45 Nm
+   → für Reibung der Drehgelenke + Wind bleiben ca. 165 Nm. **Reibmoment am Prototyp messen**
+   (Losbrech- und Drehmoment mit Drehmomentschlüssel/Federwaage am Hebel, mit Betriebsdruck).
+   Wind: je nach Reibung nur leichter Wind zulässig → **Windgrenze für den Automatikbetrieb**
+   festlegen (Windmesser, Verladung bei Überschreitung stoppen) oder Station windgeschützt.
+4. **Haltebremse** am Servo (Zahnradstufe nicht selbsthemmend) und **Sturmsicherung** in der
+   Parkstellung (Bolzen/Arretierung): Sturmlasten nicht über Bremse und Zahnkranz abstützen.
+5. **Multiturn-Absolutgeber** statt Resolver (keine Referenzfahrt).
+6. **Drehbereich** auf den verzahnten Bereich (ca. 296°) mit Abstand zur Öffnung begrenzen,
+   Endschalter entsprechend; Grenzen in der Anlagendatei.
+7. **Zahnspiel:** Zielposition immer aus derselben Richtung anfahren (Software/SPS), Rest über
+   Job 2.

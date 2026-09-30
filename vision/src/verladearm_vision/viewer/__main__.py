@@ -35,6 +35,7 @@ from verladearm_vision.kinematics import (
     CylinderObstacle,
     OrientedBoxObstacle,
     forward,
+    marker_point,
     outlet_axis,
     plan_correction,
     plan_motion,
@@ -121,7 +122,9 @@ class FrameProducer:
         arm_pts = points @ self.transform.T[:3, :3].T + self.transform.T[:3, 3]
         try:
             tip = detect_outlet(arm_pts, np.asarray(res["target_mm"]) / 1000.0,
-                                cfg=self.outlet_cfg, axis=outlet_axis(self.geom, q_above))
+                                cfg=self.outlet_cfg, axis=outlet_axis(self.geom, q_above),
+                                expected=marker_point(self.geom, q_above,
+                                                      self.outlet_cfg.marker_offset))
         except DetectionError as e:
             arm["correction_note"] = str(e)
             return

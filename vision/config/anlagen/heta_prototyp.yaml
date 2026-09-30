@@ -32,6 +32,7 @@ arm:
 outlet:
   marker_radius: 0.11     # halber Flanschdurchmesser [m]
   marker_offset: 0.823    # Flanschoberkante bis unterster Punkt Auslass [m]
+  pipe_radius: 0.057     # Auslassrohr Ø 114,3 mm (Rohrachse über dem Flansch als zweites Merkmal)
 
 # Antriebe je Achse, Werte am Gelenk (Details und Herleitung: hardware/antriebe.md)
 drives:

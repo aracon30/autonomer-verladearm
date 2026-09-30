@@ -75,8 +75,11 @@ Danach weiter mit Schritt 7 (Kalibrierung).
    **Referenz am Auslass** (`outlet`): Markierungsscheibe (Standard Ø 250 mm, 150 mm über dem
    Auslassende) oder ein vorhandener, von oben sichtbarer Flansch am Auslassrohr, z. B. beim
    HETA-Prototyp Flansch Ø 220 mm, Oberkante 823 mm über dem untersten Punkt des Auslasses:
-   `marker_radius: 0.11`, `marker_offset: 0.823`. Die Referenz muss rund, mittig und
-   rechtwinklig zum Auslassrohr sein; der Außenrand darf nicht verdeckt sein (keine Laschen).
+   `marker_radius: 0.11`, `marker_offset: 0.823`, `pipe_radius: 0.057`. Die Referenz muss rund,
+   mittig und rechtwinklig zum Auslassrohr sein; keine Laschen o. ä. über den Außenrand.
+   Eine teilweise Verdeckung durch die Rohrleitung darüber ist zulässig: Die Erkennung sucht
+   den Rand mit bekanntem Durchmesser nahe der vom Armmodell erwarteten Lage und nutzt bei
+   stark verdecktem Rand zusätzlich die Achse des Auslassrohrs über der Referenz.
 
 6. **Arbeitsraum** (`commissioning`): Bereich, in dem die Domöffnung bei dieser Station liegen
    kann (unterschiedliche Tankwagen, Aufbauhöhen, Abstellpositionen).

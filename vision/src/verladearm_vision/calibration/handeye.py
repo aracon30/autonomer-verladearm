@@ -54,7 +54,8 @@ class HandEyeCalibration:
         cfg = self.outlet_cfg
         try:
             if cfg.marker_radius:  # Markierung direkt vergleichen, Fenster ±0,25 m um sie herum
-                found = detect_marker(arm_pts, s.arm - [0, 0, 0.3], replace(cfg, max_above=0.55))
+                found = detect_marker(arm_pts, s.arm - [0, 0, 0.3], replace(cfg, max_above=0.55),
+                                      expected=s.arm, prior=0.2)
             else:  # Suchfenster: knapp unterhalb bis 1 m oberhalb des erwarteten Auslassendes
                 found = detect_outlet(arm_pts, s.arm - [0, 0, 0.3], cfg=cfg)
         except DetectionError as e:

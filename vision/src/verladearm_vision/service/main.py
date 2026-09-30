@@ -26,6 +26,7 @@ from verladearm_vision.detection import (
     detect_opening,
     detect_outlet,
 )
+from verladearm_vision.drives import Drives
 from verladearm_vision.kinematics import (
     JOINTS,
     ArmGeometry,
@@ -68,9 +69,13 @@ def build_source(cfg: dict, full_cfg: dict | None = None):
         return SickVisionarySource(**_params_for(SickVisionarySource, cfg))
     if kind == "sim":
         full_cfg = full_cfg or {}
+        params = _params_for(SimulatedScene, cfg)
+        drives = Drives.from_config(full_cfg.get("drives"))
+        if drives.configured and "backlash_deg" not in params:  # Getriebespiel der Antriebe
+            params.update(backlash_deg=drives.backlash().tolist(),
+                          backlash_preload=drives.preload().tolist())
         return SimulatedScene(ArmGeometry(**full_cfg.get("arm", {})),
-                              SensorToArm(full_cfg["calibration"]["matrix"]),
-                              **_params_for(SimulatedScene, cfg))
+                              SensorToArm(full_cfg["calibration"]["matrix"]), **params)
     raise ValueError(f"Unbekannte Quelle: {kind}")
 
 

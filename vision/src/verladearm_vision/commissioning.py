@@ -16,6 +16,7 @@ from datetime import date
 import numpy as np
 
 from verladearm_vision.config import load_config
+from verladearm_vision.drives import Drives
 from verladearm_vision.kinematics import (
     JOINTS,
     ArmGeometry,
@@ -102,7 +103,40 @@ def check(cfg: dict, config_name: str, out=sys.stdout) -> bool:
         for p, reason in failures[:15]:
             w(f"| {p[0]:.2f} | {p[1]:.2f} | {p[2]:.2f} | {reason} |\n")
     w("\n")
+    drive_report(cfg, geom, depth, w)
     return not failures and not collision(geom, park)
+
+
+def drive_report(cfg: dict, geom: ArmGeometry, depth: float, w):
+    """Antriebe und geschätzte Fahrzeiten einer Verladung (Mitte des Arbeitsraums)."""
+    drives = Drives.from_config(cfg.get("drives"))
+    w("## 5. Antriebe\n\n")
+    if not drives.configured:
+        w("- ⚠️ keine Antriebsdaten (`drives`) – Fahrzeiten nicht berechnet\n\n")
+        return
+    w("| Achse | Motor | Getriebe | i | max. °/s | Rampe s | Spiel ° | Moment Nm | Bremse |\n")
+    w("|---|---|---|---|---|---|---|---|---|\n")
+    for k, label in zip(JOINTS, ("J1", "J2", "J3"), strict=True):
+        d = drives.axes[k]
+        torque = f"{d.torque:g} / {d.torque_peak:g}" if d.torque and d.torque_peak else "–"
+        w(f"| {label} | {d.motor or '–'} | {d.gear or '–'} | {d.ratio:g} | {d.speed_max:.1f} "
+          f"| {d.accel_time:g} | {d.backlash:g} | {torque} | {'ja' if d.brake else '**nein**'} |\n")
+    c = cfg.get("commissioning", {})
+    center = (np.asarray(c["workspace_min"], float) + np.asarray(c["workspace_max"], float)) / 2
+    plan = plan_motion(geom, center * 1000, [0, 0, 1], insertion_depth=depth)
+    if not plan["ok"]:
+        w(f"\nFahrzeit nicht berechnet: {plan['reason']}\n\n")
+        return
+    servo = [geom.to_servo(q) for q in [geom.park] + [np.array(v) for v in plan["move_vias"]]]
+    approach = sum(drives.sync_time(a, b) for a, b in zip(servo[:-1], servo[1:], strict=True))
+    q_in = [geom.to_servo(np.array(q)) for q in plan["q_insert"]]
+    insert = drives.sync_time(q_in[0], q_in[-1], 0.3)
+    w(f"\nFahrzeiten zur Mitte des Arbeitsraums (x {center[0]:.1f}, y {center[1]:.1f}, "
+      f"z {center[2]:.1f} m), synchron, langsamste Achse bestimmt:\n\n")
+    w(f"- Anfahrt Park → über Dom: {approach:.0f} s\n")
+    w(f"- Eintauchen ({depth * 1000:.0f} mm, 30 % Geschwindigkeit): {insert:.0f} s\n")
+    total = 2 * (approach + insert)
+    w(f"- Verladung gesamt ohne Befüllung (hin und zurück): ca. {total:.0f} s\n\n")
 
 
 def main():

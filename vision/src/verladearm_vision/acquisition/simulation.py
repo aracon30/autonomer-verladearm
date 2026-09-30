@@ -6,11 +6,15 @@ Stelle und rendert zusätzlich Auslegerende und Auslass in der tatsächlichen St
 (Getriebespiel, Durchbiegung), damit das Nachmessen in Job 2 etwas zu korrigieren hat.
 Am Auslass sitzt eine Markierungsscheibe (siehe detection/outlet.py); `marker_radius: null`
 simuliert einen Auslass ohne Scheibe. Verdeckungen werden nicht simuliert.
+`backlash_deg` simuliert das Getriebespiel je Achse (aus dem Abschnitt `drives` der
+Anlagendatei): Das Gelenk bleibt je nach letzter Fahrtrichtung um die halbe Spielweite zurück,
+Hubachsen (`backlash_preload`) hängen immer um die halbe Spielweite tiefer.
 """
 
 import numpy as np
 
 from verladearm_vision.calibration import SensorToArm
+from verladearm_vision.drives import Backlash
 from verladearm_vision.kinematics import JOINTS, ArmGeometry, forward
 from verladearm_vision.synthetic import make_tank_vehicle
 
@@ -21,10 +25,14 @@ RIM_HEIGHT = {"lkw": (3.35, 3.6), "kesselwagen": (4.35, 4.55)}
 class SimulatedScene:
     def __init__(self, geom: ArmGeometry, transform: SensorToArm, vehicles=("lkw", "kesselwagen"),
                  joint_error_deg=(0.0, 0.0, 0.0), dome_spread=0.35, marker_radius=0.125,
-                 marker_offset=0.15, empty=False, sensor_matrix=None, lid=True, seed=None):
+                 marker_offset=0.15, empty=False, sensor_matrix=None, lid=True,
+                 backlash_deg=(0.0, 0.0, 0.0), backlash_preload=(False, False, True), seed=None):
         self.geom, self.transform = geom, transform
         self.vehicles = list(vehicles)
         self.joint_error = np.radians(np.asarray(joint_error_deg, dtype=float))
+        self.backlash = Backlash(backlash_deg, backlash_preload,
+                                 [geom.joints[k].direction for k in JOINTS])
+        self.offset = self.joint_error.copy()  # aktuelle Abweichung Gelenk − Modell [rad]
         self.dome_spread = dome_spread
         self.marker_radius, self.marker_offset = marker_radius, marker_offset
         self.rng = np.random.default_rng(seed)
@@ -45,7 +53,8 @@ class SimulatedScene:
         if servo_deg is not None:
             q = np.array([self.geom.joints[k].to_model(v) for k, v in zip(JOINTS, servo_deg,
                                                                             strict=True)])
-            self.q_true = q + self.joint_error
+            self.offset = self.joint_error + np.radians(self.backlash(servo_deg))
+            self.q_true = q + self.offset
 
     def _new_vehicle(self):
         kind = self.vehicles[self.count % len(self.vehicles)]

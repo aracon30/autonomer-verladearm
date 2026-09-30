@@ -39,7 +39,8 @@ tools/simulation.sh          # beim ersten Start wird .venv angelegt und alles i
 ```
 
 Startet SPS-Simulator, Vision-Dienst und Live-Ansicht mit
-`vision/config/anlagen/simulation.yaml`. Live-Ansicht vom eigenen PC per SSH-Tunnel:
+`vision/config/anlagen/simulation.yaml` (HETA-Prototyp mit seinen Antrieben: Geschwindigkeiten,
+Rampen, Getriebespiel; Fahrten im Zeitraffer, `ZEITRAFFER=1` für Echtzeit). Live-Ansicht vom eigenen PC per SSH-Tunnel:
 `ssh -L 8000:127.0.0.1:8000 <benutzer>@<server>`, dann http://127.0.0.1:8000 öffnen.
 Logs unter `data/logs/`, Beenden mit Strg+C.
 

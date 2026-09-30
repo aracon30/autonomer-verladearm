@@ -4,6 +4,8 @@ Ablauf je Verladung wie im echten SPS-Programm vorgesehen (docs/schnittstelle.md
 Referenzfahrt -> Job 1 (messen, planen) -> Fahrt bis über den Dom -> Job 2 (nachmessen,
 korrigieren) -> Eintauchen -> Befüllung (nur Wartezeit) -> Job 3 (Rückfahrt planen) -> Park.
 Achsen fahren synchron mit weichem Anfahren und Bremsen; die Istwinkel gehen an den PC zurück.
+Mit Abschnitt `drives` in der Anlagendatei gelten die Geschwindigkeiten und Rampen der echten
+Antriebe (Motor, Übersetzung, Grenzen); die langsamste Achse bestimmt die Fahrzeit je Stützpunkt.
 
 Terminal 1:  python tools/plc_simulator.py --config vision/config/anlagen/beispiel.yaml
 Terminal 2:  python -m verladearm_vision.service.main --config <Anlage mit source: sim>
@@ -17,6 +19,7 @@ import numpy as np
 from asyncua import Server, ua
 
 from verladearm_vision.config import load_config
+from verladearm_vision.drives import Drives, profile
 from verladearm_vision.kinematics import JOINTS, ArmGeometry
 from verladearm_vision.plc import VARIABLES
 
@@ -29,9 +32,13 @@ def default_value(vtype, length):
 
 
 class PlcSim:
-    def __init__(self, server, var, geom: ArmGeometry, speed: float, interval: float):
+    def __init__(self, server, var, geom: ArmGeometry, speed: float, interval: float,
+                 drives: Drives | None = None, time_scale: float = 1.0):
         self.server, self.var, self.geom = server, var, geom
         self.speed, self.interval = speed, interval
+        self.drives = drives if drives and drives.configured else None
+        self.time_scale = time_scale  # < 1: schneller als Echtzeit (nur Anzeige)
+        self.moved = 0.0  # Fahrzeit der laufenden Verladung [s, Echtzeit der Antriebe]
         self.park = np.array([geom.joints[k].park for k in JOINTS], dtype=float)
         self.actual = self.park.copy()
         self.product = 0
@@ -58,15 +65,18 @@ class PlcSim:
         """Synchron: alle Achsen starten und enden gemeinsam, weiches Anfahren und Bremsen."""
         target = np.asarray(target, dtype=float)
         start = self.actual.copy()
-        speed = self.speed * (0.3 if slow else 1.0)
-        duration = max(np.abs(target - start).max() / speed * 1.5, 0.2)
-        steps = int(duration / 0.05)
+        factor = 0.3 if slow else 1.0  # Eintauchen und Herausfahren langsam
+        if self.drives:  # echte Antriebe: langsamste Achse bestimmt, alle kommen gleichzeitig an
+            duration = max(self.drives.sync_time(start, target, factor), 0.2)
+        else:
+            duration = max(np.abs(target - start).max() / (self.speed * factor) * 1.5, 0.2)
+        self.moved += duration
+        shown = duration * self.time_scale
+        steps = max(int(shown / 0.05), 1)
         for i in range(1, steps + 1):
-            u = i / steps
-            s = u * u * (3 - 2 * u)  # Geschwindigkeit steigt und fällt stetig
-            self.actual = start + (target - start) * s
+            self.actual = start + (target - start) * profile(i / steps)
             await self.publish_actual()
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(shown / steps)
 
     async def job(self, job: int):
         """Auftrag an den Vision-PC, Handshake nach docs/schnittstelle.md."""
@@ -99,6 +109,7 @@ class PlcSim:
         return (wps, out), None
 
     async def cycle(self):
+        self.moved = 0.0
         await self.write("ArmState", 0)
         res, err = await self.job(1)
         if err:
@@ -136,7 +147,7 @@ class PlcSim:
         for i, wp in enumerate(res[0]):
             await self.move_to(wp, slow=i < 2)
         await self.write("ArmState", 0)
-        print("Parkstellung erreicht")
+        print(f"Parkstellung erreicht (Fahrzeit der Antriebe gesamt {self.moved:.0f} s)")
         self.product = (self.product + 1) % 3
 
     async def run(self):
@@ -155,7 +166,13 @@ class PlcSim:
 
 
 async def main(args):
-    geom = ArmGeometry(**(load_config(args.config).get("arm", {}) if args.config else {}))
+    cfg = load_config(args.config) if args.config else {}
+    geom = ArmGeometry(**cfg.get("arm", {}))
+    drives = Drives.from_config(cfg.get("drives"))
+    if drives.configured:
+        for k, d in drives.axes.items():
+            print(f"{k}: {d.motor or '-'}, i = {d.ratio:g}, max. {d.speed_max:.1f} °/s, "
+                  f"Rampe {d.accel_time:g} s, Spiel {d.backlash:g}°")
     server = Server()
     await server.init()
     server.set_endpoint(f"opc.tcp://0.0.0.0:{args.port}/")
@@ -170,14 +187,18 @@ async def main(args):
         var[name] = node
     async with server:
         print(f"SPS-Simulator läuft auf opc.tcp://127.0.0.1:{args.port}/ (Strg+C beendet)")
-        await PlcSim(server, var, geom, args.speed, args.interval).run()
+        await PlcSim(server, var, geom, args.speed, args.interval, drives,
+                     args.zeitraffer).run()
 
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--config", help="Anlagendatei (Achsgrenzen, Parkstellung)")
     p.add_argument("--interval", type=float, default=3.0, help="Pause zwischen Verladungen [s]")
-    p.add_argument("--speed", type=float, default=25.0, help="Achsgeschwindigkeit [°/s]")
+    p.add_argument("--speed", type=float, default=25.0,
+                   help="Achsgeschwindigkeit ohne Antriebsdaten (drives) [°/s]")
+    p.add_argument("--zeitraffer", type=float, default=1.0,
+                   help="Fahrten schneller zeigen, z. B. 0.25 = vierfach (Fahrzeit bleibt echt)")
     p.add_argument("--port", type=int, default=4840)
     logging.basicConfig(level=logging.ERROR)
     try:

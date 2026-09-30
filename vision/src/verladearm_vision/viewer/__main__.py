@@ -113,9 +113,9 @@ class FrameProducer:
         Gezeichnet wird die tatsächliche Stellung (Modell + Getriebespiel) wie im Sensorbild.
         """
         arm, res = frame["arm"], frame["result"]
-        err = getattr(self.source, "joint_error", np.zeros(3))
         q_above = np.array(arm["q_insert"][0])
         self.source.prepare(2, self.geom.to_servo(q_above))
+        err = getattr(self.source, "offset", np.zeros(3))  # inkl. Getriebespiel
         points = self.source.grab()
         arm_pts = points @ self.transform.T[:3, :3].T + self.transform.T[:3, 3]
         try:

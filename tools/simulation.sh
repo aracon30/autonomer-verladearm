@@ -36,7 +36,14 @@ $PY -m verladearm_vision.viewer --opcua --config "$CONFIG" --host "$HOST" --port
   > data/logs/viewer.log 2>&1 & pids+=($!)
 
 echo "Simulation läuft: SPS-Simulator, Vision-Dienst, Live-Ansicht"
-echo "  Live-Ansicht: http://${HOST}:${PORT}"
+if [[ "$HOST" == 0.0.0.0 ]]; then
+  for ip in $(hostname -I 2>/dev/null); do
+    [[ "$ip" == 172.1[78].* || "$ip" == *:* ]] && continue   # Docker-Netze, IPv6
+    echo "  Live-Ansicht: http://${ip}:${PORT}  (im Browser eines PCs im selben Netz)"
+  done
+else
+  echo "  Live-Ansicht: http://127.0.0.1:${PORT}  (vom eigenen PC: ssh -L ${PORT}:127.0.0.1:${PORT} <benutzer>@<server>)"
+fi
 echo "  Logs:         data/logs/{sps,vision,viewer}.log"
 echo "  Beenden:      Strg+C"
 tail -n +1 -F data/logs/vision.log

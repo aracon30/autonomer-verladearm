@@ -107,10 +107,18 @@ SEW-Angebot **426368452A** vom 18.09.2026 (Version A, Getriebe P5KG31), je Achse
 
 ### Bewertung
 
-- **Übersetzung i = 4 allein reicht nicht** für den Arm (Motor bei 2000 1/min → 500 1/min am
-  Getriebe). Vermutlich treibt das Planetengetriebe – wie bei J3 – einen **Schwenkantrieb**
-  (Zeichnung: Schwenkantrieb Pos. 4 an Pos. 28 bzw. Drehgelenk Pos. 27). **Offen:** Typ und
-  Übersetzung i_S, Adapterwelle (22 mm Passfeder).
+- **Zahnradstufe (Angabe HETA):** Ritzel auf der Getriebeabtriebswelle, großer Zahnkranz um die
+  Rohrleitung, **kein Schneckengetriebe**. Übersetzung i_Z = Zähne Zahnkranz ÷ Zähne Ritzel
+  **offen**. Gesamtübersetzung = 4 × i_Z.
+- **Nicht selbsthemmend** (Stirnradstufe) → **Haltebremse am Servo notwendig**.
+- **Moment:** 6,5 Nm × 4 × i_Z × ~0,92 → bei i_Z = 5/8/10: ca. 120/190/240 Nm dauernd,
+  Spitze (Getriebe 132 Nm) 640/1 020/1 280 Nm. Für ca. 1 kNm Dauerlast (Wind, Reibung der
+  Drehgelenke) wäre eine Gesamtübersetzung von ca. 170 nötig → mit bekanntem i_Z prüfen, ggf.
+  Planetengetriebe mit größerer Übersetzung bei SEW anfragen (dreht der Motor dann auch näher
+  an seiner Nenndrehzahl statt bei wenigen 100 1/min).
+- **Spiel:** Ritzel/Zahnkranz hat Flankenspiel; ohne Schwerkraft-Vorspannung wirkt es in beide
+  Richtungen → Ziel immer aus derselben Richtung anfahren oder verspanntes Ritzel; Rest gleicht
+  Job 2 aus. Gelenkgeber am Zahnkranz würde das Spiel mitmessen.
 - **Moment am Gelenk** = 6,5 Nm × 4 × 0,95 × i_S × Wirkungsgrad Schnecke. Bei i_S = 34:
   ca. 340–420 Nm dauernd, 1,0–1,3 kNm Spitze. Last: Beschleunigen gering (Trägheit J1 grob
   1 700 kg·m² → ca. 90 Nm für 6 °/s in 2 s), aber **Wind** (ca. 0,9 kNm bei 20 m/s, 1 m²,

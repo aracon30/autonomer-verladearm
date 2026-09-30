@@ -9,7 +9,22 @@ festem Gefälle, Fallrohr mit J2, Winkel nach rechts mit J3 (heben/senken), äu�
 links, freies Gelenk J4, Auslass hängt durch die Schwerkraft (docs/kinematik.md). Alle Maße,
 Winkel, Achsbereiche, Hindernisse und Produkte werden je Arm bei der Ersteinrichtung festgelegt.
 
-## Ersteinrichtung im Dialog (empfohlen)
+## Konfigurator im Browser (empfohlen)
+
+```bash
+.venv/bin/python -m verladearm_vision.konfigurator --host 0.0.0.0 --port 8090
+```
+
+Im Browser `http://<IP des Rechners>:8090` öffnen. Alle Abschnitte der Anlagendatei auf einer
+Seite: Maße mit Skizze, Servoachsen (Istwerte per Knopf aus der SPS übernehmen), Hindernisse,
+Produkte, Referenz am Auslass, Arbeitsraum und Antriebe. Rechts laufend Plausibilitätsprüfung,
+Draufsicht und Seitenansicht des Arms (Null- und Parkstellung, Hindernisse, Arbeitsraum,
+erreichbare Auslasslagen) und auf Knopfdruck die vollständige Inbetriebnahmeprüfung.
+Speichern schreibt `vision/config/anlagen/<name>.yaml`; die bisherige Fassung wird vorher unter
+`data/sicherung_anlagen/` gesichert. Ohne `--host` nur auf dem Rechner selbst erreichbar
+(SSH-Tunnel); mit `--host 0.0.0.0` für alle im Netz **ohne Anmeldung** – nur im internen Netz.
+
+## Ersteinrichtung im Dialog (Kommandozeile)
 
 ```bash
 python -m verladearm_vision.einrichtung --name lich_station3 --from-plc

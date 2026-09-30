@@ -31,7 +31,9 @@ def workspace_grid(cfg: dict) -> np.ndarray:
     c = cfg.get("commissioning", {})
     lo, hi = np.asarray(c["workspace_min"], float), np.asarray(c["workspace_max"], float)
     step = float(c.get("step", 0.2))
-    axes = [np.arange(a, b + step / 2, step) for a, b in zip(lo, hi, strict=True)]
+    # Ränder genau treffen, nie darüber hinaus (np.arange würde je nach Schrittweite überschießen)
+    axes = [np.linspace(a, b, int(np.ceil((b - a) / step - 1e-9)) + 1) if b > a else np.array([a])
+            for a, b in zip(lo, hi, strict=True)]
     return np.stack(np.meshgrid(*axes, indexing="ij"), axis=-1).reshape(-1, 3)
 
 

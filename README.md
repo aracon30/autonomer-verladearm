@@ -44,6 +44,12 @@ Rampen, Getriebespiel; Fahrten im Zeitraffer, `ZEITRAFFER=1` für Echtzeit). Liv
 `ssh -L 8000:127.0.0.1:8000 <benutzer>@<server>`, dann http://127.0.0.1:8000 öffnen.
 Logs unter `data/logs/`, Beenden mit Strg+C.
 
+Anlagendatei eines Arms im Browser bearbeiten (Konfigurator, http://<IP>:8090):
+
+```bash
+.venv/bin/python -m verladearm_vision.konfigurator --host 0.0.0.0 --port 8090
+```
+
 Kompletter Ablauf ohne Hardware, einzeln gestartet (SPS-Simulator mit Achsen, simulierter Sensor mit Getriebespiel):
 
 ```bash

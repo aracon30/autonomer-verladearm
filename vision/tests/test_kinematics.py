@@ -141,3 +141,13 @@ def test_geneigtes_fallrohr_kippt_den_auslass():
     tilt = np.degrees(np.arccos(outlet_axis(g, [0.3, 1.2, 0.2])[2]))
     assert 0.5 < tilt < 3.5
     assert outlet_axis(ArmGeometry(), [0.3, 1.2, 0.2]) == pytest.approx([0, 0, 1])
+
+
+def test_arbeitsraumraster_bleibt_in_den_grenzen():
+    from verladearm_vision.commissioning import workspace_grid
+
+    cfg = {"commissioning": {"workspace_min": [2.6, -0.6, -2.3],
+                             "workspace_max": [3.6, 0.6, -0.5], "step": 0.5}}
+    g = workspace_grid(cfg)
+    assert g[:, 2].max() == pytest.approx(-0.5) and g[:, 2].min() == pytest.approx(-2.3)
+    assert np.all(g <= np.array([3.6, 0.6, -0.5]) + 1e-9)

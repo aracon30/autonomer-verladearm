@@ -5,6 +5,9 @@ Je Achse: Motor, Getriebe, Geber, Bremse, Ansteuerung. Offene Punkte sind mit **
 ## J3 – Ausleger heben/senken (Schwenkantrieb Pos. 4, Motor Pos. 11)
 
 > Zuordnung zu J3 durch den Schwenkantrieb bestätigt (Schwenkwinkel 90° = ±45°).
+> **Praxistest 30.09.2026:** Handbetrieb am Prototyp mit Getriebemotor, Schwenkantrieb und
+> Bremse ohne Befund (Heben, Senken, Halten). Prototyp derzeit **ohne Drehgeber**; Gebertyp bei
+> SEW angefragt.
 
 | | Wert |
 |---|---|

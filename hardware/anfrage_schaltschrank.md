@@ -1,0 +1,56 @@
+# Anfrage Schaltschrankbau (Entwurf 30.09.2026)
+
+**An:** Peter (Schaltschrankbau)
+
+**Betreff:** Verladearm Prototyp – Schaltschrank und Verkabelung für Automatisierung
+
+Hallo Peter,
+
+wir automatisieren den Verladearm-Prototyp: Eine 3D-Kamera erkennt den Dom am Tankwagen, ein
+Industrie-PC berechnet die Fahrt, die S7-1500 fährt die drei Achsen. Für Schaltschrank und
+Verkabelung brauchen wir dich. Bitte schau dir die Punkte an und gib uns eine erste Einschätzung
+zu Aufwand, Platzbedarf und Termin.
+
+**1. Komponenten im Schaltschrank**
+- **Umrichter SEW für 3 Achsen** mit Geberauswertung, PROFINET, STO und Bremsenansteuerung;
+  3 × 400 V. Typ kommt mit dem SEW-Angebot (angefragt), wir leiten es dir weiter.
+- **SIMATIC IPC BX-32A** (Hutschiene, 24 V DC, lüfterlos), 2 Netzwerke:
+  PROFINET/SPS-Netz und ein eigenes Netz nur für die Kamera
+- **Industrie-Switch** Gigabit, unmanaged, 24 V, Hutschiene
+- **24-V-Netzteil** für IPC, Switch, Kamera (typ. 12 W, Spitze 2 A) und die Haltebremse J2 –
+  bitte selbst auslegen
+- **S7-1500:** Ist im vorhandenen Schrank Platz, oder kommt sie neu dazu? Für die
+  Sicherheitsfunktionen (Not-Halt, STO) bitte F-CPU bzw. Sicherheitstechnik vorsehen.
+
+**2. Antriebe im Feld**
+
+| Achse | Motor | Bremse | Geber | Temperatur |
+|---|---|---|---|---|
+| J1 Drehen am Haltepunkt | SEW Servo CM3C71S, Steckverbinder SM1 | nein | Multiturn absolut (angefragt) | PT1000 |
+| J2 Drehen am Fallrohr | SEW Servo CM3C71S, Steckverbinder SM1 | ja, 24 V | Multiturn absolut (angefragt) | PT1000 |
+| J3 Heben/Senken | SEW DRN80M4 (Drehstrom, vorhanden) | BE05 | Multiturn absolut (angefragt) | TF |
+
+- J3 hängt heute am MOVITRAC classic MCC91A-0032-5E3-4. Der wird durch den neuen Umrichter ersetzt.
+- J1 und J2 drehen je ca. 280°. Die Leitungen müssen die Drehung mitmachen
+  (Leitungsführung, schleppkettentaugliche Motor- und Geberleitungen).
+
+**3. 3D-Kamera SICK Visionary-T Mini (angefragt)**
+- Montage auf einer Traverse über dem Tankwagen, im Freien, ca. 4–6 m hoch
+- Ethernet: M12 8-polig X-kodiert auf RJ45 (Cat6a) direkt zum IPC, **nicht** über das SPS-Netz
+- Versorgung: M12 8-polig A-kodiert, 24 V DC
+- Bitte Leitungslängen von der Traverse zum Schrank aufnehmen.
+
+**4. Sicherheit**
+- Not-Halt wirkt auf STO aller drei Umrichter (J3 mit Bremse: SS1, damit der Arm nicht absackt)
+- Endschalter bzw. Endlagen je Achse als Hardwaregrenze, Auswertung in der Sicherheitstechnik
+- Explosionsschutz: Zone wird noch geklärt. Das kann die Auswahl von Kamera, Gebern und
+  Leitungen beeinflussen.
+
+**5. Optional**
+- Windmesser mit Eingang an der SPS (Automatikbetrieb bei starkem Wind sperren)
+- Wartungssteckdose/LAN-Anschluss im Schrank für Laptop (Inbetriebnahme)
+
+**Offene Punkte von unserer Seite:** Umrichtertyp (SEW), Ex-Zone, Aufstellort des Schranks.
+Stückliste und Antriebsdaten schicke ich dir gerne mit.
+
+Viele Grüße

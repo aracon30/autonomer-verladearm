@@ -276,6 +276,15 @@ def render(meta: dict, plc_url: str, calibration: list, arm: dict, products: dic
     return "\n".join(lines)
 
 
+def python_cmd() -> str:
+    """So, wie der Befehl im Terminal einzugeben ist (z. B. .venv/bin/python)."""
+    exe = Path(sys.executable)
+    try:
+        return exe.relative_to(Path.cwd()).as_posix()
+    except ValueError:
+        return str(exe)
+
+
 def run(d: Dialog, target: Path, reader=None) -> Path | None:
     """`reader(plc_cfg)` liefert die Servo-Istwinkel J1–J3 (z. B. calibrate.read_plc_angles);
     None = Werte werden eingegeben."""
@@ -321,11 +330,13 @@ def run(d: Dialog, target: Path, reader=None) -> Path | None:
     extends = Path(os.path.relpath(ANLAGEN.parent / "default.yaml", target.parent)).as_posix()
     target.write_text(render(meta, plc_url, cur["calibration"]["matrix"], arm, products,
                              workspace, extends), encoding="utf-8")
+    py = python_cmd()
     d.print(f"\nGespeichert: {target}\nNächste Schritte (docs/inbetriebnahme.md):\n"
-            f"  1. Kalibrierung:  python -m verladearm_vision.calibrate --config {target} "
+            f"  1. Prüfung:       {py} -m verladearm_vision.commissioning --config {target}\n"
+            f"  2. Kalibrierung:  {py} -m verladearm_vision.calibrate --config {target} "
             "--from-plc\n"
-            f"  2. Prüfung:       python -m verladearm_vision.commissioning --config {target}\n"
-            f"  3. Sichtprüfung:  python -m verladearm_vision.viewer --opcua --config {target}")
+            "                   (braucht SPS, Sensor und Arm; Probelauf ohne Hardware: --sim)\n"
+            f"  3. Sichtprüfung:  {py} -m verladearm_vision.viewer --opcua --config {target}")
     return target
 
 

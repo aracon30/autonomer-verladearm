@@ -6,11 +6,9 @@
 
 Guten Tag Fabian Lay,
 
-vielen Dank für Ihr Angebot **Nr. 426368452A** für
-- P5KG31-0004/N/S/0 MD071A CM3C71S-20A-D/PK/RH1M/SM1 und
-- RF47 DRN80M4/BE05/TF Stirnrad-Getriebemotoren R..DRN.. (IE3).
-
-Wir bitten um ein geändertes Angebot mit folgenden Punkten.
+vielen Dank für Ihr Angebot **Nr. 426368452A** für P5KG31-0004/N/S/0 MD071A
+CM3C71S-20A-D/PK/RH1M/SM1. Wir bitten um ein geändertes Angebot (Punkte 1 und 2) und um ein
+Angebot zu den Punkten 3 und 4.
 
 **1. Servo J1 (Drehachse am Haltepunkt), 1 Stück**
 - wie angeboten: CM3C71S, P5KG31 i = 4
@@ -26,19 +24,17 @@ Wir bitten um ein geändertes Angebot mit folgenden Punkten.
 - **Haltebremse** 24 V DC. Die Achse ist über eine Stirnradstufe (Ritzel z48 / Zahnkranz z127)
   nicht selbsthemmend und muss bei STO/Not-Halt gegen Windlast halten.
 
-**3. Getriebemotor J3 (Heben/Senken): RF47 DRN80M4/BE05/TF**
-- wie angeboten, Bremse BE05 ist bereits enthalten; dahinter sitzt ein Schneckengetriebe i = 34
-- **zusätzlich Multiturn-Absolutwertgeber** am Motor
-- Am Prototyp läuft bereits ein baugleicher Motor ohne Geber: Ist dort ein Nachrüsten möglich
-  (Anbausatz, Lüfterhaube)?
+**3. Vorhandener Getriebemotor J3 (Heben/Senken): RF47 DRN80M4/BE05/TF**
+- Stirnrad-Getriebemotor R..DRN.. (IE3), mit Bremse BE05 und TF, bisher ohne Geber
+- **Multiturn-Absolutwertgeber nachrüsten:** Ist das am vorhandenen Motor möglich (Anbausatz,
+  Lüfterhaube)? Falls nicht, bitte einen gleichwertigen Getriebemotor mit Geber anbieten.
 
 **4. Umrichter für alle drei Achsen**
 - bisher MOVITRAC classic MCC91A-0032-5E3-4 (ohne Geberauswertung) an J3
 - gesucht: Umrichter mit Auswertung der obigen Geber, **PROFINET** zur Siemens S7-1500
   (TIA Portal), **STO**, Bremsenansteuerung. Positionierung als Positionierachse in der S7-1500
   (PROFIdrive) oder im Umrichter – bitte Ihre Empfehlung.
-- Schaltschrankeinbau, Netz 3 × 400 V
-- bitte mit Motor- und Geberkabeln, Länge je Achse ca. ___ m (schleppkettentauglich an J1/J2)
+- Schaltschrankeinbau, Netz 3 × 400 V (Kabel und Schaltschrank stellen wir selbst)
 
 **Einsatzbedingungen**
 - Verladearm im Freien, Umgebungstemperatur ca. −20 … +40 °C, Motoren IP65 oder besser

@@ -155,3 +155,34 @@ SEW-Angebot **426368452A** vom 18.09.2026 (Version A, Getriebe P5KG31), je Achse
   zählt. Anders als bei J3 drückt keine Schwerkraft das Spiel auf eine Seite → Job 2
   (Nachmessen) gleicht aus.
 - **Ex-Schutz:** IP65, kein Ex – wie bei J3 klären.
+
+### Auslegungsvorschlag J1/J2 (Überschlag, Annahmen markiert)
+
+**Anforderungen** (Annahmen **fett**, mit Konstruktion/Betreiber bestätigen):
+
+| | J1 | J2 |
+|---|---|---|
+| Trägheit um die Achse | **ca. 1 700 kg·m²** | **ca. 500 kg·m²** |
+| Geschwindigkeit / Beschleunigung | 6 °/s in 2 s → ca. 90 Nm | 6 °/s in 2 s → ca. 25 Nm |
+| Reibung Rohrdrehgelenk unter Druck | **150 Nm** | **100 Nm** |
+| Wind im Betrieb (15 m/s, cf 1,2) | ca. 0,5 kNm (**1,2 m², Hebel 2,6 m**) | ca. 0,2 kNm (**0,7 m², 1,6 m**) |
+| Wind 20 m/s | ca. 0,9 kNm | ca. 0,3 kNm |
+| **Auslegung Betrieb** (Summe × 1,5, Wind 15 m/s) | **ca. 1,15 kNm** | **ca. 0,5 kNm** |
+| Halten bei Sturm 30 m/s × 1,5 (Parkstellung, Bremse) | ca. 3,2 kNm | ca. 1,1 kNm |
+
+**Variante A (empfohlen): Schneckenschwenkantrieb wie J3 + Servo**
+IMO WD-E (Größe von IMO bestätigen, Rohr/Drehgelenk durch die Hohlwelle wie bei J3) i_S = 34,
+Servo CM3C71S mit Planetengetriebe P5KG31 **i = 10** statt 4, **mit Bremse**, Multiturn-
+Absolutgeber. Gesamt i = 340: Motor 340 1/min bei 6 °/s, ca. 0,95 kNm dauernd / 2,0 kNm
+Spitze am Gelenk, Trägheitsverhältnis J1 ca. 40 : 1, J2 ca. 10 : 1. Für J2 reichlich; für J1
+bei 15 m/s knapp → Servo eine Baugröße größer oder Betrieb bis max. ca. 12–15 m/s Wind.
+Halten im Sturm: IMO Mh max 11 kNm (bei WD-E 0223) reicht, Schnecke nahe Selbsthemmung + Bremse.
+Vorteile: gleiche Bauteile wie J3 (Ersatzteile), hohe Übersetzung, verträgt Wind, geringes Spiel
+durch vorgespannte Lager. Kippmoment (J1: ganzer Arm, J2: äußerer Teil) von IMO prüfen lassen
+bzw. über die vorhandene Säulenlagerung (Pos. 28) abfangen.
+
+**Variante B: Zahnkranz beibehalten**
+Planetengetriebe i ≈ 70–100 (Gesamt 185–265) und Baugröße mit ≥ ca. 400 Nm am Abtrieb
+(P5KG31 hat 81 Nm), Zahnkranz/Ritzel auf ≥ 1 kNm neu auslegen (Modul 3–4, breiter),
+Bremse zwingend, Zahnspiel in beide Richtungen, Drehbereich durch die Öffnung auf ca. 296°
+begrenzt. Mehr Konstruktionsaufwand bei schlechterem Ergebnis.

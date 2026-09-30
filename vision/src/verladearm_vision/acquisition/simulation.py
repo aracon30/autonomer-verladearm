@@ -92,9 +92,12 @@ class SimulatedScene:
         if self.marker_radius:  # Oberseite der Markierungsscheibe
             ang = self.rng.uniform(0, 2 * np.pi, 1500)
             rr = np.sqrt(self.rng.uniform(radius[2] ** 2, self.marker_radius ** 2, 1500))
-            z = pts[6][2] + self.marker_offset
-            out.append(np.column_stack([pts[6][0] + rr * np.cos(ang), pts[6][1] + rr * np.sin(ang),
-                                        np.full(1500, z)]))
+            axis = (pts[5] - pts[6]) / np.linalg.norm(pts[5] - pts[6])
+            m = pts[6] + self.marker_offset * axis  # Mitte der Markierung auf der Rohrachse
+            u = np.cross(axis, [1.0, 0.0, 0.0])
+            u /= np.linalg.norm(u)
+            v = np.cross(axis, u)  # Scheibe/Flansch rechtwinklig zum Rohr
+            out.append(m + (rr * np.cos(ang))[:, None] * u + (rr * np.sin(ang))[:, None] * v)
         return np.vstack(out)
 
     def grab(self) -> np.ndarray:

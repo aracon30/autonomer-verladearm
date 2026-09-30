@@ -5,7 +5,11 @@ zum Dom ist unabhängig von Getriebespiel, Durchbiegung des Auslegers und Kalibr
 
 Markierungsscheibe: Eine waagerechte Ringscheibe am Auslass (größer als der Rohrbogen darüber)
 ist von oben immer sichtbar, auch wenn der Sensor genau längs in das senkrechte Rohr blickt und
-dessen Wand gar nicht sieht. Ihr Außenrand liefert die Rohrmitte ohne Verzerrung.
+dessen Wand gar nicht sieht. Ihr Außenrand liefert die Rohrmitte ohne Verzerrung. Ein
+vorhandener Flansch am Auslassrohr kann die Scheibe ersetzen (`marker_radius` = halber
+Flanschdurchmesser, `marker_offset` = Flanschoberkante bis Auslassende). Das Auslassende liegt
+`marker_offset` unter der Markierung entlang der Rohrachse (`axis`, aus dem Armmodell), nicht
+senkrecht darunter – bei großem Abstand zählt schon eine leichte Schräglage.
 
 Vorgehen (Armbasis-Koordinaten, z oben):
 1. Punkte in einem senkrechten Zylinder über dem Dom (knapp über Domoberkante bis `max_above`)
@@ -28,7 +32,7 @@ ERR_OUTLET_NOT_FOUND = 33
 class OutletConfig:
     search_radius: float = 0.4  # m um die Dommitte
     min_above: float = 0.08  # m über der Domoberkante
-    max_above: float = 1.0
+    max_above: float | None = None  # m; None = aus marker_offset (Anfahrhöhe + Reserve)
     marker_radius: float | None = 0.125  # m, Außenradius Markierungsscheibe; None = ohne
     marker_offset: float = 0.15  # m, Scheibe über dem Auslassende
     tip_band: float = 0.1  # m, ohne Scheibe: ausgewertetes unterstes Band der Rohrwand
@@ -87,24 +91,45 @@ def _marker_center(sel: np.ndarray, cfg: OutletConfig):
     return _fit_circle(rim, cfg.marker_radius, c), z0
 
 
-def detect_outlet(points_arm: np.ndarray, dome_center, sensor_pos=None,
-                  cfg: OutletConfig | None = None) -> np.ndarray:
-    """Lage des Auslassendes (3,) in Armbasis-Koordinaten [m]."""
-    cfg = cfg or OutletConfig()
+def _window(cfg: OutletConfig) -> float:
+    if cfg.max_above is not None:
+        return cfg.max_above
+    return max(1.0, (cfg.marker_offset if cfg.marker_radius else 0.0) + 0.6)
+
+
+def _select(points_arm, dome_center, cfg: OutletConfig) -> np.ndarray:
     c = np.asarray(dome_center, dtype=float)
     p = np.asarray(points_arm, dtype=float)
     r = np.hypot(p[:, 0] - c[0], p[:, 1] - c[1])
     above = p[:, 2] - c[2]
-    sel = p[(r < cfg.search_radius) & (above > cfg.min_above) & (above < cfg.max_above)]
+    sel = p[(r < cfg.search_radius) & (above > cfg.min_above) & (above < _window(cfg))]
     if len(sel) < cfg.min_points:
         raise DetectionError(ERR_OUTLET_NOT_FOUND, "Auslass über dem Dom nicht gefunden")
+    return sel
 
+
+def detect_marker(points_arm: np.ndarray, dome_center,
+                  cfg: OutletConfig | None = None) -> np.ndarray:
+    """Mitte der Markierung (Oberseite Scheibe/Flansch) (3,) in Armbasis-Koordinaten [m]."""
+    cfg = cfg or OutletConfig()
+    found = _marker_center(_select(points_arm, dome_center, cfg), cfg)
+    if found is None:
+        raise DetectionError(ERR_OUTLET_NOT_FOUND, "Markierungsscheibe nicht gefunden")
+    xy, z = found
+    return np.array([xy[0], xy[1], z])
+
+
+def detect_outlet(points_arm: np.ndarray, dome_center, sensor_pos=None,
+                  cfg: OutletConfig | None = None, axis=None) -> np.ndarray:
+    """Lage des Auslassendes (3,) in Armbasis-Koordinaten [m].
+
+    `axis`: Richtung des Auslassrohrs nach oben (aus dem Armmodell), Standard senkrecht."""
+    cfg = cfg or OutletConfig()
     if cfg.marker_radius:
-        found = _marker_center(sel, cfg)
-        if found is None:
-            raise DetectionError(ERR_OUTLET_NOT_FOUND, "Markierungsscheibe nicht gefunden")
-        xy, z = found
-        return np.array([xy[0], xy[1], z - cfg.marker_offset])
+        a = np.array([0.0, 0.0, 1.0]) if axis is None else np.asarray(axis, float)
+        a = a / np.linalg.norm(a)
+        return detect_marker(points_arm, dome_center, cfg) - cfg.marker_offset * a
+    sel = _select(points_arm, dome_center, cfg)
 
     bottom = np.sort(sel[:, 2])[min(4, len(sel) - 1)]  # 5. tiefster Punkt, robust gegen Ausreißer
     band = sel[sel[:, 2] < bottom + cfg.tip_band]

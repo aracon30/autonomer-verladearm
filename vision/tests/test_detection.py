@@ -69,3 +69,28 @@ def test_runder_tank_zwei_dome():
 
 def test_ebenes_dach_ohne_tankradius():
     assert detect_opening(make_tank_roof()).tank_radius is None
+
+
+def _disc(center, axis, r_out, r_in=0.06, n=2000, seed=0):
+    rng = np.random.default_rng(seed)
+    axis = np.asarray(axis, float) / np.linalg.norm(axis)
+    u = np.cross(axis, [1.0, 0, 0])
+    u /= np.linalg.norm(u)
+    v = np.cross(axis, u)
+    ang = rng.uniform(0, 2 * np.pi, n)
+    rr = np.sqrt(rng.uniform(r_in ** 2, r_out ** 2, n))
+    return center + (rr * np.cos(ang))[:, None] * u + (rr * np.sin(ang))[:, None] * v
+
+
+def test_flansch_weit_oben_mit_schraeger_rohrachse():
+    from verladearm_vision.detection import OutletConfig, detect_outlet
+
+    cfg = OutletConfig(marker_radius=0.11, marker_offset=0.823)
+    dome = np.array([3.0, 0.0, -2.0])
+    tip = dome + [0.01, -0.02, 0.3]
+    axis = np.array([np.sin(np.radians(2.5)), 0.0, np.cos(np.radians(2.5))])  # 2,5° schräg
+    pts = _disc(tip + 0.823 * axis, axis, 0.11)
+    found = detect_outlet(pts, dome, cfg=cfg, axis=axis)
+    assert np.linalg.norm(found - tip) < 0.004
+    vertical = detect_outlet(pts, dome, cfg=cfg)  # senkrecht angenommen: ca. 36 mm daneben
+    assert np.hypot(*(vertical - tip)[:2]) > 0.03

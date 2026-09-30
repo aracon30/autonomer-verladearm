@@ -16,6 +16,7 @@ from datetime import date
 from pathlib import Path
 
 import numpy as np
+import yaml
 
 from verladearm_vision.config import load_config
 from verladearm_vision.kinematics import JOINTS, ArmGeometry, forward, validate
@@ -195,8 +196,19 @@ def ask_products(d: Dialog, cur: dict) -> dict:
     return out
 
 
+def ask_outlet(d: Dialog, cur: dict) -> dict:
+    d.step("5. Referenz am Auslass (Nachmessen und Kalibrierung)",
+           "Von oben sichtbare runde Scheibe oder ein Flansch am Auslassrohr, rechtwinklig und "
+           "mittig zum Rohr.")
+    dia = d.number("Außendurchmesser Markierungsscheibe bzw. Flansch [m]",
+                   round(2 * (cur.get("marker_radius") or 0.125), 3), 0.15, 0.45)
+    off = d.number("Oberkante Referenz bis unterster Punkt Auslass [m]",
+                   cur.get("marker_offset", 0.15), 0.03, 1.5)
+    return {"marker_radius": round(dia / 2, 4), "marker_offset": off}
+
+
 def ask_workspace(d: Dialog, cur: dict) -> dict:
-    d.step("5. Arbeitsraum", "Bereich, in dem die Oberkante der Domöffnung bei dieser Station "
+    d.step("6. Arbeitsraum", "Bereich, in dem die Oberkante der Domöffnung bei dieser Station "
            "liegen kann (alle Fahrzeuge, Abstellpositionen), Armbasis-Koordinaten in m.")
     lo = d.ask("MIN x y z", cur.get("workspace_min"), parse_vec)
     hi = d.ask("MAX x y z", cur.get("workspace_max"), parse_vec, larger_than(lo))
@@ -229,8 +241,18 @@ def _flow(v) -> str:
     return fmt(round(v, 4) if isinstance(v, float) else v)
 
 
+KNOWN = {"extends", "plc", "calibration", "arm", "products", "outlet", "commissioning"}
+ARM_KNOWN = {k for k, *_ in DIMENSIONS} | {"joints", "obstacles", "clearance"}
+
+
 def render(meta: dict, plc_url: str, calibration: list, arm: dict, products: dict,
-           workspace: dict, extends: str = "../default.yaml") -> str:
+           workspace: dict, extends: str = "../default.yaml", outlet: dict | None = None,
+           keep: dict | None = None) -> str:
+    """Anlagendatei als YAML mit Erläuterungen. `keep`: weitere Abschnitte der bisherigen Datei
+    (z. B. drives, scene), die der Dialog nicht abfragt – sie bleiben unverändert erhalten."""
+    keep = keep or {}
+    extra_arm = {k: v for k, v in (keep.get("arm") or {}).items() if k not in ARM_KNOWN}
+    others = {k: v for k, v in keep.items() if k not in KNOWN}
     """Anlagendatei als YAML mit Erläuterungen."""
     lines = [
         "# Anlagenparameter Verladearm (angelegt mit python -m verladearm_vision.einrichtung)",
@@ -261,7 +283,13 @@ def render(meta: dict, plc_url: str, calibration: list, arm: dict, products: dic
         "  obstacles:" + ("" if arm["obstacles"] else " []"),
         *[f"    - {_flow(o)}" for o in arm["obstacles"]],
         f"  clearance: {fmt(float(arm['clearance']))}",
+        *[f"  {k}: {_flow(v)}" for k, v in extra_arm.items()],
         "",
+        *(["# Referenz am Auslass (Markierungsscheibe oder Flansch) [m]",
+           "outlet:",
+           f"  marker_radius: {fmt(float(outlet['marker_radius']))}   # halber Außendurchmesser",
+           f"  marker_offset: {fmt(float(outlet['marker_offset']))}   # Oberkante bis Auslassende",
+           ""] if outlet else []),
         "# Eintauchtiefe je ProductId [m]",
         "products:",
         *[f"  {k}: {_flow(v)}" for k, v in products.items()],
@@ -273,6 +301,9 @@ def render(meta: dict, plc_url: str, calibration: list, arm: dict, products: dic
         f"  step: {fmt(float(workspace['step']))}",
         "",
     ]
+    if others:  # unverändert übernommen
+        lines += ["# Weitere Abschnitte (vom Dialog nicht abgefragt, unverändert übernommen)",
+                  yaml.safe_dump(others, allow_unicode=True, sort_keys=False, width=100)]
     return "\n".join(lines)
 
 
@@ -313,9 +344,10 @@ def run(d: Dialog, target: Path, reader=None) -> Path | None:
                                                        cur_arm.get("clearance", 0.15),
                                                        arm["base_height"])
     products = ask_products(d, cur.get("products") or {})
+    outlet = ask_outlet(d, cur.get("outlet", {}))
     workspace = ask_workspace(d, cur.get("commissioning", {}))
 
-    d.step("6. Kontrolle")
+    d.step("7. Kontrolle")
     problems = validate(ArmGeometry(**arm))
     for p in problems:
         d.print(f"  ❌ {p}")
@@ -328,8 +360,11 @@ def run(d: Dialog, target: Path, reader=None) -> Path | None:
         return None
     target.parent.mkdir(parents=True, exist_ok=True)
     extends = Path(os.path.relpath(ANLAGEN.parent / "default.yaml", target.parent)).as_posix()
+    keep = {}
+    if target.exists():  # eigene Abschnitte der Datei (ohne extends-Basis) erhalten
+        keep = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
     target.write_text(render(meta, plc_url, cur["calibration"]["matrix"], arm, products,
-                             workspace, extends), encoding="utf-8")
+                             workspace, extends, outlet, keep), encoding="utf-8")
     py = python_cmd()
     d.print(f"\nGespeichert: {target}\nNächste Schritte (docs/inbetriebnahme.md):\n"
             f"  1. Prüfung:       {py} -m verladearm_vision.commissioning --config {target}\n"

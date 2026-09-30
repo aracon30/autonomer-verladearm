@@ -14,4 +14,4 @@ Pos;Bezeichnung;Vorschlag;Menge;Status;Bemerkung
 13;Kalibrierkugel;entfällt;0;entfällt;Kalibrierung nutzt die Markierungsscheibe (Pos. 15)
 14;Messmittel;Laser-Entfernungsmesser, digitaler Neigungsmesser, Maßband;1;offen;
 15;Markierungsscheibe Auslass;Ringscheibe Ø 250 mm, matt, über dem Auslassende (ca. 150 mm);1;offen;für Nachmessen Job 2, Werkstoff produktverträglich
-16;Antriebe J1-J3;Klärung: Servomotoren mit Motorgeber (Absolutwert) oder Gelenkgeber nachrüsten;3;klären;Positionierung ohne Winkelmessung nicht möglich
+16;Drehgeber J1-J3;Absolutwertgeber am Gelenk, PROFINET (Encoder-Profil, Telegramm 81/83), mind. 16 Bit/Umdrehung, IP67, Ex-Ausführung falls in Zone (z. B. POSITAL IXARC Ex, Kübler Sendix Ex, Leine Linde Ex); Anbau über Zahnrad/Zahnriemen am Drehgelenk;3;klären;Ex-Zone klären (Lastenheft N-06); Übersetzung >1:1 -> Multiturn; J4 braucht keinen Geber

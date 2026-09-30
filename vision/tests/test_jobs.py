@@ -64,6 +64,20 @@ def test_fehlercodes():
     assert s(Request(job=7, actual_deg=park(s), axes_homed=True)).error_code == 91
 
 
+def test_fehlgeschlagene_planung_hinterlaesst_keinen_jobkontext(monkeypatch):
+    s = make_service()
+    monkeypatch.setattr(
+        "verladearm_vision.service.main.plan_motion",
+        lambda *args, **kwargs: {"ok": False, "code": 31, "reason": "kein Weg"},
+    )
+
+    result = s(Request(job=1, actual_deg=park(s), axes_homed=True))
+
+    assert result.error_code == 31
+    assert s.last is None
+    assert s(Request(job=2, actual_deg=park(s), axes_homed=True)).error_code == 34
+
+
 def test_auslass_ohne_scheibe_von_der_seite():
     geom = ArmGeometry()
     pts = forward(geom, np.radians([-45, -90, 10]))

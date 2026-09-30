@@ -23,7 +23,7 @@ dev = ["pytest>=8", "ruff>=0.5"]
 where = ["vision/src"]
 
 [tool.setuptools.package-data]
-verladearm_vision = ["viewer/*.html"]
+verladearm_vision = ["viewer/*.html", "konfigurator/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["vision/tests"]

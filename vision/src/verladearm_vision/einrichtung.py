@@ -204,7 +204,10 @@ def ask_outlet(d: Dialog, cur: dict) -> dict:
                    round(2 * (cur.get("marker_radius") or 0.125), 3), 0.15, 0.45)
     off = d.number("Oberkante Referenz bis unterster Punkt Auslass [m]",
                    cur.get("marker_offset", 0.15), 0.03, 1.5)
-    return {"marker_radius": round(dia / 2, 4), "marker_offset": off}
+    out = {"marker_radius": round(dia / 2, 4), "marker_offset": off}
+    if cur.get("pipe_radius"):  # im Dialog nicht abgefragt, bleibt erhalten
+        out["pipe_radius"] = cur["pipe_radius"]
+    return out
 
 
 def ask_workspace(d: Dialog, cur: dict) -> dict:
@@ -255,7 +258,7 @@ def render(meta: dict, plc_url: str, calibration: list, arm: dict, products: dic
     others = {k: v for k, v in keep.items() if k not in KNOWN}
     """Anlagendatei als YAML mit Erläuterungen."""
     lines = [
-        "# Anlagenparameter Verladearm (angelegt mit python -m verladearm_vision.einrichtung)",
+        "# Anlagenparameter Verladearm (angelegt mit Einrichtungsdialog bzw. Konfigurator)",
         "# Ablauf und Bedeutung der Werte: docs/inbetriebnahme.md",
         "#",
         f"# Anlage:            {meta['anlage']}",
@@ -289,6 +292,8 @@ def render(meta: dict, plc_url: str, calibration: list, arm: dict, products: dic
            "outlet:",
            f"  marker_radius: {fmt(float(outlet['marker_radius']))}   # halber Außendurchmesser",
            f"  marker_offset: {fmt(float(outlet['marker_offset']))}   # Oberkante bis Auslassende",
+           *([f"  pipe_radius: {fmt(float(outlet['pipe_radius']))}   # Außenradius Auslassrohr"]
+             if outlet.get("pipe_radius") else []),
            ""] if outlet else []),
         "# Eintauchtiefe je ProductId [m]",
         "products:",

@@ -232,3 +232,16 @@ Auslegung innerhalb dieser Konstruktion (Ritzel z 48 / Zahnkranz z 127, Modul 2,
 - Planetengetriebe dann **i_P ≈ 20–25** (Gesamt ca. 95–118).
 - Endgültige Nachrechnung (Zahnfuß, Flanke, statisch) durch die Konstruktion nach ISO 6336 /
   DIN 3990, z. B. mit KISSsoft.
+
+**Maße Variante 2 (Startwerte für die Konstruktion):**
+
+| | Zahnkranz | Ritzel |
+|---|---|---|
+| Modul / Zähne | 3 / 85 | 3 / 18 |
+| Teilkreis / Kopfkreis / Fußkreis | 255 / 261 / 247,5 mm | 54 / 60 / 46,5 mm |
+| Zahnbreite | 30 mm | 35 mm (etwas breiter als der Kranz) |
+| Innenkontur | wie bisher: Öffnung 135 mm, R 67,5, Lochkreis R 74,5, Bohrungen Ø 11 | Bohrung 22 E8, Nut 6 P9, 13,8 +0,1 |
+| verzahnter Bereich | ca. 294° (Lücke ca. 66°) | – |
+| Achsabstand | 154 mm (Langlöcher für Flankenspiel ca. 0,1–0,2 mm) | |
+| Werkstoff | C45 oder 42CrMo4 vergütet | 42CrMo4 vergütet |
+| Verzahnungsqualität | DIN 3962 Q8–9 reicht (langsam) | |

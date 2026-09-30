@@ -9,7 +9,7 @@
 | Ebene | Aufgabe |
 |---|---|
 | **Vision-PC** (nicht sicherheitsgerichtet) | Dom messen, **offenen Deckel erkennen**, Kinematik, Rückwärtsrechnung, Kollisionsprüfung gegen Sperrbereiche, Tankkörper, Domkragen und Deckel, Bahn als **Stützpunkte in Servo-Grad**, Nachmessen Auslass ↔ Dom |
-| **SPS** | Ablauf, **Plausibilitätsprüfung jeder Vorgabe**, Referenzfahrt, Positionieren je Achse mit Technologieobjekten (Geschwindigkeit, Beschleunigung, Verzögerung, **Ruck** → sanftes Anfahren und Bremsen), synchrones Anfahren der Stützpunkte, Bremsen, Füllstand, Überfüllsicherung, PLS |
+| **SPS** | Ablauf, **Plausibilitätsprüfung jeder Vorgabe**, Referenzfahrt, Positionieren je Achse mit Technologieobjekten (Geschwindigkeit, Beschleunigung, Verzögerung, **Ruck** → sanftes Anfahren und Bremsen), synchrones Anfahren der Stützpunkte, Bremsen, Bedienung (Produkt, Start, „Beladung beendet“), Verriegelung Klapptreppe/Fahrzeug, PLS |
 | **Servoregler** | Strom-, Drehzahl- und Lageregelung (PROFINET, deterministisch) |
 | **Sicherheits-SPS** | Not-Halt, Schutzbereich, sicheres Abschalten (STO/SS1) |
 
@@ -68,15 +68,39 @@ zur Rückfahrt (Details: `docs/kinematik.md`). Umwege brauchen mehr Stützpunkte
 
 ## Ablauf einer Verladung (SPS)
 
-1. Start durch Fahrer, Freigabe PLS, Sicherheitsbedingungen erfüllt, `AxesHomed = TRUE`.
-2. **Job 1** → Stützpunkte prüfen (Achsgrenzen, Sprünge) → bis `ApproachIndex` fahren.
-3. Beruhigungszeit, der Auslass pendelt frei (J4).
-4. **Job 2** → Korrektur prüfen (Betrag < Grenzwert, sonst Job 2 wiederholen oder Abbruch) →
-   Stützpunkt 1 anfahren → restliche Stützpunkte langsam = Eintauchen.
-5. Befüllung mit Füllstandsregelung und Überfüllsicherung, **ohne PC**.
-6. **Job 3** → Stützpunkte fahren → Parkstellung.
+Vorher (ohne Automatik): Arm steht in der Parkstellung. LKW/Kesselwagen fährt vor, die
+Klapptreppe fährt auf das Fahrzeug, der Fahrer öffnet den Dom, die Klapptreppe fährt zurück.
 
+1. **Bediener** wählt an der SPS das **Produkt** (→ `ProductId`, bestimmt die Eintauchtiefe) und
+   bestätigt „Fahrzeug bereit“.
+2. **Bediener startet „Automatisch beladen“.** Startbedingungen: Arm in Parkstellung,
+   **Klapptreppe in Ruhelage** (Endschalter), ggf. Lichtschranke Stellplatz belegt, Freigabe PLS,
+   Sicherheitsbedingungen erfüllt, `AxesHomed = TRUE`, `Ready = TRUE`.
+3. **Job 1** → Stützpunkte prüfen (Achsgrenzen, Sprünge) → bis `ApproachIndex` fahren.
+4. Beruhigungszeit, der Auslass pendelt frei (J4).
+5. **Job 2** → Korrektur prüfen (Betrag < Grenzwert, sonst Job 2 wiederholen oder Abbruch) →
+   Stützpunkt 1 anfahren → restliche Stützpunkte langsam = Eintauchen.
+6. **Beladung läuft** (nicht Teil dieser Steuerung, **ohne PC**). Arm bleibt eingetaucht.
+7. **Bediener meldet „Beladung beendet“.**
+8. **Job 3** → Stützpunkte fahren → Parkstellung. Danach Klapptreppe/Fahrzeug frei.
+
+Während der Automatik: Klapptreppe verriegelt (darf nicht ausfahren). Fällt die Lichtschranke ab
+oder verlässt die Treppe die Ruhelage: Bewegung stoppen, Meldung (reine SPS-Funktion, kein PC-Signal).
 Bei Fehler, fehlendem Ergebnis oder Heartbeat-Ausfall: Bewegung stoppen, sicherer Zustand.
+
+## Handbetrieb (SPS, ohne PC)
+
+- **Tippen am Panel:** J1/J2/J3 einzeln, nur solange gedrückt, reduzierte Geschwindigkeit,
+  Endlagen aktiv (Mobile Panel mit Zustimmtaster empfohlen).
+- **Von Hand führen (J1/J2):** „Bremse lüften“ nur im Handbetrieb, Antrieb in STO, Bremse offen
+  nur solange gedrückt. J3 ist selbsthemmend (Schnecke) und wird nur getippt.
+- Die Multiturn-Absolutgeber bleiben gültig (`AxesHomed` bleibt `TRUE`), die SPS meldet weiter
+  die Istwinkel.
+- **„Automatisch in Parkstellung“** aus beliebiger Lage = **Job 3**: Der PC plant ab Istlage
+  erst senkrecht heraus (größte hinterlegte Eintauchtiefe, falls kein Job 1 vorliegt), dann
+  kollisionsfrei in die Parkstellung.
+- Hindernisse (Tank, Deckel) aus einem früheren Job 1 gelten nur für dasselbe Fahrzeug. Die SPS
+  startet nach Handbetrieb eine neue Verladung immer mit Job 1 aus der Parkstellung.
 
 ## Handshake
 

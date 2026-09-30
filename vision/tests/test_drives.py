@@ -48,7 +48,7 @@ def test_heta_prototyp_antriebe_in_simulation():
     cfg = load_config(ANLAGEN / "simulation.yaml")
     drives = Drives.from_config(cfg["drives"])
     assert drives.configured
-    assert drives.axes["q3"].gravity_preload and drives.axes["q1"].brake
+    assert drives.axes["q3"].gravity_preload and drives.axes["q3"].brake
     assert all(d.speed_max <= 6.0 for d in drives.axes.values())  # IMO: max. 1 1/min
     src = build_source(cfg["source"], cfg)
     assert src.backlash.half == pytest.approx(drives.backlash() / 2)

@@ -7,7 +7,7 @@
 Hallo Peter,
 
 wir automatisieren den Verladearm-Prototyp: Eine 3D-Kamera erkennt den Dom am Tankwagen, ein
-Industrie-PC berechnet die Fahrt, die S7-1500 fährt die drei Achsen. Für Schaltschrank und
+Industrie-PC berechnet die Fahrt, eine neue S7-1500 fährt die drei Achsen. Für Schaltschrank und
 Verkabelung brauchen wir dich. Bitte schau dir die Punkte an und gib uns eine erste Einschätzung
 zu Aufwand, Platzbedarf und Termin.
 
@@ -17,11 +17,17 @@ zu Aufwand, Platzbedarf und Termin.
 - **SIMATIC IPC BX-32A** (Hutschiene, 24 V DC, lüfterlos), 2 Netzwerke:
   PROFINET/SPS-Netz und ein eigenes Netz nur für die Kamera
 - **Netzwerk:** PROFINET als Linie SPS → Umrichter J1 → J2 → J3, der IPC an einem freien Port der
-  SPS. Die Kamera hängt direkt am IPC. Ein Switch nur, falls die Ports nicht reichen.
+  SPS (X1 Port 2 oder X2). Die Kamera hängt direkt am IPC. Ein Switch nur, falls die Ports nicht reichen.
 - **24-V-Netzteil** für IPC, Kamera (typ. 12 W, Spitze 2 A) und die Haltebremsen J1 und J2 –
   bitte selbst auslegen
-- **S7-1500:** Ist im vorhandenen Schrank Platz, oder kommt sie neu dazu? Für die
-  Sicherheitsfunktionen (Not-Halt, STO) bitte F-CPU bzw. Sicherheitstechnik vorsehen.
+- **SPS neu (bisher keine vorhanden):** S7-1500 als **F-CPU** (Standard- und Sicherheitsprogramm
+  in einer CPU), z. B. **CPU 1512SP F-1 PN** (ET 200SP, kompakt) oder **CPU 1513F-1 PN**. Anforderungen:
+  - PROFINET für 3 SEW-Umrichter (Positionierachsen über PROFIdrive, STO/SS1 über PROFIsafe
+    oder verdrahtet) und OPC UA zum IPC
+  - **Lizenz „SIMATIC OPC UA S7-1500“** passend zur CPU-Größe (für den OPC-UA-Server)
+  - Peripherie: **F-DI** für Not-Halt, Endschalter und Quittierung; **DI/DQ** für Bedienelemente
+    (Start, Stopp, Automatik/Hand, Meldeleuchten), Referenzschalter und Windmesser (optional)
+  - Bedienpanel (optional, z. B. SIMATIC HMI 7″) für Handbetrieb und Meldungen
 
 **2. Antriebe im Feld**
 

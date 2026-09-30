@@ -142,8 +142,24 @@ class PlcInterface:
         # Done erst nach den Ergebniswerten, damit die SPS nie halbe Ergebnisse übernimmt
         await self._write(Done=True, Busy=False)
 
-    async def run(self, measure: Callable[[Request], MeasureResult]):
-        """Verbindet sich mit der SPS und bedient den Handshake bis zum Abbruch."""
+    async def run(self, measure: Callable[[Request], MeasureResult], retry_s: float = 3.0):
+        """Verbindet sich mit der SPS und bedient den Handshake bis zum Abbruch.
+
+        Ist die SPS (noch) nicht erreichbar oder bricht die Verbindung ab, wird nach `retry_s`
+        erneut verbunden – der Dienst beendet sich deshalb nicht."""
+        self._result_id = getattr(self, "_result_id", 0)
+        while True:
+            try:
+                await self._session(measure)
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:  # Verbindungsfehler, SPS neu gestartet, Netz weg
+                self._client = None
+                log.warning("SPS %s nicht erreichbar (%s: %s), neuer Versuch in %.0f s",
+                            self.url, type(e).__name__, e, retry_s)
+                await asyncio.sleep(retry_s)
+
+    async def _session(self, measure: Callable[[Request], MeasureResult]):
         async with Client(url=self.url) as client:
             self._client = client
             ns = await client.get_namespace_index(self.namespace_uri)
@@ -160,7 +176,7 @@ class PlcInterface:
                      "ActualJ1", "ActualJ2", "ActualJ3", "AxesHomed", "ArmState")
             inputs = [self._nodes[n] for n in names]
             hb_pc, last_hb_plc, last_change = 0, None, time.monotonic()
-            ready, done_pending, result_id = False, False, 0
+            ready, done_pending = False, False
             loop = asyncio.get_running_loop()
 
             while True:
@@ -199,10 +215,10 @@ class PlcInterface:
                     except Exception:
                         log.exception("Messung fehlgeschlagen")
                         result = MeasureResult(ok=False, error_code=ERR_INTERNAL)
-                    result_id += 1
-                    await self._write_result(result, result_id)
+                    self._result_id += 1
+                    await self._write_result(result, self._result_id)
                     done_pending = True
-                    log.info("Job %d -> Ergebnis %d: %s", req.job, result_id, result)
+                    log.info("Job %d -> Ergebnis %d: %s", req.job, self._result_id, result)
                 elif not trigger and done_pending:
                     await self._write(Done=False)
                     done_pending = False

@@ -211,6 +211,9 @@ Auslegung innerhalb dieser Konstruktion (Ritzel z 48 / Zahnkranz z 127, Modul 2,
 7. **Zahnspiel:** Zielposition immer aus derselben Richtung anfahren (Software/SPS), Rest über
    Job 2.
 
+> **Entscheidung 30.09.2026:** Variante 2 (m 3, b 30, z 18 / 85, Achsabstand 154 mm) wird umgesetzt;
+> SEW-Angebot auf P5KG31 i ≈ 20–25, Bremse, Multiturn-Absolutgeber anpassen.
+
 ### Zahnradpaar J1/J2 anpassen (Überschlag, Zahnfuß vereinfacht nach Lewis/ISO 6336, YFa·YSa)
 
 | Variante | Modul / Breite | Ritzel / Kranz | i_Z | Achsabstand | Gelenk dauernd / Spitze (P5KG31 81/132 Nm) | Zahnfuß Ritzel dauernd / Spitze |

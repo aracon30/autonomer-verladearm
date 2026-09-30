@@ -5,7 +5,7 @@ Pos;Bezeichnung;Vorschlag;Menge;Status;Bemerkung
 4;Edge-PC Prüfstand;ASUS NUC 14 Pro, Core Ultra 5, 16 GB, 512 GB SSD;1;offen;Ubuntu 24.04; ca. 640 EUR
 5;USB-LAN-Adapter;USB 3 auf Gigabit Ethernet;1;offen;zweites Netz: Sensor getrennt von SPS
 6;Edge-PC Station;Siemens SIMATIC IPC BX-32A, 4 Kerne (Core i5/i7 oder Xeon W, nicht Celeron), 16 GB, SSD, 24 V DC, 4x LAN, Hutschiene, lüfterlos;1;später;Linux-Unterstützung (Ubuntu oder SIMATIC Industrial OS) vor Bestellung klären; Rechenzeit am Prüfstand messen
-7;Industrie-Switch;unmanaged, 5 Port, Gigabit, 24 V, Hutschiene;1;offen;
+7;Industrie-Switch (optional);unmanaged, 5 Port, Gigabit, 24 V, Hutschiene;1;optional;nur falls Ports nicht reichen: SPS X1 und SEW-Umrichter haben je 2 PN-Ports (Linie), Kamera direkt am IPC
 8;Netzteil;24 V DC, 5 A, Hutschiene;1;offen;Sensor, Switch
 9;Sensortraverse;Alu-Profil 45x45/45x90 verstellbar 4-6 m, Winkel, Nutensteine;1;offen;steif, Sensor senkrecht nach unten
 10;Sensorhalter;neigbar;1;offen;

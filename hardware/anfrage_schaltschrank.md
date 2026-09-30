@@ -16,8 +16,9 @@ zu Aufwand, Platzbedarf und Termin.
   3 × 400 V. Typ kommt mit dem SEW-Angebot (angefragt), wir leiten es dir weiter.
 - **SIMATIC IPC BX-32A** (Hutschiene, 24 V DC, lüfterlos), 2 Netzwerke:
   PROFINET/SPS-Netz und ein eigenes Netz nur für die Kamera
-- **Industrie-Switch** Gigabit, unmanaged, 24 V, Hutschiene
-- **24-V-Netzteil** für IPC, Switch, Kamera (typ. 12 W, Spitze 2 A) und die Haltebremsen J1 und J2 –
+- **Netzwerk:** PROFINET als Linie SPS → Umrichter J1 → J2 → J3, der IPC an einem freien Port der
+  SPS. Die Kamera hängt direkt am IPC. Ein Switch nur, falls die Ports nicht reichen.
+- **24-V-Netzteil** für IPC, Kamera (typ. 12 W, Spitze 2 A) und die Haltebremsen J1 und J2 –
   bitte selbst auslegen
 - **S7-1500:** Ist im vorhandenen Schrank Platz, oder kommt sie neu dazu? Für die
   Sicherheitsfunktionen (Not-Halt, STO) bitte F-CPU bzw. Sicherheitstechnik vorsehen.

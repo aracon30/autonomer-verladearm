@@ -27,7 +27,10 @@ Je Achse: Motor, Getriebe, Geber, Bremse, Ansteuerung. Offene Punkte sind mit **
 | Selbsthemmung | **nicht zugesichert** (theoretisch bei Wirkungsgrad < 50 %), am gelieferten Antrieb prüfen → Bremse nötig |
 | Motoranbindung | Adapterwelle: max. 1 200 Nm (1 1/4"-Keilwelle) bzw. 600 Nm (Ø 25 Passfeder / 1"-Keilwelle) |
 | Einbau | Antriebswelle **nicht oben**; Grundierung reicht außen nicht (Deckanstrich, Dichtungen nicht überstreichen); kein Hochdruckreiniger; −20 … +70 °C |
-| Übersetzung, Spiel | **offen** (nicht in den Technical Notes) |
+| Verzahnung | Modul 4,5 mm, Schnecke **2-gängig**, **i_S = 34**, 1 Antrieb |
+| Lager | radial und Kippspiel 0 (vorgespannt) |
+| Verzahnungsspiel | **offen** |
+| Beschichtung / Fett | Einschichtlack RAL 9005; Fett DIN 51502 KPF 1 R-20 |
 
 ### Bewertung
 
@@ -45,18 +48,22 @@ Je Achse: Motor, Getriebe, Geber, Bremse, Ansteuerung. Offene Punkte sind mit **
 - **Ansteuerung:** Geber an einen SEW-Umrichter mit Geberauswertung (z. B. MOVIDRIVE/MOVI-C,
   PROFINET), S7-1500 Positionierachse über PROFIdrive-Telegramm (z. B. 105) oder SEW-Positionier-
   baustein. Bei Umrichtern anderer Hersteller Geberschnittstelle (Hiperface/SSI …) prüfen.
-- **Lastmoment J3:** Auslegung IMO mit 3,52 kNm (HETA-Vorgabe); eigene Schätzung (Rohr
-  114,3 × 3,6, Ausleger waagerecht) 1,6 kNm leer, 2,0 kNm gefüllt. Reserve zu Md max 9,5 kNm
-  und Mh max 11 kNm groß.
-- **Motor ↔ Schwenkantrieb:** Getriebemotor max. 300 Nm < 600 Nm (kleinste Adapterwelle) – passt.
-  IMO empfiehlt trotzdem eine **Momentbegrenzung im Umrichter**; zusammen mit der Übersetzung
-  i_S des Schwenkantriebs muss 215 Nm × i_S × Wirkungsgrad (~0,3–0,5) über 3,52 kNm liegen,
-  also i_S ≳ 35–55 – mit Übersetzung aus dem Datenblatt nachrechnen.
-- **Drehzahl:** 34 1/min ÷ i_S darf 1 1/min nicht überschreiten → i_S ≥ 34, sonst im Umrichter
-  begrenzen. **Technologieobjekt J3: v max 6 °/s**, beim Eintauchen deutlich weniger.
-- **Haltebremse:** notwendig (Selbsthemmung nicht zugesichert). 1,8 Nm × 42,87 × i_S am Gelenk,
-  bei i_S = 50 rechnerisch 3,9 kNm – knapp über 3,52 kNm. Bremsmoment der BE05 ggf. höher
-  einstellen lassen (bis 5 Nm möglich), Selbsthemmung bei Inbetriebnahme prüfen.
+- **Gesamtübersetzung** 42,87 × 34 = **1458**: eine Motorumdrehung = 0,25° am Gelenk,
+  90° = 364 Motorumdrehungen (passt in Multiturngeber mit 4096 Umdrehungen).
+- **Geschwindigkeit:** 34 1/min ÷ 34 = **1 1/min = 6 °/s** bei 50 Hz – genau die zulässige
+  Höchstdrehzahl des Schwenkantriebs. 90° in 15 s. Umrichter auf max. 50 Hz begrenzen,
+  Technologieobjekt J3 z. B. 5 °/s Anfahrt, 1–2 °/s beim Eintauchen.
+- **Moment:** Last laut IMO-Auslegung 3,52 kNm, eigene Schätzung 1,6–2,0 kNm. Verfügbar
+  215 Nm × 34 × Wirkungsgrad: bei η = 0,4/0,5/0,6 → 2,9/3,7/4,4 kNm (kurzzeitig mit 300 Nm
+  4,1/5,1/6,1 kNm). Für die geschätzte Last reichlich, für 3,52 kNm **knapp** → Lastannahme
+  3,52 kNm klären und Wirkungsgrad bei IMO erfragen. Momentbegrenzung im Umrichter auf
+  ≤ 300 Nm Getriebeabtrieb (IMO-Hinweis, Adapterwelle ≥ 600 Nm).
+- **Senken und Bremswiderstand:** 2-gängige Schnecken sind oft **nicht selbsthemmend**. Beim
+  Senken treibt das Gewicht den Motor → Umrichter mit **Bremswiderstand** (bzw. Bremschopper).
+- **Haltebremse:** 1,8 Nm × 1458 = 2,6 kNm ohne Reibung; mit Rückwärts-Wirkungsgrad 0,5
+  genügen rechnerisch 1,2 Nm für 3,52 kNm. Ausreichend, aber mit wenig Reserve bei
+  unbekanntem Wirkungsgrad → bei SEW höheres Bremsmoment der BE05 anfragen; Haltetest bei der
+  Inbetriebnahme mit gefülltem Ausleger.
 - **Lebensdauer:** 480 h Schwenkzeit; bei ca. 1 min J3-Bewegung je Verladung ≈ 29 000
   Verladungen. Mit der geplanten Verladezahl pro Jahr abgleichen.
 - **Ex-Schutz:** IP55 ohne Ex-Kennzeichnung. Liegt der Arm in einer Ex-Zone, ist ein Motor in

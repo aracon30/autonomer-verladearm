@@ -32,12 +32,15 @@ from verladearm_vision.detection import (
 from verladearm_vision.kinematics import (
     JOINTS,
     ArmGeometry,
+    CylinderObstacle,
+    OrientedBoxObstacle,
     forward,
     plan_correction,
     plan_motion,
     product_insertion_depth,
 )
 from verladearm_vision.plc import VARIABLES
+from verladearm_vision.scene import SceneConfig, build_obstacles
 from verladearm_vision.service.main import build_source
 
 log = logging.getLogger("verladearm.viewer")
@@ -58,6 +61,7 @@ class FrameProducer:
         self.transform = SensorToArm(cfg["calibration"]["matrix"])
         self.geom = ArmGeometry(**cfg.get("arm", {}))
         self.outlet_cfg = OutletConfig(**cfg.get("outlet", {}))
+        self.scene_cfg = SceneConfig(**cfg.get("scene", {}))
         self.products = cfg.get("products")
         self.max_points = max_points
         self.rng = np.random.default_rng()
@@ -89,18 +93,21 @@ class FrameProducer:
             result = {"ok": False, "error_code": e.code, "message": str(e)}
         detect_ms = (time.perf_counter() - t0) * 1000
 
+        # Tankkörper, Domkragen und offener Deckel als Hindernisse wie im Vision-Dienst
+        geom, scene = scene_geom(self.geom, op, self.transform, points, self.outlet_cfg,
+                                 self.scene_cfg)
         frame = points_for_view(points, self.transform, self.max_points, self.rng)
-        frame.update(id=frame_id, detect_ms=round(detect_ms, 1), result=result,
-                     arm=arm_for_view(self.geom, result, 0, self.products, self.outlet_cfg),
+        frame.update(id=frame_id, detect_ms=round(detect_ms, 1), result=result, scene=scene,
+                     arm=arm_for_view(geom, result, 0, self.products, self.outlet_cfg),
                      vehicle=vehicle_for_view(op, self.transform))
         if sim and frame["arm"].get("ok"):
             with self.lock:
-                self._simulate_correction(frame)
+                self._simulate_correction(frame, geom)
         for key in ("q_move", "q_insert"):
             frame["arm"].pop(key, None)
         return frame
 
-    def _simulate_correction(self, frame: dict):
+    def _simulate_correction(self, frame: dict, geom: ArmGeometry):
         """Job 2 mit simuliertem Getriebespiel: Arm steht daneben, Scheibe nachmessen, korrigieren.
 
         Gezeichnet wird die tatsächliche Stellung (Modell + Getriebespiel) wie im Sensorbild.
@@ -117,7 +124,7 @@ class FrameProducer:
         except DetectionError as e:
             arm["correction_note"] = str(e)
             return
-        corr = plan_correction(self.geom, q_above, tip, res["target_mm"], res["normal"],
+        corr = plan_correction(geom, q_above, tip, res["target_mm"], res["normal"],
                                arm["insertion_depth"])
         if not corr["ok"]:
             arm["correction_note"] = corr["reason"]
@@ -169,6 +176,26 @@ def vehicle_for_view(op, transform: SensorToArm) -> dict | None:
     return v
 
 
+def scene_geom(geom: ArmGeometry, op, transform: SensorToArm, points, outlet: OutletConfig,
+               cfg: SceneConfig):
+    """Armgeometrie mit den gemessenen Hindernissen und Szeneninfo (Deckel) für die Anzeige."""
+    if op is None:
+        return geom, None
+    obstacles, info = build_obstacles(op, transform, points, outlet, cfg)
+    return geom.with_obstacles(obstacles), info
+
+
+def obstacle_for_view(o) -> dict:
+    """Hindernis für die Anzeige: Quader, gedrehter Quader oder Zylinder (Armbasis, m)."""
+    if isinstance(o, OrientedBoxObstacle):
+        return {"name": o.name, "type": "obox", "center": list(o.center),
+                "axes": [list(a) for a in o.axes], "half": list(o.half)}
+    if isinstance(o, CylinderObstacle):
+        return {"name": o.name, "type": "cyl", "p0": list(o.p0), "axis": list(o.axis),
+                "radius": o.radius, "half_length": o.half_length}
+    return {"name": o.name, "type": "box", "min": list(o.min), "max": list(o.max)}
+
+
 def arm_for_view(geom: ArmGeometry, result: dict, product_id: int = 0,
                  products: dict | None = None, outlet: OutletConfig | None = None) -> dict:
     """Geplante Armbewegung zum Ergebnis; ohne gültiges Ziel nur die Parkstellung."""
@@ -179,7 +206,7 @@ def arm_for_view(geom: ArmGeometry, result: dict, product_id: int = 0,
         arm = {"ok": False, "park": forward(geom, geom.park).round(4).tolist()}
     arm["ground_z"] = -geom.base_height
     arm["product_id"] = product_id
-    arm["obstacles"] = [{"name": o.name, "min": o.min, "max": o.max} for o in geom.obstacles]
+    arm["obstacles"] = [obstacle_for_view(o) for o in geom.obstacles]
     if outlet and outlet.marker_radius:
         arm["marker"] = {"radius": outlet.marker_radius, "offset": outlet.marker_offset}
     return arm
@@ -205,6 +232,7 @@ class PlcMonitor:
         self.products = cfg.get("products")
         self.det_cfg = DetectorConfig(**cfg.get("detection", {}))
         self.outlet_cfg = OutletConfig(**cfg.get("outlet", {}))
+        self.scene_cfg = SceneConfig(**cfg.get("scene", {}))
         self.max_points = max_points
         self.rng = np.random.default_rng()
         self.lock = threading.Lock()
@@ -250,8 +278,7 @@ class PlcMonitor:
             "error": error,
             "signals": {k: v.get(k) for k in SIGNALS},
             "ground_z": -self.geom.base_height,
-            "obstacles": [{"name": o.name, "min": o.min, "max": o.max}
-                          for o in self.geom.obstacles],
+            "obstacles": [obstacle_for_view(o) for o in self.geom.obstacles],
         }
         if self.outlet_cfg.marker_radius:
             state["marker"] = {"radius": self.outlet_cfg.marker_radius,
@@ -286,25 +313,30 @@ class PlcMonitor:
                 diameter_mm=round(float(v["DiameterMm"]), 1),
                 confidence=round(float(v["Confidence"]), 3),
             )
-        frame = {"id": int(v["ResultId"]), "detect_ms": None, "result": result,
-                 "job": int(v.get("Job") or 0),
+        job = int(v.get("Job") or 0)
+        points = np.load(self.snapshot) if self.snapshot and self.snapshot.exists() else None
+        op = None
+        if points is not None and ok and job != 3:  # Tankform und Hindernisse für die Anzeige
+            try:
+                op = detect_opening(points, self.det_cfg)
+            except DetectionError:
+                pass
+        geom, scene = scene_geom(self.geom, op, self.transform, points, self.outlet_cfg,
+                                 self.scene_cfg)
+        frame = {"id": int(v["ResultId"]), "detect_ms": None, "result": result, "job": job,
+                 "scene": scene,
                  "correction_mm": [round(float(v["CorrectionX"]), 1),
                                    round(float(v["CorrectionY"]), 1)],
-                 "arm": arm_for_view(self.geom, result, int(v["ProductId"]), self.products,
+                 "arm": arm_for_view(geom, result, int(v["ProductId"]), self.products,
                                      self.outlet_cfg)}
         n = int(v.get("WaypointCount") or 0)
         if ok and n:
             frame["servo_target"] = [round(float(v[k][n - 1]), 2)
                                      for k in ("WaypointsJ1", "WaypointsJ2", "WaypointsJ3")]
-        if self.snapshot and self.snapshot.exists():
-            points = np.load(self.snapshot)
+        if points is not None:
             frame.update(points_for_view(points, self.transform, self.max_points, self.rng))
-            if ok and frame["job"] != 3:  # Tankform nur für die Anzeige
-                try:
-                    frame["vehicle"] = vehicle_for_view(detect_opening(points, self.det_cfg),
-                                                        self.transform)
-                except DetectionError:
-                    pass
+            if op is not None:
+                frame["vehicle"] = vehicle_for_view(op, self.transform)
         else:
             frame.update(points=[], n_points=0, note="Keine Punktwolke: snapshot.path im "
                          "Vision-Dienst setzen und denselben Pfad hier konfigurieren.")

@@ -164,6 +164,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         <dt>Eintauchtiefe</dt><dd id="v-depth">–</dd>
         <dt>Korrektur X/Y</dt><dd id="v-corr">–</dd>
         <dt>Tankform</dt><dd id="v-tank">–</dd>
+        <dt>Domdeckel</dt><dd id="v-lid">–</dd>
         <dt>Messpunkte</dt><dd id="v-pts">–</dd>
         <dt>Rechenzeit</dt><dd id="v-ms">–</dd>
       </dl>
@@ -183,7 +184,8 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         <li><span class="sw" style="background:var(--clutter)"></span>Störpunkte (Geländer, Arm …)</li>
         <li><span class="sw" style="background:var(--signal)"></span>Domöffnung, Rohrführung</li>
         <li><span class="sw" style="background:var(--steel)"></span>Freies Drehgelenk J4 (dunkel: Servos J1–J3)</li>
-        <li><span class="sw" style="background:var(--clutter);opacity:.5"></span>Sperrbereich (Hindernis)</li>
+        <li><span class="sw" style="background:var(--clutter);opacity:.5"></span>Sperrbereich: feste Hindernisse, offener Domdeckel (gemessen)</li>
+        <li><span class="sw" style="border:1px solid var(--clutter);background:none"></span>Sicherheitsabstand um Tank und Domkragen</li>
         <li><span class="sw" style="background:var(--ink)"></span>Markierungsscheibe am Auslass (Nachmessen)</li>
         <li><span class="sw" style="background:var(--steel);opacity:.6"></span>Tank (Form aus der Messung, Fahrzeug aus dem Radius geschätzt)</li>
       </ul>
@@ -201,6 +203,8 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     12: "Tankoberfläche nicht erkannt",
     20: "Keine Domöffnung gefunden (Deckel geschlossen?)",
     21: "Mehrere Domöffnungen gefunden",
+    30: "Ziel außerhalb der Reichweite oder Achsgrenzen",
+    31: "Kein kollisionsfreier Weg (Deckel, Tank oder Sperrbereich im Weg)",
     90: "Interner Fehler Vision-Dienst",
   };
   const embedded = document.getElementById("embedded-frames");
@@ -400,16 +404,32 @@ ul.legend li{display:flex;align-items:center;gap:8px}
   const obstacleGroup = new THREE.Group();
   scene.add(obstacleGroup);
   let obstacleKey = "";
+  // Tank und Domkragen nur als Drahtgitter: Die Form zeigt schon das Fahrzeug
+  const zoneMat = new THREE.MeshBasicMaterial({ wireframe: true, transparent: true, opacity: 0.18 });
   function drawObstacles(list) {
     const key = JSON.stringify(list || []);
     if (key === obstacleKey) return;
     obstacleKey = key;
     obstacleGroup.clear();
     for (const o of list || []) {
-      const a = toView(...o.min), b = toView(...o.max);
-      const box = new THREE.Mesh(new THREE.BoxGeometry(Math.abs(b.x - a.x), Math.abs(b.y - a.y), Math.abs(b.z - a.z)), obstacleMat);
-      box.position.set((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
-      obstacleGroup.add(box);
+      if (o.type === "cyl") {
+        const ax = toView(...o.axis).normalize();
+        const m = new THREE.Mesh(new THREE.CylinderGeometry(o.radius, o.radius, 2 * o.half_length, 32, 1, true), zoneMat);
+        m.position.copy(toView(...o.p0));
+        m.quaternion.setFromUnitVectors(UP, ax);
+        obstacleGroup.add(m);
+      } else if (o.type === "obox") {
+        const [e0, e1, e2] = o.axes.map(a => toView(...a));
+        const m = new THREE.Mesh(new THREE.BoxGeometry(2 * o.half[0], 2 * o.half[1], 2 * o.half[2]), obstacleMat);
+        m.position.copy(toView(...o.center));
+        m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(e0, e1, e2));
+        obstacleGroup.add(m);
+      } else {
+        const a = toView(...o.min), b = toView(...o.max);
+        const box = new THREE.Mesh(new THREE.BoxGeometry(Math.abs(b.x - a.x), Math.abs(b.y - a.y), Math.abs(b.z - a.z)), obstacleMat);
+        box.position.set((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+        obstacleGroup.add(box);
+      }
     }
   }
 
@@ -461,6 +481,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     tankMat.color = C.steel;
     cabMat.color = C.muted;
     obstacleMat.color = C.clutter;
+    zoneMat.color = C.clutter;
     markerMat.color = C.ink;
     if (current) colorPoints(phase === "scan" ? false : current.result.ok);
   }
@@ -562,6 +583,10 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     const vh = f.vehicle;
     set("v-tank", !r.ok || !vh ? "–" : vh.kind === "eben" ? "eben"
       : (vh.kind === "kesselwagen" ? "Kesselwagen" : "Lkw") + ", R " + vh.radius.toFixed(2).replace(".", ",") + " m");
+    const lid = f.scene && f.scene.deckel;
+    set("v-lid", !r.ok || !f.scene ? "–" : lid
+      ? "offen, Richtung " + Math.round(lid.azimuth_deg) + "°, " + lid.height_m.toFixed(2).replace(".", ",") + " m hoch"
+      : "nicht gesehen");
     if (r.ok) {
       set("v-target", r.target_mm.map(v => fmt(v)).join(" / ") + " mm");
       set("v-normal", r.normal.map(v => fmt(v, 3)).join(" / "));

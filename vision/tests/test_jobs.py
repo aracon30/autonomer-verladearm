@@ -19,6 +19,8 @@ def make_service(seed=0, error=(0.3, -0.25, 0.2), marker=0.125):
     cfg["source"] = {"type": "sim", "seed": seed, "joint_error_deg": list(error),
                      "marker_radius": marker}
     cfg["outlet"] = {"marker_radius": marker}
+    cfg["recording"] = {"enabled": False}  # keine Dateien im Arbeitsverzeichnis
+    cfg["snapshot"] = {"path": None}
     return VisionService(cfg)
 
 

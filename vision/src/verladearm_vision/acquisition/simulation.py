@@ -21,7 +21,7 @@ RIM_HEIGHT = {"lkw": (3.35, 3.6), "kesselwagen": (4.35, 4.55)}
 class SimulatedScene:
     def __init__(self, geom: ArmGeometry, transform: SensorToArm, vehicles=("lkw", "kesselwagen"),
                  joint_error_deg=(0.0, 0.0, 0.0), dome_spread=0.35, marker_radius=0.125,
-                 marker_offset=0.15, empty=False, sensor_matrix=None, seed=None):
+                 marker_offset=0.15, empty=False, sensor_matrix=None, lid=True, seed=None):
         self.geom, self.transform = geom, transform
         self.vehicles = list(vehicles)
         self.joint_error = np.radians(np.asarray(joint_error_deg, dtype=float))
@@ -33,6 +33,7 @@ class SimulatedScene:
         self.true_t = np.asarray(sensor_matrix, float) if sensor_matrix is not None else transform.T
         self.inv = np.linalg.inv(self.true_t)
         self.empty = empty  # leere Station (Kalibrierung): kein Tankwagen
+        self.lid = lid  # offener Domdeckel in zufälliger Richtung
         self.tank = None
         self.q_true = None
         self.count = 0
@@ -52,7 +53,10 @@ class SimulatedScene:
         sensor_z = self.transform.point(np.zeros(3))[2]  # Armbasis, z oben
         rim_z = -self.geom.base_height + self.rng.uniform(*RIM_HEIGHT[kind])
         dx, dy = self.rng.uniform(-self.dome_spread, self.dome_spread, 2)
+        lid_az = float(self.rng.uniform(-180, 180)) if self.lid else None
         self.tank = make_tank_vehicle(kind, center_xy=(dx, dy), height=sensor_z - rim_z,
+                                      lid_azimuth_deg=lid_az,
+                                      lid_open_deg=float(self.rng.uniform(95, 115)),
                                       seed=int(self.rng.integers(1 << 30)))
         self.kind = kind
 

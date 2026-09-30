@@ -49,9 +49,10 @@ arm:
     q1: {min: -120, max: 120, park: 70, zero: 0, direction: 1}
     q2: {min: -170, max: 170, park: -150, zero: 0, direction: 1}
     q3: {min: -35, max: 50, park: 10, zero: 0, direction: 1}
-  obstacles: []           # Sperrbereiche, siehe anlagen/beispiel.yaml
+  obstacles: []           # feste Sperrbereiche, siehe anlagen/beispiel.yaml
   clearance: 0.15         # Mindestabstand Rohrachse zu Hindernissen
   approach_height: 0.3    # Anfahrpunkt über der Domöffnung
+  approach_lift: 0.5      # Vorpunkt so viel höher; von dort senkrecht auf den Anfahrpunkt
   insertion_depth: 0.4    # Eintauchtiefe, falls für das Produkt nichts hinterlegt ist
 
 outlet:
@@ -62,6 +63,21 @@ outlet:
 planning:
   move_waypoints: 3       # Stützpunkte für die Anfahrt (synchrone Gelenkbewegung)
   insert_waypoints: 5     # Stützpunkte für das senkrechte Eintauchen (max. 16 insgesamt)
+  time_limit_s: 3.5       # Suche nach Umwegen begrenzen (Zeitüberwachung SPS: 5 s)
+
+scene:
+  # Hindernisse aus jeder Messung (Tankkörper, Domkragen, offener Domdeckel), siehe
+  # docs/kinematik.md. Gelten zusätzlich zu arm.obstacles für Anfahrt, Korrektur und Rückfahrt.
+  tank_length: 14.0       # angenommene Tanklänge (der Sensor sieht nur einen Ausschnitt) [m]
+  tank_clearance: 0.1     # Abstand Rohrachse zu Tank und Domkragen [m]
+  flat_extent: 1.5        # ebenes Dach: angenommene halbe Breite/Länge um den Dom [m]
+  collar_wall: 0.05       # Wandstärke Domkragen [m]
+  passage_margin: 0.03    # Sicherheitsabstand im Durchgang durch die Öffnung [m]
+  lid_search: 0.9         # Deckel bis so weit außerhalb der Öffnung suchen [m]
+  lid_max_above: 1.2      # ... und höchstens so weit über der Domoberkante [m]
+  lid_min_points: 80      # Mindestpunktzahl für einen Deckel
+  lid_margin: 0.05        # Zuschlag auf die gemessene Deckelgröße [m]
+  lid_clearance: 0.08     # Abstand Rohrachse zum Deckel [m]
 
 products:
   # Eintauchtiefe je ProductId (aus DB_Vision); "default" gilt für alle anderen

@@ -4,7 +4,7 @@ Pos;Bezeichnung;Vorschlag;Menge;Status;Bemerkung
 3;Kabel Versorgung Sensor;Anschlussleitung passend zum Versorgungsstecker laut Datenblatt, ca. 10 m;1;offen;24 V DC, typ. 12 W
 4;Edge-PC Prüfstand;ASUS NUC 14 Pro, Core Ultra 5, 16 GB, 512 GB SSD;1;offen;Ubuntu 24.04; ca. 640 EUR
 5;USB-LAN-Adapter;USB 3 auf Gigabit Ethernet;1;offen;zweites Netz: Sensor getrennt von SPS
-6;Edge-PC Station;Lüfterloser Industrie-PC, Core i5/i7, 16 GB, 24 V DC, 2-3x LAN, Hutschiene;1;später;Auswahl nach Rechenzeitmessung am Prüfstand
+6;Edge-PC Station;Siemens SIMATIC IPC BX-32A, 4 Kerne (Core i5/i7 oder Xeon W, nicht Celeron), 16 GB, SSD, 24 V DC, 4x LAN, Hutschiene, lüfterlos;1;später;Linux-Unterstützung (Ubuntu oder SIMATIC Industrial OS) vor Bestellung klären; Rechenzeit am Prüfstand messen
 7;Industrie-Switch;unmanaged, 5 Port, Gigabit, 24 V, Hutschiene;1;offen;
 8;Netzteil;24 V DC, 5 A, Hutschiene;1;offen;Sensor, Switch
 9;Sensortraverse;Alu-Profil 45x45/45x90 verstellbar 4-6 m, Winkel, Nutensteine;1;offen;steif, Sensor senkrecht nach unten
@@ -14,4 +14,4 @@ Pos;Bezeichnung;Vorschlag;Menge;Status;Bemerkung
 13;Kalibrierkugel;entfällt;0;entfällt;Kalibrierung nutzt die Markierungsscheibe (Pos. 15)
 14;Messmittel;Laser-Entfernungsmesser, digitaler Neigungsmesser, Maßband;1;offen;
 15;Markierungsscheibe Auslass;Ringscheibe Ø 250 mm, matt, über dem Auslassende (ca. 150 mm);1;offen;für Nachmessen Job 2, Werkstoff produktverträglich
-16;Antriebe J1-J3;Klärung: Servomotoren mit Motorgeber (Absolutwert) oder Gelenkgeber nachrüsten;3;klären;Positionierung ohne Winkelmessung nicht möglich
+16;Drehgeber J1-J3;Absolutwertgeber am Gelenk, PROFINET (Encoder-Profil, Telegramm 81/83), mind. 16 Bit/Umdrehung, IP67, Ex-Ausführung falls in Zone (z. B. POSITAL IXARC Ex, Kübler Sendix Ex, Leine Linde Ex); Anbau über Zahnrad/Zahnriemen am Drehgelenk;3;klären;Ex-Zone klären (Lastenheft N-06); Übersetzung >1:1 -> Multiturn; J4 braucht keinen Geber

@@ -8,8 +8,8 @@ Hallo Peter,
 
 wir automatisieren den Verladearm-Prototyp: Eine 3D-Kamera erkennt den Dom am Tankwagen, ein
 Industrie-PC berechnet die Fahrt, eine neue S7-1500 fährt die drei Achsen. Für Schaltschrank und
-Verkabelung brauchen wir dich. Bitte schau dir die Punkte an und gib uns eine erste Einschätzung
-zu Aufwand, Platzbedarf und Termin.
+Verkabelung brauchen wir dich. Bitte schau dir die Punkte an und gib uns ein Angebot bzw. eine erste
+Einschätzung zu Aufwand, Platzbedarf und Termin – für Schaltschrank, Verkabelung und SPS-Programm.
 
 **1. Komponenten im Schaltschrank**
 - **Umrichter SEW für 3 Achsen** mit Geberauswertung, PROFINET, STO und Bremsenansteuerung;
@@ -53,7 +53,22 @@ zu Aufwand, Platzbedarf und Termin.
 - Explosionsschutz: Zone wird noch geklärt. Das kann die Auswahl von Kamera, Gebern und
   Leitungen beeinflussen.
 
-**5. Optional**
+**5. SPS-Programm (bitte mit kalkulieren)**
+- Hardwarekonfiguration im TIA Portal: CPU, Peripherie, SEW-Umrichter, OPC-UA-Server
+- Technologieobjekte: 3 Positionierachsen mit Absolutgebern, Grenzen, Rampen, Ruck (mit SEW)
+- **Ablauf der Verladung** nach unserer Schnittstellenbeschreibung (`docs/schnittstelle.md`,
+  Datenbaustein `plc/DB_Vision.db` als SCL-Quelle liegt vor): Aufträge an den PC (Job 1–3),
+  Handshake und Heartbeat, Prüfung der Stützpunkte, **synchrones Fahren** der drei Achsen
+  (alle kommen gleichzeitig am Stützpunkt an), langsames Eintauchen, Zeitüberwachung,
+  Fehlerbehandlung
+- Handbetrieb: Achsen einzeln tippen, Parkstellung anfahren
+- **Sicherheitsprogramm** (F-CPU): Not-Halt, STO/SS1, Endlagen, Quittierung, inkl. Validierung
+- HMI (optional): Bedienung, Meldungen, Fehlertexte
+- Test: Unsere PC-Software läuft auch als Simulation und kann gegen PLCSIM Advanced getestet
+  werden, bevor ihr an den Arm geht.
+- Inbetriebnahme vor Ort (bitte Tage schätzen)
+
+**6. Optional**
 - Windmesser mit Eingang an der SPS (Automatikbetrieb bei starkem Wind sperren)
 - Wartungssteckdose/LAN-Anschluss im Schrank für Laptop (Inbetriebnahme)
 

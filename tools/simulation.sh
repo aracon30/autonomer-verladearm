@@ -25,6 +25,17 @@ fi
 PY=.venv/bin/python
 mkdir -p data/logs
 
+port_busy() { $PY -c "import socket,sys; s=socket.socket(); sys.exit(s.connect_ex(('127.0.0.1', $1)) != 0)"; }
+if port_busy "$PORT"; then
+  echo "Port $PORT ist schon belegt (anderes Programm). Anderen Port wählen, z. B.:"
+  echo "  PORT=8080 $0 ${1:-}"
+  exit 1
+fi
+if port_busy 4840; then
+  echo "Port 4840 (OPC UA) ist belegt – läuft schon eine Simulation oder ein OPC-UA-Server?"
+  exit 1
+fi
+
 pids=()
 cleanup() { echo; echo "Stoppe Simulation ..."; kill "${pids[@]}" 2>/dev/null || true; wait; }
 trap cleanup EXIT INT TERM
@@ -35,6 +46,13 @@ $PY -m verladearm_vision.service.main --config "$CONFIG" > data/logs/vision.log 
 $PY -m verladearm_vision.viewer --opcua --config "$CONFIG" --host "$HOST" --port "$PORT" \
   > data/logs/viewer.log 2>&1 & pids+=($!)
 
+sleep 3
+for i in 0 1 2; do
+  if ! kill -0 "${pids[$i]}" 2>/dev/null; then
+    log=(sps vision viewer); echo "Start fehlgeschlagen, siehe data/logs/${log[$i]}.log:"
+    tail -n 5 "data/logs/${log[$i]}.log"; exit 1
+  fi
+done
 echo "Simulation läuft: SPS-Simulator, Vision-Dienst, Live-Ansicht"
 if [[ "$HOST" == 0.0.0.0 ]]; then
   for ip in $(hostname -I 2>/dev/null); do

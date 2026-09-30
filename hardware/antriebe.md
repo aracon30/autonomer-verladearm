@@ -14,7 +14,7 @@ Je Achse: Motor, Getriebe, Geber, Bremse, Ansteuerung. Offene Punkte sind mit **
 | Abtriebsmoment | 215 Nm (Ma max 300 Nm), Betriebsfaktor 1,40 |
 | Bremse | BE05, 230 V AC, **1,8 Nm** (motorseitig), Gleichrichter BG1.5 |
 | Temperaturschutz | TF (Kaltleiter) |
-| Geber | **keiner** (kein /EI.. oder /AK.. in der Typenbezeichnung) |
+| Geber | **Motorgeber von SEW wird nachgerüstet** (Typ **offen**: Absolutwert multiturn empfohlen, z. B. AK0H; inkremental z. B. EI7C nur mit Referenzfahrt) |
 | Schutzart | IP55, −20 … +40 °C, **kein Ex-Schutz** |
 | Gewicht | 31,3 kg |
 | Schwenkantrieb Pos. 4 | **IMO WD-E 0223/3** (Schneckengetriebe), IMO-Projekt 10000481356, Technical Notes 10.12.2025 |
@@ -34,9 +34,17 @@ Je Achse: Motor, Getriebe, Geber, Bremse, Ansteuerung. Offene Punkte sind mit **
 - **Kein Servomotor**, sondern Asynchron-Getriebemotor mit Bremse. Sanftes Anfahren/Bremsen
   über einen **Frequenzumrichter** mit Rampen (z. B. SEW MOVITRAC/MOVIDRIVE oder Siemens
   SINAMICS G120, PROFINET). TF und Bremse am Umrichter anschließen.
-- **Positionieren nur mit Geber.** Empfehlung: Absolutwertgeber am Gelenk (Stückliste Pos. 16),
-  S7-1500 Positionierachse mit Drehzahlsollwert an den Umrichter und Gelenkgeber als Istwert.
-  Alternativ Motorgeber nachrüsten (SEW-Option), dann bleibt das Getriebespiel ungemessen.
+- **Geber am Motor (SEW)** statt am Gelenk. Gelenkwinkel = Motorwinkel ÷ (42,87 × i_S);
+  Auflösung am Gelenk sehr fein. Das Getriebespiel wird nicht gemessen – bei J3 unkritisch, weil
+  das Gewicht des Auslegers die Zahnflanken immer in dieselbe Richtung andrückt (Spiel ist
+  vorgespannt). Restfehler gleicht Job 2 (Nachmessen) aus. Ein Gelenkgeber an J3 entfällt.
+- **Absolut oder inkremental:** Multiturn-Absolutwertgeber → Position sofort nach dem
+  Einschalten. 90° am Gelenk ≈ 0,25 × 42,87 × i_S Motorumdrehungen (bei i_S = 60 ca. 640) –
+  innerhalb von 4096 Umdrehungen üblicher Multiturngeber. Inkrementalgeber → nach jedem
+  Einschalten Referenzfahrt auf Endschalter/Referenznocken.
+- **Ansteuerung:** Geber an einen SEW-Umrichter mit Geberauswertung (z. B. MOVIDRIVE/MOVI-C,
+  PROFINET), S7-1500 Positionierachse über PROFIdrive-Telegramm (z. B. 105) oder SEW-Positionier-
+  baustein. Bei Umrichtern anderer Hersteller Geberschnittstelle (Hiperface/SSI …) prüfen.
 - **Lastmoment J3:** Auslegung IMO mit 3,52 kNm (HETA-Vorgabe); eigene Schätzung (Rohr
   114,3 × 3,6, Ausleger waagerecht) 1,6 kNm leer, 2,0 kNm gefüllt. Reserve zu Md max 9,5 kNm
   und Mh max 11 kNm groß.

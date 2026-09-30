@@ -27,6 +27,12 @@ arm:
   obstacles: []           # Stützen, Bühne, Geländer vor Ort erfassen
   clearance: 0.15
 
+# Referenz für das Nachmessen (Job 2) und die Kalibrierung: vorhandener Flansch am Auslassrohr
+# (DN 100, Ø 220 mm), von oben sichtbar. Nur für diesen Arm; andere Arme: Markierungsscheibe.
+outlet:
+  marker_radius: 0.11     # halber Flanschdurchmesser [m]
+  marker_offset: 0.823    # Flanschoberkante bis unterster Punkt Auslass [m]
+
 # Antriebe je Achse, Werte am Gelenk (Details und Herleitung: hardware/antriebe.md)
 drives:
   q1:

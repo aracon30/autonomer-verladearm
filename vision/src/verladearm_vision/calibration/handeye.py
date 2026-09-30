@@ -9,12 +9,12 @@ Die Scheibe wird mit Hilfe einer groben Anfangsschätzung (gemessene Montagelage
 ersten Lösen wird mit der verbesserten Transformation erneut gesucht.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 
-from verladearm_vision.detection import DetectionError, OutletConfig, detect_outlet
-from verladearm_vision.kinematics import JOINTS, ArmGeometry, tip
+from verladearm_vision.detection import DetectionError, OutletConfig, detect_marker, detect_outlet
+from verladearm_vision.kinematics import JOINTS, ArmGeometry, marker_point, tip
 
 
 def solve_rigid(p_sensor: np.ndarray, p_arm: np.ndarray) -> np.ndarray:
@@ -36,9 +36,9 @@ def apply(t: np.ndarray, p: np.ndarray) -> np.ndarray:
 @dataclass
 class Sample:
     servo_deg: tuple
-    arm: np.ndarray  # Auslassende laut Kinematik [m, Armbasis]
+    arm: np.ndarray  # Markierung (bzw. Auslassende ohne Markierung) laut Kinematik [m, Armbasis]
     points: np.ndarray  # Punktwolke [m, Sensor]
-    sensor: np.ndarray | None = None  # gemessenes Auslassende [m, Sensor]
+    sensor: np.ndarray | None = None  # dieselbe Stelle gemessen [m, Sensor]
     error: str = ""
 
 
@@ -51,9 +51,12 @@ class HandEyeCalibration:
 
     def _measure(self, s: Sample, t: np.ndarray):
         arm_pts = apply(t, s.points)
+        cfg = self.outlet_cfg
         try:
-            # Suchfenster: knapp unterhalb bis 1 m oberhalb des erwarteten Auslassendes
-            found = detect_outlet(arm_pts, s.arm - [0, 0, 0.3], cfg=self.outlet_cfg)
+            if cfg.marker_radius:  # Markierung direkt vergleichen, Fenster ±0,25 m um sie herum
+                found = detect_marker(arm_pts, s.arm - [0, 0, 0.3], replace(cfg, max_above=0.55))
+            else:  # Suchfenster: knapp unterhalb bis 1 m oberhalb des erwarteten Auslassendes
+                found = detect_outlet(arm_pts, s.arm - [0, 0, 0.3], cfg=cfg)
         except DetectionError as e:
             s.sensor, s.error = None, str(e)
             return
@@ -62,7 +65,12 @@ class HandEyeCalibration:
     def add(self, points_sensor: np.ndarray, servo_deg) -> Sample:
         q = np.array([self.geom.joints[k].to_model(v) for k, v in zip(JOINTS, servo_deg,
                                                                         strict=True)])
-        s = Sample(tuple(float(v) for v in servo_deg), tip(self.geom, q), np.asarray(points_sensor))
+        cfg = self.outlet_cfg
+        if cfg.marker_radius:
+            ref = marker_point(self.geom, q, cfg.marker_offset)
+        else:
+            ref = tip(self.geom, q)
+        s = Sample(tuple(float(v) for v in servo_deg), ref, np.asarray(points_sensor))
         self._measure(s, self.guess)
         self.samples.append(s)
         return s

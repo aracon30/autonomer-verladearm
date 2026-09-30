@@ -72,6 +72,12 @@ Danach weiter mit Schritt 7 (Kalibrierung).
 
 5. **Produkte** (`products`): Eintauchtiefe je `ProductId`, `default` für alle übrigen.
 
+   **Referenz am Auslass** (`outlet`): Markierungsscheibe (Standard Ø 250 mm, 150 mm über dem
+   Auslassende) oder ein vorhandener, von oben sichtbarer Flansch am Auslassrohr, z. B. beim
+   HETA-Prototyp Flansch Ø 220 mm, Oberkante 823 mm über dem untersten Punkt des Auslasses:
+   `marker_radius: 0.11`, `marker_offset: 0.823`. Die Referenz muss rund, mittig und
+   rechtwinklig zum Auslassrohr sein; der Außenrand darf nicht verdeckt sein (keine Laschen).
+
 6. **Arbeitsraum** (`commissioning`): Bereich, in dem die Domöffnung bei dieser Station liegen
    kann (unterschiedliche Tankwagen, Aufbauhöhen, Abstellpositionen).
 

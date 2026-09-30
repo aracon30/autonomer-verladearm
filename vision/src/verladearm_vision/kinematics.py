@@ -345,6 +345,18 @@ def forward_many(geom: ArmGeometry, qs) -> np.ndarray:
     return pts
 
 
+def outlet_axis(geom: ArmGeometry, q) -> np.ndarray:
+    """Richtung des Auslassrohrs vom Auslassende nach oben (Einheitsvektor, fast senkrecht)."""
+    p = forward(geom, q)
+    a = p[5] - p[6]
+    return a / np.linalg.norm(a)
+
+
+def marker_point(geom: ArmGeometry, q, offset: float) -> np.ndarray:
+    """Mitte der Markierung (Scheibe/Flansch) `offset` über dem Auslassende auf der Rohrachse."""
+    return forward(geom, q)[6] + offset * outlet_axis(geom, q)
+
+
 def tip(geom: ArmGeometry, q) -> np.ndarray:
     return forward(geom, q)[-1]
 

@@ -93,7 +93,8 @@ def main():
                                                     [np.sin(a), np.cos(a), 0], [0, 0, 1]])
         true_t[:3, 3] += [0.04, -0.03, 0.02]
         source = SimulatedScene(geom, SensorToArm(guess), empty=True, sensor_matrix=true_t,
-                                seed=1)
+                                marker_radius=outlet.marker_radius,
+                                marker_offset=outlet.marker_offset, seed=1)
     else:
         from verladearm_vision.service.main import build_source
 

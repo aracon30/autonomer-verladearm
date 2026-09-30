@@ -87,3 +87,16 @@ def test_nicht_speichern(tmp_path):
     d, *_ = scripted([("Anlagendatei schreiben", "n")])
     assert run(d, tmp_path / "a.yaml") is None
     assert not (tmp_path / "a.yaml").exists()
+
+
+def test_referenz_und_weitere_abschnitte_bleiben_erhalten(tmp_path):
+    target = tmp_path / "a.yaml"
+    run(scripted([("Außendurchmesser Markierungsscheibe", "0,22"),
+                  ("Oberkante Referenz", "0,823")])[0], target)
+    # von Hand ergänzter Abschnitt, den der Dialog nicht kennt
+    text = target.read_text(encoding="utf-8")
+    target.write_text(text + "\ndrives:\n  q3: {ratio: 1457.6, speed_limit: 6}\n", encoding="utf-8")
+    run(scripted([])[0], target)  # erneut, alles mit Enter
+    cfg = load_config(target)
+    assert cfg["outlet"] == {"marker_radius": 0.11, "marker_offset": 0.823}
+    assert cfg["drives"]["q3"] == {"ratio": 1457.6, "speed_limit": 6}

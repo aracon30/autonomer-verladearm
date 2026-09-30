@@ -22,7 +22,9 @@ Hindernisse sind für jeden Verladearm verschieden und stehen in der Anlagendate
 
 J1 und J2 positionieren den Auslass in der Waagerechten (wie ein Scara-Roboter), J3 bestimmt die
 Höhe. Weil J4 frei pendelt und parallel zu J3 liegt, hängt der Auslass unabhängig vom Hubwinkel
-senkrecht. Nur der innere Ausleger hat ein festes Gefälle; das Fallrohr (Achse J2) ist senkrecht,
+senkrecht. Nur der innere Ausleger hat ein festes Gefälle; der Winkel danach hat entsprechend
+90° − Gefälle (z. B. 87° bei 3°), sodass das Fallrohr mit J2 senkrecht steht und J2 um die
+Senkrechte dreht;
 der äußere Ausleger wird über J3 eingestellt (J3 = 0: waagerecht). Ist das Fallrohr an einem
 anderen Arm geneigt, wird das mit `drop_tilt_deg` eingetragen; dann hängt der Auslass je nach J2
 leicht schräg, und das Modell rechnet die Schräglage mit.

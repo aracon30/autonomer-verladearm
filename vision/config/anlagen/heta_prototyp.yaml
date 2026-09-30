@@ -12,7 +12,7 @@ extends: beispiel.yaml
 arm:
   base_height: 5.5        # vor Ort messen
   inner_length: 2.4       # Zeichnung: 2548 − 148
-  incline_deg: 3          # nur innerer Ausleger; Fallrohr J2 senkrecht
+  incline_deg: 3          # nur innerer Ausleger; Winkel danach 87° -> Fallrohr/J2 senkrecht
   drop: 0.43              # aus 961 − 404 − 2400·tan 3° (prüfen)
   offset_right: 0.563
   outer_length: 2.7

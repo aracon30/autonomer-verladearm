@@ -37,7 +37,7 @@ outlet:
 # Antriebe je Achse, Werte am Gelenk (Details und Herleitung: hardware/antriebe.md)
 drives:
   q1:
-    motor: SEW CM3C71S (Servo, ohne Bremse, Multiturn-Absolutgeber – angefragt)
+    motor: SEW CM3C71S (Servo, mit Bremse, Multiturn-Absolutgeber – angefragt)
     gear: P5KG31 i=4 × Ritzel z48 / Zahnkranz z127 (Modul 2) – Konstruktion
     motor_speed: 2000
     ratio: 10.58          # 4 × 127/48
@@ -46,7 +46,7 @@ drives:
     backlash: 0.1         # ° Annahme (Planetengetriebe 5′/2,65 + Zahnflankenspiel m 2)
     torque: 63            # 6,5 Nm × 10,58 × 0,92
     torque_peak: 190      # 19,5 Nm × 10,58 × 0,92
-    brake: false
+    brake: true
     encoder: Multiturn absolut (angefragt)
   q2:
     motor: SEW CM3C71S (Servo, mit Bremse, Multiturn-Absolutgeber – angefragt)

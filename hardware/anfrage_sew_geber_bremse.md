@@ -16,7 +16,7 @@ Angebot zu den Punkten 3 und 4.
   Referenzfahrt nötig ist. Bitte nennen Sie den für den CM3C71S passenden Geber
   (digital/HIPERFACE, möglichst Einkabeltechnik) und ob dafür eine sicherheitsgerichtete
   Ausführung verfügbar ist.
-- ohne Bremse
+- **Haltebremse** 24 V DC (Nachtrag: ursprünglich ohne Bremse angefragt)
 
 **2. Servo J2 (Drehachse am Fallrohr), 1 Stück**
 - wie angeboten: CM3C71S, P5KG31 i = 4

@@ -17,7 +17,7 @@ zu Aufwand, Platzbedarf und Termin.
 - **SIMATIC IPC BX-32A** (Hutschiene, 24 V DC, lüfterlos), 2 Netzwerke:
   PROFINET/SPS-Netz und ein eigenes Netz nur für die Kamera
 - **Industrie-Switch** Gigabit, unmanaged, 24 V, Hutschiene
-- **24-V-Netzteil** für IPC, Switch, Kamera (typ. 12 W, Spitze 2 A) und die Haltebremse J2 –
+- **24-V-Netzteil** für IPC, Switch, Kamera (typ. 12 W, Spitze 2 A) und die Haltebremsen J1 und J2 –
   bitte selbst auslegen
 - **S7-1500:** Ist im vorhandenen Schrank Platz, oder kommt sie neu dazu? Für die
   Sicherheitsfunktionen (Not-Halt, STO) bitte F-CPU bzw. Sicherheitstechnik vorsehen.
@@ -26,7 +26,7 @@ zu Aufwand, Platzbedarf und Termin.
 
 | Achse | Motor | Bremse | Geber | Temperatur |
 |---|---|---|---|---|
-| J1 Drehen am Haltepunkt | SEW Servo CM3C71S, Steckverbinder SM1 | nein | Multiturn absolut (angefragt) | PT1000 |
+| J1 Drehen am Haltepunkt | SEW Servo CM3C71S, Steckverbinder SM1 | ja, 24 V | Multiturn absolut (angefragt) | PT1000 |
 | J2 Drehen am Fallrohr | SEW Servo CM3C71S, Steckverbinder SM1 | ja, 24 V | Multiturn absolut (angefragt) | PT1000 |
 | J3 Heben/Senken | SEW DRN80M4 (Drehstrom, vorhanden) | BE05 | Multiturn absolut (angefragt) | TF |
 

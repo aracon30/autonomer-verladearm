@@ -42,7 +42,8 @@ Startet SPS-Simulator, Vision-Dienst und Live-Ansicht mit
 `vision/config/anlagen/simulation.yaml` (HETA-Prototyp mit seinen Antrieben: Geschwindigkeiten,
 Rampen, Getriebespiel; Fahrten im Zeitraffer, `ZEITRAFFER=1` für Echtzeit). Live-Ansicht vom eigenen PC per SSH-Tunnel:
 `ssh -L 8000:127.0.0.1:8000 <benutzer>@<server>`, dann http://127.0.0.1:8000 öffnen.
-Logs unter `data/logs/`, Beenden mit Strg+C.
+Logs unter `data/logs/`, Beenden mit Strg+C. Eine im Konfigurator angelegte Anlage simulieren:
+`tools/simulation.sh --netz --anlage <name>` (Datei `vision/config/anlagen/<name>.yaml`).
 
 Anlagendatei eines Arms im Browser bearbeiten (Konfigurator, http://<IP>:8090):
 

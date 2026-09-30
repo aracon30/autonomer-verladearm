@@ -215,27 +215,32 @@ class VisionService:
         return res, op
 
     def _job_measure_plan(self, req: Request, q_act) -> MeasureResult:
+        # Ein neuer Messauftrag ersetzt den bisherigen Kontext. Ein fehlgeschlagener Auftrag darf
+        # insbesondere nicht als Grundlage für Job 2 oder den Rückweg von Job 3 erhalten bleiben.
+        self.last = None
         res, op = self._measure(req)
         if not res.ok:
-            self.last = None
             return res
         depth = product_insertion_depth(self.products, req.product_id, self.geom.insertion_depth)
         # Tankkörper, Domkragen und offener Deckel als Hindernisse für alle folgenden Bahnen
         obstacles, scene_info = build_obstacles(op, self.transform, self._points,
                                                 self.outlet_cfg, self.scene_cfg)
-        self.last = dict(target_mm=res.target_mm, normal=res.normal, depth=depth,
-                         diameter_mm=res.diameter_mm, confidence=res.confidence,
-                         obstacles=obstacles)
-        plan = plan_motion(self._scene_geom(), res.target_mm, res.normal, insertion_depth=depth,
+        context = dict(target_mm=res.target_mm, normal=res.normal, depth=depth,
+                       diameter_mm=res.diameter_mm, confidence=res.confidence,
+                       obstacles=obstacles)
+        scene_geom = self.geom.with_obstacles(obstacles)
+        plan = plan_motion(scene_geom, res.target_mm, res.normal, insertion_depth=depth,
                            q_start=q_act, time_limit=self.plan_time_limit)
         self._info.update(eintauchtiefe_m=depth, szene=scene_info,
                           umweg=len(plan.get("move_vias") or []) > 1)
-        if plan["ok"]:  # geprüfter Anfahrweg bis zum Vorpunkt, rückwärts Notweg für Job 3
-            self.last["approach"] = [q_act.tolist()] + plan["move_vias"][:-1]
         if not plan["ok"]:
             return self._fail(plan["code"], plan["reason"], target_mm=res.target_mm,
                               normal=res.normal, diameter_mm=res.diameter_mm,
                               confidence=res.confidence)
+        # Erst ein vollständig geplanter Job 1 ist ein gültiger Kontext für Folgeaufträge.
+        # Der geprüfte Anfahrweg dient Job 3 bei Bedarf als rückwärtiger Notweg.
+        context["approach"] = [q_act.tolist()] + plan["move_vias"][:-1]
+        self.last = context
         move, n_move = self._move_segment(plan, q_act, self.move_waypoints)
         res.waypoints, res.approach_index = self._waypoints(
             (move, n_move, True),

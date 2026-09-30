@@ -28,7 +28,7 @@ DIMENSIONS = [
     ("base_height", "Höhe Rohrmitte innerer Ausleger an der Achse J1 über Fahrbahn "
                     "(Standfläche Tankwagen)", 2.0, 12.0),
     ("inner_length", "Innerer Ausleger: Achse J1 bis Mitte Winkel nach unten", 0.3, 10.0),
-    ("incline_deg", "Gefälle der Ausleger [Grad, nach unten positiv]", -15.0, 15.0),
+    ("incline_deg", "Festes Gefälle des inneren Auslegers [Grad, nach unten positiv]", -15.0, 15.0),
     ("drop", "Fallrohr: Winkel nach unten bis Mitte Winkel nach rechts (Achse J2)", 0.05, 3.0),
     ("offset_right", "Winkel nach rechts bis Mitte Winkel nach vorne (Achse J3)", 0.05, 2.0),
     ("outer_length", "Äußerer Ausleger: Winkel nach vorne bis Mitte Winkel nach links", 0.3, 10.0),
@@ -114,7 +114,7 @@ def ask_joints(d: Dialog, cur: dict, read_angles=None) -> dict:
     known = set()  # Drehrichtung aus der SPS ermittelt
     if read_angles:
         d.ask("Arm im Handbetrieb in NULLSTELLUNG fahren: beide Ausleger gestreckt nach vorne, "
-              "äußerer Ausleger im Gefälle. Dann Enter", "")
+              "äußerer Ausleger waagerecht. Dann Enter", "")
         for k, v in zip(JOINTS, read_angles(), strict=True):
             joints[k]["zero"] = round(v, 2)
         d.print("    Nullstellung gelesen: " + fmt([joints[k]["zero"] for k in JOINTS]))

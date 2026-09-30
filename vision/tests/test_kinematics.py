@@ -27,7 +27,7 @@ def test_auslass_bleibt_senkrecht_beim_heben(q3):
     g = ArmGeometry()
     p = forward(g, [0.3, -1.2, q3])
     d = (p[6] - p[5]) / g.outlet_length
-    assert d[2] < -0.998  # max. ~3,6° Abweichung durch das Gefälle
+    assert d[2] == pytest.approx(-1.0)  # Fallrohr senkrecht: Auslass hängt senkrecht
     assert np.linalg.norm(d) == pytest.approx(1)
 
 
@@ -132,3 +132,12 @@ def test_rueckfahrt_aus_dem_dom():
     lifted = tip(g, np.array(plan["q_lift"][-1]))
     assert np.allclose(lifted, tip(g, q) + [0, 0, 0.7], atol=0.002)
     assert np.allclose(plan["q_move"][-1], g.park)
+
+
+def test_geneigtes_fallrohr_kippt_den_auslass():
+    from verladearm_vision.kinematics import outlet_axis
+
+    g = ArmGeometry(drop_tilt_deg=3.0)
+    tilt = np.degrees(np.arccos(outlet_axis(g, [0.3, 1.2, 0.2])[2]))
+    assert 0.5 < tilt < 3.5
+    assert outlet_axis(ArmGeometry(), [0.3, 1.2, 0.2]) == pytest.approx([0, 0, 1])

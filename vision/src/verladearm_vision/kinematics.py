@@ -2,12 +2,12 @@
 
 Aufbau vom Haltepunkt zum Auslass:
     J1  Servo, dreht um die senkrechte Achse am Haltepunkt (links/rechts)
-        innerer Ausleger, `incline_deg` fallend, Länge `inner_length`
-        90°-Winkel nach unten, Fallrohr `drop`
+        innerer Ausleger, fest `incline_deg` fallend, Länge `inner_length`
+        Winkel nach unten, Fallrohr `drop` senkrecht (bzw. `drop_tilt_deg` geneigt)
     J2  Servo, dreht um die Achse des Fallrohrs (links/rechts)
         90°-Winkel nach rechts, Rohr `offset_right`
     J3  Servo, dreht um die Achse dieses Rohrs (Ausleger heben/senken)
-        90°-Winkel nach vorne, äußerer Ausleger `outer_length` (bei J3 = 0 ebenfalls fallend)
+        90°-Winkel nach vorne, äußerer Ausleger `outer_length` (bei J3 = 0 waagerecht)
         90°-Winkel nach links, Rohr `offset_left`
     J4  freies Drehgelenk ohne Motor
         90°-Winkel nach unten, Auslass `outlet_length`; hängt durch die Schwerkraft
@@ -162,7 +162,8 @@ def obstacle_from_dict(o: dict):
 @dataclass
 class ArmGeometry:
     base_height: float = 5.0  # Höhe J1 über Fahrbahn [m]
-    incline_deg: float = 3.0
+    incline_deg: float = 3.0  # festes Gefälle des inneren Auslegers [°]
+    drop_tilt_deg: float = 0.0  # Neigung des Fallrohrs (J2-Achse) gegen die Senkrechte [°]
     inner_length: float = 2.2
     drop: float = 0.5
     offset_right: float = 0.35
@@ -287,7 +288,7 @@ def forward(geom: ArmGeometry, q) -> np.ndarray:
     r = _rz(q1) @ _ry(np.radians(geom.incline_deg))
     p = r[:, 0] * geom.inner_length
     pts.append(p)
-    r = r @ _ry(_HALF_PI)  # Winkel nach unten
+    r = _rz(q1) @ _ry(np.radians(geom.drop_tilt_deg) + _HALF_PI)  # Winkel nach unten
     p = p + r[:, 0] * geom.drop
     pts.append(p)
     r = r @ _rx(q2) @ _rz(-_HALF_PI)  # J2, Winkel nach rechts
@@ -323,10 +324,11 @@ def forward_many(geom: ArmGeometry, qs) -> np.ndarray:
     qs = np.atleast_2d(np.asarray(qs, float))
     n = len(qs)
     pts = np.zeros((n, 7, 3))
-    r = _rot_many(2, qs[:, 0]) @ _ry(np.radians(geom.incline_deg))
+    rz1 = _rot_many(2, qs[:, 0])
+    r = rz1 @ _ry(np.radians(geom.incline_deg))
     p = r[:, :, 0] * geom.inner_length
     pts[:, 1] = p
-    r = r @ _ry(_HALF_PI)
+    r = rz1 @ _ry(np.radians(geom.drop_tilt_deg) + _HALF_PI)
     p = p + r[:, :, 0] * geom.drop
     pts[:, 2] = p
     r = r @ _rot_many(0, qs[:, 1]) @ _rz(-_HALF_PI)

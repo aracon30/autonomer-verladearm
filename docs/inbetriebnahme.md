@@ -5,7 +5,7 @@ Produkte. Diese Werte stehen in einer **Anlagendatei** und werden vor Ort einges
 Alles andere (Erkennung, Schnittstelle, Standardwerte) kommt aus `vision/config/default.yaml`.
 
 Die Software ist für diese **Bauart** ausgelegt: J1 dreht am Haltepunkt, innerer Ausleger mit
-Gefälle, Fallrohr mit J2, Winkel nach rechts mit J3 (heben/senken), äußerer Ausleger, Winkel nach
+festem Gefälle, Fallrohr mit J2, Winkel nach rechts mit J3 (heben/senken), äußerer Ausleger, Winkel nach
 links, freies Gelenk J4, Auslass hängt durch die Schwerkraft (docs/kinematik.md). Alle Maße,
 Winkel, Achsbereiche, Hindernisse und Produkte werden je Arm bei der Ersteinrichtung festgelegt.
 
@@ -53,11 +53,11 @@ Danach weiter mit Schritt 7 (Kalibrierung).
    | `outer_length` | Winkel nach vorne bis Mitte Winkel nach links |
    | `offset_left` | Winkel nach links bis Mitte Winkel nach unten (freies Gelenk J4) |
    | `outlet_length` | Winkel nach unten bis Auslassende |
-   | `incline_deg` | Gefälle der Ausleger |
+   | `incline_deg` | festes Gefälle des inneren Auslegers (Fallrohr senkrecht; sonst `drop_tilt_deg`) |
 
 3. **Servoachsen einstellen** (`arm.joints`, alle Werte in Servo-Grad wie am Antrieb angezeigt)
    - `zero`: Arm im Handbetrieb so stellen, dass beide Ausleger gestreckt nach vorne zeigen und
-     der äußere Ausleger im Gefälle liegt. Servowerte J1, J2, J3 ablesen.
+     der äußere Ausleger **waagerecht** liegt (Wasserwaage). Servowerte J1, J2, J3 ablesen.
    - `direction`: Jede Achse ein Stück im positiven Sinn verfahren. Dreht J1 bzw. J2 nach links
      (von oben gesehen gegen den Uhrzeigersinn) bzw. hebt J3 den Ausleger: `1`, sonst `-1`.
    - `min` / `max`: freigegebener Verfahrbereich (nicht die mechanischen Endanschläge).

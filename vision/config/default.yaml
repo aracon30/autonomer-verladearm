@@ -38,7 +38,8 @@ arm:
   # eigene Datei unter vision/config/anlagen/, die bei der Inbetriebnahme ausgefüllt wird
   # (docs/inbetriebnahme.md).
   base_height: 5.0        # Höhe Achse J1 über Fahrbahn
-  incline_deg: 3.0        # Gefälle innerer und äußerer Ausleger
+  incline_deg: 3.0        # festes Gefälle des inneren Auslegers
+  drop_tilt_deg: 0.0      # Neigung Fallrohr/J2-Achse gegen die Senkrechte (meist 0)
   inner_length: 2.2       # J1 bis Winkel nach unten
   drop: 0.5               # Winkel nach unten bis Winkel nach rechts (Achse J2)
   offset_right: 0.35      # Winkel nach rechts bis Winkel nach vorne (Achse J3)

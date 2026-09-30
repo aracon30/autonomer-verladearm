@@ -12,7 +12,7 @@ extends: beispiel.yaml
 arm:
   base_height: 5.5        # vor Ort messen
   inner_length: 2.4       # Zeichnung: 2548 − 148
-  incline_deg: 3
+  incline_deg: 3          # nur innerer Ausleger; Fallrohr J2 senkrecht
   drop: 0.43              # aus 961 − 404 − 2400·tan 3° (prüfen)
   offset_right: 0.563
   outer_length: 2.7
@@ -22,8 +22,8 @@ arm:
     # J1/J2: Zahnkranz mit Öffnung, verzahnt ca. 296° -> Bereich mit Abstand zur Lücke
     q1: {min: -120, max: 120, park: 70, zero: 0, direction: 1}
     q2: {min: -140, max: 140, park: -135, zero: 0, direction: 1}
-    # J3: Schwenkantrieb ±45° zur Waagerechten = −42 … 48° zum 3°-Gefälle
-    q3: {min: -42, max: 48, park: 10, zero: 0, direction: 1}
+    # J3: Schwenkantrieb ±45° zur Waagerechten (Nullstellung: äußerer Ausleger waagerecht)
+    q3: {min: -45, max: 45, park: 10, zero: 0, direction: 1}
   obstacles: []           # Stützen, Bühne, Geländer vor Ort erfassen
   clearance: 0.15
 

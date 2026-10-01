@@ -75,6 +75,7 @@ ol.steps li.fail::before{background:var(--err);border-color:var(--err);color:var
 dl{margin:0;display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:4px 12px;align-items:baseline}
 dt{color:var(--muted);font-size:.88rem}
 dd{margin:0;min-width:0;text-align:right;font-family:var(--f-mono);font-size:.88rem;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.view-toggles{margin-top:8px;gap:6px 14px;font-size:.88rem}
 .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 button{font-family:var(--f-display);font-weight:600;font-size:1rem;letter-spacing:.03em;
   padding:.45rem .9rem;border:1.5px solid var(--ink);background:var(--signal);color:var(--signal-ink);cursor:pointer}
@@ -176,6 +177,13 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         <button id="trigger" type="button">Messung auslösen</button>
         <label class="toggle"><input type="checkbox" id="auto" checked> Automatik</label>
       </div>
+      <div class="controls view-toggles" role="group" aria-label="Anzeige">
+        <label class="toggle"><input type="checkbox" id="t-cloud" checked> Punktwolke</label>
+        <label class="toggle"><input type="checkbox" id="t-relief" checked> Dom-Relief</label>
+        <label class="toggle"><input type="checkbox" id="t-obst" checked> Sperrbereiche</label>
+        <label class="toggle"><input type="checkbox" id="t-pass" checked> Durchgang</label>
+        <label class="toggle"><input type="checkbox" id="t-arm"> Punkte am Arm</label>
+      </div>
     </section>
     <section>
       <h2>Legende</h2>
@@ -185,7 +193,9 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         <li><span class="sw" style="background:var(--clutter)"></span>Störpunkte (Geländer, Arm …)</li>
         <li><span class="sw" style="background:var(--signal)"></span>Domöffnung, Rohrführung</li>
         <li><span class="sw" style="background:var(--steel)"></span>Freies Drehgelenk J4 (dunkel: Servos J1–J3)</li>
-        <li><span class="sw" style="background:var(--clutter);opacity:.5"></span>Sperrbereich: feste Hindernisse, offener Domdeckel (gemessen)</li>
+        <li><span class="sw" style="background:linear-gradient(90deg,var(--steel),var(--signal))"></span>Dom-Relief aus der Messung (Farbe = Höhe über dem Öffnungsrand)</li>
+        <li><span class="sw" style="background:var(--clutter);opacity:.5;outline:1.5px solid var(--clutter)"></span>Sperrbereich: feste Hindernisse, Deckel/Klappe, Aufbauten am Dom (gemessen)</li>
+        <li><span class="sw" style="border:1.5px dashed var(--signal);background:none"></span>Durchgang: hier taucht der Auslass ein</li>
         <li><span class="sw" style="border:1px solid var(--clutter);background:none"></span>Sicherheitsabstand um Tank und Domkragen</li>
         <li><span class="sw" style="background:var(--ink)"></span>Markierungsscheibe am Auslass (Nachmessen)</li>
         <li><span class="sw" style="background:var(--steel);opacity:.6"></span>Tank (Form aus der Messung, Fahrzeug aus dem Radius geschätzt)</li>
@@ -273,6 +283,65 @@ ul.legend li{display:flex;align-items:center;gap:8px}
   ptGeo.setDrawRange(0, 0);
   const cloud = new THREE.Points(ptGeo, new THREE.PointsMaterial({ size: 0.022, vertexColors: true }));
   scene.add(cloud);
+  // Punkte am Arm (getrennt, standardmäßig ausgeblendet) und Dom-Relief aus der Messung
+  const armPtGeo = new THREE.BufferGeometry();
+  armPtGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(20000 * 3), 3));
+  armPtGeo.setDrawRange(0, 0);
+  const armPtMat = new THREE.PointsMaterial({ size: 0.018, transparent: true, opacity: 0.6 });
+  const armCloud = new THREE.Points(armPtGeo, armPtMat);
+  armCloud.visible = false;
+  scene.add(armCloud);
+  function setArmPoints(flat) {
+    const n = Math.min((flat || []).length / 3, 20000), pos = armPtGeo.attributes.position.array;
+    for (let i = 0; i < n; i++) pos.set(toView(flat[i * 3], flat[i * 3 + 1], flat[i * 3 + 2]).toArray(), i * 3);
+    armPtGeo.attributes.position.needsUpdate = true;
+    armPtGeo.setDrawRange(0, n);
+    armPtGeo.computeBoundingSphere();
+  }
+  const reliefGroup = new THREE.Group();
+  scene.add(reliefGroup);
+  const reliefMat = new THREE.MeshStandardMaterial({ roughness: 0.75, metalness: 0.15 });
+  let reliefKey = "";
+  function drawRelief(r) {
+    const key = r ? r.rim_z + ":" + r.cells.length + ":" + (r.cells[0] || []).join() : "";
+    if (key === reliefKey) return;
+    reliefKey = key;
+    reliefGroup.clear();
+    if (!r || !r.cells.length) return;
+    const geo = new THREE.BoxGeometry(r.cell * 0.96, 1, r.cell * 0.96);
+    const mesh = new THREE.InstancedMesh(geo, reliefMat, r.cells.length);
+    const m = new THREE.Matrix4(), col = new THREE.Color();
+    r.cells.forEach(([x, y, lo, hi], i) => {
+      const h = Math.max(hi - lo, 0.012);
+      m.makeScale(1, h, 1).setPosition(toView(x, y, hi - h / 2));
+      mesh.setMatrixAt(i, m);
+      const u = Math.max(0, Math.min(1, (hi - r.rim_z + 0.15) / 0.6));  // Höhe über Öffnungsrand
+      mesh.setColorAt(i, col.copy(C.steel).lerp(C.signal, u));
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    reliefGroup.add(mesh);
+  }
+  const passageMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.18, depthWrite: false });
+  const passage = new THREE.Group();
+  const passageTube = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 32, 1, true), passageMat);
+  const ringMat = new THREE.LineBasicMaterial();
+  const ringGeo = new THREE.BufferGeometry().setFromPoints(
+    Array.from({ length: 49 }, (_, i) => new THREE.Vector3(Math.cos(i / 48 * 2 * Math.PI), 0, Math.sin(i / 48 * 2 * Math.PI))));
+  const passageRing = new THREE.Line(ringGeo, ringMat);  // Durchgang auf Höhe des Öffnungsrands
+  passage.add(passageTube, passageRing);
+  passage.visible = false;
+  scene.add(passage);
+  function drawPassage(p) {
+    if (!p) { passage.visible = false; return; }
+    const top = 0.9, bottom = -(p.depth || 0.4);
+    const r = Math.max(p.radius, 0.01);
+    passage.position.copy(toView(p.center[0], p.center[1], p.center[2]));
+    passageTube.scale.set(r, top - bottom, r);
+    passageTube.position.set(0, (top + bottom) / 2, 0);
+    passageRing.scale.set(r, 1, r);
+    passage.visible = document.getElementById("t-pass").checked;
+  }
 
   // Tankkörper (schematisch, unter der Punktwolke)
   const tank = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1),
@@ -409,6 +478,11 @@ ul.legend li{display:flex;align-items:center;gap:8px}
   let obstacleKey = "";
   // Tank und Domkragen nur als Drahtgitter: Die Form zeigt schon das Fahrzeug
   const zoneMat = new THREE.MeshBasicMaterial({ wireframe: true, transparent: true, opacity: 0.18 });
+  const edgeMat = new THREE.LineBasicMaterial({ transparent: true, opacity: 0.75 });
+  function withEdges(mesh) {  // kräftiger Umriss, damit Sperrbereiche zwischen den Punkten auffallen
+    mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry), edgeMat));
+    return mesh;
+  }
   function drawObstacles(list) {
     const key = JSON.stringify(list || []);
     if (key === obstacleKey) return;
@@ -423,13 +497,13 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         obstacleGroup.add(m);
       } else if (o.type === "obox") {
         const [e0, e1, e2] = o.axes.map(a => toView(...a));
-        const m = new THREE.Mesh(new THREE.BoxGeometry(2 * o.half[0], 2 * o.half[1], 2 * o.half[2]), obstacleMat);
+        const m = withEdges(new THREE.Mesh(new THREE.BoxGeometry(2 * o.half[0], 2 * o.half[1], 2 * o.half[2]), obstacleMat));
         m.position.copy(toView(...o.center));
         m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(e0, e1, e2));
         obstacleGroup.add(m);
       } else {
         const a = toView(...o.min), b = toView(...o.max);
-        const box = new THREE.Mesh(new THREE.BoxGeometry(Math.abs(b.x - a.x), Math.abs(b.y - a.y), Math.abs(b.z - a.z)), obstacleMat);
+        const box = withEdges(new THREE.Mesh(new THREE.BoxGeometry(Math.abs(b.x - a.x), Math.abs(b.y - a.y), Math.abs(b.z - a.z)), obstacleMat));
         box.position.set((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
         obstacleGroup.add(box);
       }
@@ -503,6 +577,12 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     tankMat.color = C.steel;
     cabMat.color = C.muted;
     obstacleMat.color = C.clutter;
+    edgeMat.color = C.clutter;
+    armPtMat.color = C.muted;
+    passageMat.color = C.signal;
+    ringMat.color = C.signal;
+    reliefKey = "";
+    if (current && current.relief) drawRelief(current.relief);
     zoneMat.color = C.clutter;
     markerMat.color = C.ink;
     if (current) colorPoints(phase === "scan" ? false : current.result.ok);
@@ -539,6 +619,9 @@ ul.legend li{display:flex;align-items:center;gap:8px}
   function loadFrame(f) {
     current = f;
     setPoints(f.points);
+    setArmPoints(f.arm_points);
+    drawRelief(f.relief);
+    if (!f.arm) drawPassage(null);
     const s = f.sensor_mm || [0, 0, 0];
     sensor.position.copy(toView(s[0] / 1000, s[1] / 1000, s[2] / 1000));
     traverse.position.copy(sensor.position).add(new THREE.Vector3(0, 0.1, 0));
@@ -546,6 +629,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
       setGround(f.arm.ground_z);
       setStructure(f.arm.structure);
       drawObstacles(f.arm.obstacles);
+      drawPassage(f.passage);
       setMarker(f.arm.marker);
       if (!armPts) drawArm(f.arm.park);
     }
@@ -851,6 +935,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         shown = true;
         if (current.points2) {
           setPoints(current.points2);
+          setArmPoints(current.arm_points2);
           ptGeo.setDrawRange(0, pts.length / 3);
           colorPoints(true);
         }
@@ -925,6 +1010,19 @@ ul.legend li{display:flex;align-items:center;gap:8px}
 
   document.getElementById("trigger").addEventListener("click", startMeasurement);
   document.getElementById("auto").addEventListener("change", e => { if (e.target.checked && !busy) startMeasurement(); });
+  // Anzeige ein/aus (Auswahl bleibt im Browser gespeichert)
+  const TOGGLES = { "t-cloud": [cloud], "t-relief": [reliefGroup], "t-obst": [obstacleGroup],
+                    "t-pass": [passage], "t-arm": [armCloud] };
+  for (const [id, objs] of Object.entries(TOGGLES)) {
+    const box = document.getElementById(id);
+    try { const v = localStorage.getItem("verladearm." + id); if (v !== null) box.checked = v === "1"; } catch (e) {}
+    const apply = () => {
+      for (const o of objs) o.visible = box.checked && (o !== passage || !!(current && current.passage));
+      try { localStorage.setItem("verladearm." + id, box.checked ? "1" : "0"); } catch (e) {}
+    };
+    box.addEventListener("change", apply);
+    apply();
+  }
 
   requestAnimationFrame(tick);
 

@@ -100,10 +100,14 @@ class FrameProducer:
         # Tankkörper, Domkragen und offener Deckel als Hindernisse wie im Vision-Dienst
         geom, scene = scene_geom(self.geom, op, self.transform, points, self.outlet_cfg,
                                  self.scene_cfg)
-        frame = points_for_view(points, self.transform, self.max_points, self.rng)
+        q_park = self.geom.park
+        frame = points_for_view(points, self.transform, self.max_points, self.rng,
+                                self.geom, q_park)
+        arm = arm_for_view(geom, result, 0, self.products, self.outlet_cfg)
         frame.update(id=frame_id, detect_ms=round(detect_ms, 1), result=result, scene=scene,
-                     arm=arm_for_view(geom, result, 0, self.products, self.outlet_cfg),
-                     vehicle=vehicle_for_view(op, self.transform))
+                     arm=arm, vehicle=vehicle_for_view(op, self.transform),
+                     relief=dome_relief(points, self.transform, op, self.geom, q_park),
+                     passage=passage_for_view(op, self.transform, scene, arm))
         if sim and frame["arm"].get("ok"):
             with self.lock:
                 self._simulate_correction(frame, geom)
@@ -145,24 +149,85 @@ class FrameProducer:
         arm["insert"] = [true(q) for q in corr["q_insert"]]
         arm["correction_mm"] = corr["correction_mm"]
         arm["servo_inside_deg"] = corr.get("servo_inside_deg", arm.get("servo_inside_deg"))
-        frame["points2"] = points_for_view(points, self.transform, self.max_points,
-                                           self.rng)["points"]
+        view2 = points_for_view(points, self.transform, self.max_points, self.rng, self.geom,
+                                q_above + err)
+        frame["points2"], frame["arm_points2"] = view2["points"], view2["arm_points"]
 
     def state(self) -> dict:
         return {"mode": "standalone"}
 
 
-def points_for_view(points, transform: SensorToArm, max_points: int, rng) -> dict:
-    """Für die Anzeige ausdünnen und in Armbasis-Koordinaten umrechnen."""
-    shown = points
+def arm_mask(arm_pts: np.ndarray, geom: ArmGeometry, q, radius: float = 0.22) -> np.ndarray:
+    """Punkte, die zum Arm selbst gehören (Rohrführung in Stellung q, Fallleitung bzw. Säule)."""
+    near = np.zeros(len(arm_pts), bool)
+    if q is None or len(arm_pts) == 0:
+        return near
+    pts = forward(geom, np.asarray(q, float))
+    segs = list(zip(pts[:-1], pts[1:], strict=True))
+    segs += [(a, b) for a, b, r, _ in fixed_parts(geom)]
+    for a, b in segs:
+        ab = b - a
+        t = np.clip((arm_pts - a) @ ab / max(ab @ ab, 1e-12), 0, 1)
+        near |= np.linalg.norm(arm_pts - (a + t[:, None] * ab), axis=1) < radius
+    return near
+
+
+def points_for_view(points, transform: SensorToArm, max_points: int, rng,
+                    geom: ArmGeometry | None = None, q=None) -> dict:
+    """Für die Anzeige ausdünnen und in Armbasis-Koordinaten umrechnen. Mit Armstellung `q`
+    kommen die Punkte am Arm getrennt (`arm_points`), damit man sie ausblenden kann."""
+    arm_pts = np.asarray(points) @ transform.T[:3, :3].T + transform.T[:3, 3]
+    near = arm_mask(arm_pts, geom, q) if geom is not None else np.zeros(len(arm_pts), bool)
+    shown, at_arm = arm_pts[~near], arm_pts[near]
     if len(shown) > max_points:
         shown = shown[rng.choice(len(shown), max_points, replace=False)]
-    shown = shown @ transform.T[:3, :3].T + transform.T[:3, 3]
+    if len(at_arm) > max_points // 4:
+        at_arm = at_arm[rng.choice(len(at_arm), max_points // 4, replace=False)]
     return {
         "n_points": len(points),
         "sensor_mm": [round(float(x), 1) for x in transform.point(np.zeros(3)) * 1000],
         "points": np.round(shown, 3).ravel().tolist(),
+        "arm_points": np.round(at_arm, 3).ravel().tolist(),
     }
+
+
+def dome_relief(points, transform: SensorToArm, op, geom: ArmGeometry, q=None,
+                radius: float = 1.0, cell: float = 0.03) -> dict | None:
+    """Höhenrelief um die Öffnung aus den Messpunkten: je 3-cm-Zelle unterste und oberste Höhe.
+
+    Zeigt jede Dombauart so, wie sie gemessen wurde (Domring, vertiefter Domdeckel, Füllöffnung
+    als Lücke, Klappe, Armaturen, Laufstege). Blick ins Tankinnere und der Arm selbst entfallen."""
+    if op is None or points is None:
+        return None
+    c = transform.point(op.center)
+    p = np.asarray(points) @ transform.T[:3, :3].T + transform.T[:3, 3]
+    p = p[~arm_mask(p, geom, q)]
+    p = p[(np.hypot(p[:, 0] - c[0], p[:, 1] - c[1]) < radius)
+          & (p[:, 2] > c[2] - 0.6) & (p[:, 2] < c[2] + 1.2)]
+    if len(p) == 0:
+        return None
+    idx = np.floor((p[:, :2] - c[:2]) / cell).astype(int)
+    cells, inv, counts = np.unique(idx, axis=0, return_inverse=True, return_counts=True)
+    inv = inv.ravel()
+    order = np.argsort(inv, kind="stable")
+    out = []
+    for (ix, iy), z in zip(cells, np.split(p[order, 2], np.cumsum(counts)[:-1]), strict=True):
+        if len(z) < 2:
+            continue
+        z = np.sort(z)
+        x, y = c[0] + (ix + 0.5) * cell, c[1] + (iy + 0.5) * cell
+        out.append([round(float(x), 3), round(float(y), 3), round(float(z[0]), 3),
+                    round(float(z[-2]), 3)])
+    return {"cell": cell, "rim_z": round(float(c[2]), 3), "cells": out}
+
+
+def passage_for_view(op, transform: SensorToArm, scene: dict | None, arm: dict) -> dict | None:
+    """Senkrechter Durchgang über der Öffnung, in dem der Auslass eintaucht."""
+    if op is None or not scene or "durchgang_radius_m" not in scene:
+        return None
+    c = transform.point(op.center)
+    return {"center": c.round(4).tolist(), "radius": scene["durchgang_radius_m"],
+            "depth": arm.get("insertion_depth", 0.4)}
 
 
 def vehicle_for_view(op, transform: SensorToArm) -> dict | None:
@@ -365,9 +430,13 @@ class PlcMonitor:
             frame["servo_target"] = [round(float(v[k][n - 1]), 2)
                                      for k in ("WaypointsJ1", "WaypointsJ2", "WaypointsJ3")]
         if points is not None:
-            frame.update(points_for_view(points, self.transform, self.max_points, self.rng))
+            q_act = self._model([v["ActualJ1"], v["ActualJ2"], v["ActualJ3"]])
+            frame.update(points_for_view(points, self.transform, self.max_points, self.rng,
+                                         self.geom, q_act))
             if op is not None:
                 frame["vehicle"] = vehicle_for_view(op, self.transform)
+                frame["relief"] = dome_relief(points, self.transform, op, self.geom, q_act)
+                frame["passage"] = passage_for_view(op, self.transform, scene, frame["arm"])
         else:
             frame.update(points=[], n_points=0, note="Keine Punktwolke: snapshot.path im "
                          "Vision-Dienst setzen und denselben Pfad hier konfigurieren.")

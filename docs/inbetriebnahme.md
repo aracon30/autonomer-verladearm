@@ -16,12 +16,21 @@ Winkel, Achsbereiche, Hindernisse und Produkte werden je Arm bei der Ersteinrich
 ```
 
 Im Browser `http://<IP des Rechners>:8090` öffnen. Alle Abschnitte der Anlagendatei auf einer
-Seite: Maße mit Skizze, Servoachsen (Istwerte per Knopf aus der SPS übernehmen), Hindernisse,
-Produkte, Referenz am Auslass, Arbeitsraum und Antriebe. Rechts laufend Plausibilitätsprüfung,
-Draufsicht und Seitenansicht des Arms (Null- und Parkstellung, Hindernisse, Arbeitsraum,
-erreichbare Auslasslagen) und auf Knopfdruck die vollständige Inbetriebnahmeprüfung.
+Seite, oben eine Leiste zum Springen (rot = ungültige Eingabe im Abschnitt): Anlage, Maße mit
+Skizze, Servoachsen (Istwerte per Knopf aus der SPS übernehmen), Hindernisse (auch Vorlage
+„Klapptreppe“), Produkte, Referenz am Auslass, Arbeitsraum (mit Höhe über Fahrbahn), Antriebe
+(Kurzfassung je Achse) und Sensor/Kalibrierung (Quelle, IP der Kamera, Hinweis, ob noch
+Beispielwerte der Kalibrierung gelten). Rechts laufend Plausibilitätsprüfung, Draufsicht und
+Seitenansicht (Null- und Parkstellung, Hindernisse, Arbeitsraum, Kamera, erreichbare
+Auslasslagen), die **nächsten Schritte** als kopierbare Befehle (Simulation, Prüfung,
+Kalibrierung, Vision-Dienst für genau diese Anlage) und auf Knopfdruck die vollständige
+Inbetriebnahmeprüfung.
+
 Speichern schreibt `vision/config/anlagen/<name>.yaml`; die bisherige Fassung wird vorher unter
-`data/sicherung_anlagen/` gesichert. Ohne `--host` nur auf dem Rechner selbst erreichbar
+`data/sicherung_anlagen/` gesichert. **Vorlagen** aus dem Repository (`beispiel`,
+`heta_prototyp`, `simulation`) sind markiert und werden nur unter neuem Namen gespeichert
+(„Speichern unter …“, übernimmt alle Abschnitte der Vorlage) – so blockieren eigene Werte nie
+ein `git pull`. Ohne `--host` nur auf dem Rechner selbst erreichbar
 (SSH-Tunnel); mit `--host 0.0.0.0` für alle im Netz **ohne Anmeldung** – nur im internen Netz.
 
 ## Ersteinrichtung im Dialog (Kommandozeile)

@@ -22,6 +22,7 @@
   }
 }
 *,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none !important}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
 header.top{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:2px solid var(--ink);
   display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:10px 16px}
@@ -95,6 +96,29 @@ pre.report{white-space:pre-wrap;font-family:var(--f-mono);font-size:.8rem;max-he
 .badge{font-family:var(--f-display);font-weight:600;font-size:.75rem;padding:.05rem .4rem;border:1px solid var(--rule);border-radius:3px;color:var(--muted)}
 details summary{cursor:pointer;font-family:var(--f-display);font-weight:600}
 .dirty{color:var(--warn);font-size:.85rem}
+.tpl{font-family:var(--f-display);font-weight:600;font-size:.75rem;padding:.1rem .45rem;border-radius:3px;
+  background:color-mix(in srgb,var(--steel) 18%,transparent);color:var(--steel)}
+nav.steps{position:sticky;top:61px;z-index:4;background:var(--bg);display:flex;gap:6px;flex-wrap:wrap;
+  padding:10px 16px 0}
+nav.steps a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);background:var(--panel);
+  border:1px solid var(--rule);border-radius:999px;padding:.2rem .7rem .2rem .25rem;font-family:var(--f-display);
+  font-weight:600;font-size:.88rem;white-space:nowrap}
+nav.steps a:hover{border-color:var(--ink)}
+nav.steps a b{display:inline-grid;place-items:center;width:1.35rem;height:1.35rem;border-radius:50%;background:var(--ink);
+  color:var(--panel);font-size:.75rem}
+nav.steps a.bad{border-color:var(--err);color:var(--err)} nav.steps a.bad b{background:var(--err)}
+nav.steps a.cur{border-color:var(--signal);box-shadow:inset 0 -3px 0 var(--signal)}
+.card{scroll-margin-top:118px}
+.cmd{display:flex;gap:6px;align-items:flex-start;margin:.35rem 0}
+.cmd code{flex:1;font-family:var(--f-mono);font-size:.78rem;background:var(--field);border:1px solid var(--rule);
+  padding:.35rem .5rem;overflow-x:auto;white-space:nowrap}
+.callout{border-left:4px solid var(--warn);background:color-mix(in srgb,var(--warn) 8%,var(--panel));padding:8px 12px;
+  margin:0 0 10px;font-size:.9rem}
+.callout.ok{border-left-color:var(--ok);background:color-mix(in srgb,var(--ok) 7%,var(--panel))}
+details.drive > summary{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;padding:4px 0}
+details.drive > summary .sum{font-family:var(--f-body);font-weight:400;font-size:.85rem;color:var(--muted)}
+@media (max-width:640px){nav.steps{position:static}.card{scroll-margin-top:8px}
+  .card>h2{flex-wrap:wrap}.card>h2 .hint{margin-left:0;flex-basis:100%}}
 </style>
 </head>
 <body>
@@ -104,13 +128,16 @@ details summary{cursor:pointer;font-family:var(--f-display);font-weight:600}
   <div class="bar">
     <label for="file" class="note" style="margin:0">Anlage</label>
     <select id="file" aria-label="Anlagendatei"></select>
+    <span id="tpl" class="tpl" hidden title="Datei aus dem Repository – Änderungen unter eigenem Namen speichern">Vorlage</span>
     <button id="new" type="button">Neu …</button>
+    <button id="saveas" type="button">Speichern unter …</button>
     <span id="dirty" class="dirty" hidden>ungespeicherte Änderungen</span>
     <button id="reload" type="button">Verwerfen</button>
     <button id="save" type="button" class="primary">Speichern</button>
   </div>
 </header>
 
+<nav class="steps" id="steps" aria-label="Abschnitte"></nav>
 <div class="layout">
 <main id="form"></main>
 <aside class="side">
@@ -127,11 +154,16 @@ details summary{cursor:pointer;font-family:var(--f-display);font-weight:600}
       <span><i style="border-color:var(--steel);border-top-style:dotted"></i>Arbeitsraum Dom</span>
       <span><i style="border-color:var(--clutter)"></i>Hindernis</span>
       <span>· erreichbare Auslasslagen</span>
+      <span><i style="border-color:var(--steel);border-top-width:8px;width:10px"></i>Kamera</span>
     </div>
   </div>
   <div class="card">
     <h2>Kennzahlen</h2>
     <dl class="kv" id="kv"></dl>
+  </div>
+  <div class="card" id="next">
+    <h2>Nächste Schritte <span class="hint">Befehle auf dem Server</span></h2>
+    <div class="body" id="next-body"></div>
   </div>
   <div class="card">
     <h2>Inbetriebnahmeprüfung <span class="hint">Reichweite, Kollisionen, Fahrzeiten</span></h2>
@@ -148,7 +180,7 @@ details summary{cursor:pointer;font-family:var(--f-display);font-weight:600}
 const $ = (s, el = document) => el.querySelector(s);
 const JN = ["q1", "q2", "q3"];
 const JLABEL = { q1: "J1 Drehen am Haltepunkt", q2: "J2 Drehen am Fallrohr", q3: "J3 Heben/Senken" };
-let data = null, current = "", dirty = false, lastCheck = null, timer = null;
+let data = null, current = "", dirty = false, lastCheck = null, timer = null, templates = [];
 
 // ---------- Hilfen ----------
 const num = v => { if (typeof v === "number") return v; const t = String(v ?? "").trim().replace(",", ".");
@@ -170,7 +202,7 @@ function el(tag, attrs = {}, ...kids) {
   for (const k of kids) if (k !== null && k !== undefined) e.append(k);
   return e;
 }
-function changed() { setDirty(true); clearTimeout(timer); timer = setTimeout(runCheck, 350); }
+function changed() { setDirty(true); updateNav(); clearTimeout(timer); timer = setTimeout(runCheck, 350); }
 
 // Zahlenfeld: get/set auf data, Bereichsprüfung
 function numField({ label, unit = "", get, set, min, max, wide = false, id }) {
@@ -182,7 +214,7 @@ function numField({ label, unit = "", get, set, min, max, wide = false, id }) {
     if (Number.isNaN(v)) m = "Zahl eingeben";
     else if (min !== undefined && v < min) m = `mindestens ${fmt(min)} ${unit}`;
     else if (max !== undefined && v > max) m = `höchstens ${fmt(max)} ${unit}`;
-    input.classList.toggle("bad", !!m); msg.textContent = m;
+    input.classList.toggle("bad", !!m); msg.textContent = m; updateNav();
     if (!Number.isNaN(v)) { set(v); changed(); }
   });
   return el("div", { class: "field" + (wide ? " wide" : "") }, el("label", { for: id }, label),
@@ -198,8 +230,9 @@ function cellNum(get, set, attrs = {}) {
   i.addEventListener("input", () => { const v = num(i.value); i.classList.toggle("bad", Number.isNaN(v)); if (!Number.isNaN(v)) { set(v); changed(); } });
   return i;
 }
+const SHORT = ["Anlage", "Maße", "Achsen", "Hindernisse", "Produkte", "Referenz", "Arbeitsraum", "Antriebe", "Sensor"];
 function card(no, title, hint, ...content) {
-  return el("section", { class: "card" }, el("h2", {}, el("span", { class: "no" }, String(no)), title, hint ? el("span", { class: "hint" }, hint) : null),
+  return el("section", { class: "card", id: "c" + no, "data-title": SHORT[no] || title }, el("h2", {}, el("span", { class: "no" }, String(no)), title, hint ? el("span", { class: "hint" }, hint) : null),
     el("div", { class: "body" }, ...content));
 }
 
@@ -302,7 +335,8 @@ function buildForm() {
   f.append(card(3, "Hindernisse im Schwenkbereich", "Ursprung Achse J1, x vorne, y links, z oben",
     obox, el("div", { class: "row-actions" },
       el("button", { type: "button", on: { click: () => { const g = -data.arm.base_height; data.arm.obstacles.push({ name: "Hindernis", min: [-3.5, -3.5, g], max: [-3, -3, g + 1] }); buildObstacles(); changed(); } } }, "+ Quader"),
-      el("button", { type: "button", on: { click: () => { const g = -data.arm.base_height; data.arm.obstacles.push({ name: "Stütze", form: "zylinder", p0: [-3, -3, g / 2], axis: [0, 0, 1], radius: 0.15, half_length: Math.abs(g) / 2 + 0.5 }); buildObstacles(); changed(); } } }, "+ Zylinder (Stütze)")),
+      el("button", { type: "button", on: { click: () => { const g = -data.arm.base_height; data.arm.obstacles.push({ name: "Stütze", form: "zylinder", p0: [-3, -3, g / 2], axis: [0, 0, 1], radius: 0.15, half_length: Math.abs(g) / 2 + 0.5 }); buildObstacles(); changed(); } } }, "+ Zylinder (Stütze)"),
+      el("button", { type: "button", on: { click: () => { const g = -data.arm.base_height; data.arm.obstacles.push({ name: "Klapptreppe (eingefahren)", min: [1.0, -2.5, g + 2.0], max: [2.0, -1.5, g + 4.5] }); buildObstacles(); changed(); toast("Klapptreppe: Lage und Maße der eingefahrenen Treppe eintragen"); } } }, "+ Klapptreppe")),
     el("div", { class: "grid", style: "margin-top:10px" }, numField({ id: "clear", label: "Mindestabstand Rohrachse zu Hindernissen", unit: "m", min: 0.05, max: 1, get: () => data.arm.clearance, set: v => data.arm.clearance = v })),
     el("p", { class: "note" }, "Tankwagen, Domkragen und offener Deckel werden bei jeder Messung erfasst und müssen hier nicht eingetragen werden.")));
   // 4 Produkte
@@ -343,15 +377,18 @@ function buildForm() {
     wsGrid.append(numField({ id: "ws-min-" + a, label: `MIN ${a}`, unit: "m", get: () => ws.workspace_min[n], set: v => ws.workspace_min[n] = v }));
     wsGrid.append(numField({ id: "ws-max-" + a, label: `MAX ${a}`, unit: "m", get: () => ws.workspace_max[n], set: v => ws.workspace_max[n] = v }));
   });
-  f.append(card(6, "Arbeitsraum", "wo die Oberkante der Domöffnung liegen kann (alle Fahrzeuge)", wsGrid,
-    el("p", { class: "note" }, "Armbasis-Koordinaten; z = Höhe über Fahrbahn − Höhe J1 (①).")));
+  const wsNote = el("p", { class: "note" });
+  const wsUpd = () => { const h = data.arm.base_height, a = ws.workspace_min[2], b = ws.workspace_max[2];
+    wsNote.textContent = `Armbasis-Koordinaten; z = Höhe über Fahrbahn − Höhe J1 (①). Domoberkante damit ${fmt((a + h).toFixed(2))} … ${fmt((b + h).toFixed(2))} m über der Fahrbahn.`; };
+  wsUpd(); wsGrid.addEventListener("input", wsUpd); $("#form").addEventListener("input", wsUpd);
+  f.append(card(6, "Arbeitsraum", "wo die Oberkante der Domöffnung liegen kann (alle Fahrzeuge)", wsGrid, wsNote));
   // 7 Antriebe
   const dwrap = el("div");
   JN.forEach(k => {
     const d = data.drives[k] = data.drives[k] || {};
     const g = el("div", { class: "grid" },
-      textField({ label: "Motor", id: `dr-${k}-m`, get: () => d.motor, set: v => d.motor = v }),
-      textField({ label: "Getriebe / Stufen", id: `dr-${k}-g`, get: () => d.gear, set: v => d.gear = v }),
+      textField({ label: "Motor", id: `dr-${k}-m`, wide: true, get: () => d.motor, set: v => d.motor = v }),
+      textField({ label: "Getriebe / Stufen", id: `dr-${k}-g`, wide: true, get: () => d.gear, set: v => d.gear = v }),
       numField({ id: `dr-${k}-n`, label: "Motordrehzahl bei Höchstgeschw.", unit: "1/min", min: 0, get: () => d.motor_speed, set: v => d.motor_speed = v }),
       numField({ id: `dr-${k}-i`, label: "Gesamtübersetzung Motor → Gelenk", unit: "", min: 0.001, get: () => d.ratio, set: v => d.ratio = v }),
       numField({ id: `dr-${k}-v`, label: "Geschwindigkeitsgrenze Gelenk", unit: "°/s", min: 0, get: () => d.speed_limit, set: v => d.speed_limit = v }),
@@ -362,11 +399,77 @@ function buildForm() {
       textField({ label: "Geber", id: `dr-${k}-e`, get: () => d.encoder, set: v => d.encoder = v }));
     const chk = (label, key) => { const c = el("input", { type: "checkbox" }); c.checked = !!d[key]; c.addEventListener("change", () => { d[key] = c.checked; changed(); });
       return el("label", { class: "bar", style: "gap:6px" }, c, label); };
-    dwrap.append(el("details", { open: k === "q1" ? "" : null, style: "margin-bottom:10px" }, el("summary", {}, JLABEL[k]),
+    const sum = el("span", { class: "sum" });
+    const upd = () => { const parts = [];
+      if (d.ratio) parts.push("i " + fmt(d.ratio));
+      if (d.motor_speed && d.ratio) parts.push(fmt(Math.min(d.motor_speed / d.ratio * 6, d.speed_limit || Infinity).toFixed(1)) + " °/s");
+      parts.push(d.brake ? "Bremse" : "ohne Bremse"); if (d.encoder) parts.push(d.encoder);
+      sum.textContent = d.motor || d.ratio ? parts.join(" · ") : "noch keine Angaben"; };
+    upd(); g.addEventListener("input", upd); g.addEventListener("change", upd);
+    dwrap.append(el("details", { class: "drive", open: k === "q1" ? "" : null, style: "margin-bottom:10px", on: { change: upd } }, el("summary", {}, JLABEL[k], sum),
       el("div", { style: "padding-top:8px" }, g, el("div", { class: "bar", style: "margin-top:8px" }, chk("Haltebremse", "brake"), chk("Hubachse (Gewicht drückt das Spiel auf eine Seite)", "gravity_preload")))));
   });
   f.append(card(7, "Antriebe", "optional – für Fahrzeiten, SPS-Simulator und Getriebespiel", dwrap,
     el("p", { class: "note" }, "Herleitung der Werte: hardware/antriebe.md. Leer lassen, wenn noch nicht bekannt.")));
+  // 8 Sensor und Kalibrierung
+  const src = data.source = data.source || {};
+  const srcChanged = () => { data.source_changed = true; changed(); };
+  const type = el("select", { id: "src-type" },
+    el("option", { value: "sick" }, "SICK Visionary-T Mini (Kamera)"),
+    el("option", { value: "sim" }, "Simulation (ohne Hardware)"),
+    el("option", { value: "file" }, "Aufzeichnungen abspielen"));
+  type.value = src.type || "file";
+  const sickBox = el("div", { class: "grid" },
+    textField({ label: "IP-Adresse der Kamera", id: "src-ip", get: () => src.ip ?? "192.168.1.10", set: v => { src.ip = v; srcChanged(); } }),
+    numField({ id: "src-frames", label: "Bilder je Messung (Median)", unit: "", min: 1, max: 10, get: () => src.frames ?? 3, set: v => { src.frames = Math.round(v); srcChanged(); } }));
+  const showSick = () => { sickBox.hidden = type.value !== "sick"; };
+  type.addEventListener("change", () => { src.type = type.value; if (type.value === "sick") { src.ip = src.ip || "192.168.1.10"; src.frames = src.frames || 3; } showSick(); srcChanged(); });
+  showSick();
+  const cal = data.calibration || {}, m = cal.matrix;
+  const calBox = m ? (cal.example
+    ? el("div", { class: "callout" }, el("b", {}, "Kalibrierung: Beispielwerte. "), "Nach Montage der Kamera die Hand-Auge-Kalibrierung durchführen (docs/kalibrierung.md, Befehl unter „Nächste Schritte“).")
+    : el("div", { class: "callout ok" }, el("b", {}, "Kalibriert. "), `Kamera bei x ${fmt((+m[0][3]).toFixed(2))} / y ${fmt((+m[1][3]).toFixed(2))} m, ${fmt((+m[2][3] + data.arm.base_height).toFixed(2))} m über der Fahrbahn.`)) : null;
+  f.append(card(8, "Sensor und Kalibrierung", "Quelle der Punktwolke, Lage der Kamera",
+    calBox, el("div", { class: "field" }, el("label", { for: "src-type" }, "Quelle"), type), el("div", { style: "height:10px" }), sickBox,
+    el("p", { class: "note" }, "Die Kalibrierung schreibt das Kalibrierprogramm in die Anlagendatei; hier nur Anzeige. Kamera ab Werk 192.168.1.10, PC-Anschluss im selben Netz (docs/sensor_sick.md).")));
+  buildNav();
+}
+
+// ---------- Navigation ----------
+function buildNav() {
+  const nav = $("#steps"); nav.replaceChildren();
+  for (const c of document.querySelectorAll("#form > section.card")) {
+    const no = c.id.slice(1);
+    nav.append(el("a", { href: "#" + c.id, "data-for": c.id }, el("b", {}, no), c.dataset.title));
+  }
+  updateNav();
+  const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) {
+    nav.querySelectorAll("a").forEach(a => a.classList.toggle("cur", a.dataset.for === e.target.id)); } },
+    { rootMargin: "-130px 0px -65% 0px" });
+  document.querySelectorAll("#form > section.card").forEach(c => io.observe(c));
+}
+function updateNav() {
+  document.querySelectorAll("#steps a").forEach(a => {
+    const bad = document.getElementById(a.dataset.for)?.querySelector("input.bad");
+    a.classList.toggle("bad", !!bad); a.title = bad ? "ungültige Eingabe in diesem Abschnitt" : ""; });
+}
+function renderNext() {
+  const b = $("#next-body"); b.replaceChildren();
+  const cmd = (label, text) => {
+    const btn = el("button", { type: "button", class: "small", on: { click: async () => {
+      try { await navigator.clipboard.writeText(text); toast("Kopiert"); } catch { toast("Kopieren nicht möglich – Text markieren", true); } } } }, "Kopieren");
+    b.append(el("div", { class: "note", style: "margin-top:6px" }, label), el("div", { class: "cmd" }, el("code", {}, text), btn)); };
+  b.append(el("p", { class: "note", style: "margin-top:0" }, "Im Ordner autonomer-verladearm ausführen."));
+  if (!data.exists || data.template) {
+    b.append(el("p", { class: "note" }, data.template
+      ? "Diese Datei ist eine Vorlage aus dem Repository. Eigene Werte mit „Speichern unter …“ unter neuem Namen sichern – sonst blockiert sie das nächste git pull."
+      : "Zuerst speichern, dann stehen hier die Befehle für diese Anlage."));
+    if (!data.template) return;
+  }
+  cmd("Simulation mit dieser Anlage, selbst bedienen (Browser: Port 8080):", `PORT=8080 tools/simulation.sh --netz --bedienen --anlage ${current}`);
+  cmd("Inbetriebnahmeprüfung als Bericht:", `.venv/bin/python -m verladearm_vision.commissioning --config vision/config/anlagen/${current}.yaml`);
+  cmd("Hand-Auge-Kalibrierung (Kamera montiert, SPS verbunden):", `.venv/bin/python -m verladearm_vision.calibrate --config vision/config/anlagen/${current}.yaml`);
+  cmd("Vision-Dienst an der Anlage:", `.venv/bin/python -m verladearm_vision.service.main --config vision/config/anlagen/${current}.yaml`);
 }
 
 // ---------- Prüfung und Vorschau ----------
@@ -396,6 +499,7 @@ function draw() {
     for (const arm of [c.zero, c.park]) if (arm) pts.push(...arm);
     if (c.tips) pts.push(...c.tips);
     if (c.workspace) pts.push(c.workspace[0], c.workspace[1]);
+    if (c.sensor) pts.push(c.sensor);
     if (v.side && c.ground_z !== undefined) pts.push([0, 0, c.ground_z]);
     const obs = (c.obstacles || []).map(o => o.type === "box" ? [o.min, o.max] : o.type === "cyl" ? [
       [o.p0[0] - o.radius, o.p0[1] - o.radius, o.p0[2] - o.half_length * Math.abs(o.axis[2])], [o.p0[0] + o.radius, o.p0[1] + o.radius, o.p0[2] + o.half_length * Math.abs(o.axis[2])]] :
@@ -423,6 +527,8 @@ function draw() {
     parts.push(line(c.zero, col("--muted"), 2, "6 4") || "");
     parts.push(line(c.park, col("--signal"), 5) || "");
     if (c.park) { const p = v.p(c.park[6]); parts.push(`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="4" fill="${col("--ink")}"/>`); }
+    if (c.sensor) { const q = v.p(c.sensor);
+      parts.push(`<rect x="${X(q[0]) - 6}" y="${Y(q[1]) - 5}" width="12" height="10" fill="${col("--steel")}" stroke="${col("--ink")}"/><text x="${X(q[0]) + 9}" y="${Y(q[1]) + 4}" font-size="11" fill="${col("--ink")}">Kamera</text>`); }
     parts.push(`<circle cx="${X(0)}" cy="${Y(0)}" r="6" fill="${col("--signal")}" stroke="${col("--ink")}" stroke-width="1.5"/><text x="${X(0) + 9}" y="${Y(0) - 8}" font-size="12" fill="${col("--ink")}" font-weight="600">J1</text>`);
     v.svg.innerHTML = parts.join("");
   }
@@ -430,8 +536,8 @@ function draw() {
 
 // ---------- Dateien ----------
 async function loadFiles(select) {
-  const { files } = await api("/api/files");
-  const sel = $("#file"); sel.replaceChildren(...files.map(n => el("option", { value: n }, n + ".yaml")));
+  const r = await api("/api/files"); const files = r.files; templates = r.templates || [];
+  const sel = $("#file"); sel.replaceChildren(...files.map(n => el("option", { value: n }, n + ".yaml" + (templates.includes(n) ? "  (Vorlage)" : ""))));
   if (select && !files.includes(select)) sel.append(el("option", { value: select }, select + ".yaml (neu)"));
   sel.value = select || (files.includes("heta_prototyp") ? "heta_prototyp" : files[0]);
   return sel.value;
@@ -439,6 +545,9 @@ async function loadFiles(select) {
 async function open(name) {
   data = await api("/api/load?name=" + encodeURIComponent(name)); current = name;
   $("#report").hidden = true; buildForm(); setDirty(!data.exists); runCheck();
+  $("#tpl").hidden = !data.template; $("#saveas").hidden = !!data.template;
+  $("#save").textContent = data.template ? "Speichern unter …" : "Speichern";
+  renderNext();
 }
 $("#file").addEventListener("change", async e => {
   if (dirty && !confirm("Ungespeicherte Änderungen verwerfen?")) { e.target.value = current; return; }
@@ -450,11 +559,25 @@ $("#new").addEventListener("click", async () => {
   if (!n) return; if (!/^[A-Za-z0-9_\-]{1,60}$/.test(n)) return toast("Nur Buchstaben, Ziffern, _ und -", true);
   await loadFiles(n); open(n); toast("Neue Anlage aus der Vorlage – Werte vor Ort ersetzen");
 });
-$("#save").addEventListener("click", async () => {
+async function save(name) {
   if (lastCheck && !lastCheck.ok && !confirm("Die Prüfung meldet Probleme. Trotzdem speichern?")) return;
-  try { const r = await api("/api/save", { name: current, data }); setDirty(false); data.exists = true; await loadFiles(current); toast("Gespeichert: " + r.path); }
-  catch (e) { toast("Nicht gespeichert: " + e.message, true); }
-});
+  try {
+    const r = await api("/api/save", { name, origin: current, data });
+    setDirty(false); toast("Gespeichert: " + r.path);
+    await loadFiles(name); await open(name);
+  } catch (e) { toast("Nicht gespeichert: " + e.message, true); }
+}
+function saveAs() {
+  const proposal = data.template ? current.replace(/_vorlage$/, "") + "_vor_ort" : current + "_kopie";
+  const n = (prompt("Speichern unter (neuer Name, z. B. lich_station3):", proposal) || "").trim();
+  if (!n) return;
+  if (!/^[A-Za-z0-9_\-]{1,60}$/.test(n)) return toast("Nur Buchstaben, Ziffern, _ und -", true);
+  if (templates.includes(n)) return toast(n + " ist eine Vorlage – anderen Namen wählen", true);
+  if ([...$("#file").options].some(o => o.value === n) && !confirm(n + ".yaml gibt es schon. Überschreiben (die alte Datei wird gesichert)?")) return;
+  save(n);
+}
+$("#save").addEventListener("click", () => data.template ? saveAs() : save(current));
+$("#saveas").addEventListener("click", saveAs);
 $("#check").addEventListener("click", async () => {
   const b = $("#check"), rep = $("#report"); b.disabled = true; b.textContent = "Prüfung läuft …";
   try { const r = await api("/api/commissioning", { name: current, data }); rep.textContent = r.report; rep.hidden = false;

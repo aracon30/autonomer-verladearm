@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import re
+import subprocess
 import threading
 from datetime import date, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -24,7 +25,7 @@ import numpy as np
 import yaml
 
 from verladearm_vision.commissioning import check as commissioning_check
-from verladearm_vision.config import load_config
+from verladearm_vision.config import _merge, load_config
 from verladearm_vision.drives import Drives
 from verladearm_vision.einrichtung import ANLAGEN, DIMENSIONS, render
 from verladearm_vision.kinematics import JOINTS, ArmGeometry, forward, validate
@@ -33,12 +34,26 @@ from verladearm_vision.viewer.__main__ import obstacle_for_view
 log = logging.getLogger("verladearm.konfigurator")
 NAME = re.compile(r"^[A-Za-z0-9_\-]{1,60}$")
 BACKUP = ANLAGEN.parents[2] / "data" / "sicherung_anlagen"
+TEMPLATES_FALLBACK = {"beispiel", "heta_prototyp", "simulation"}
+SOURCE_FIELDS = ("type", "ip", "frames", "retry_s", "path", "pattern")
 DRIVE_FIELDS = ("motor", "gear", "motor_speed", "ratio", "speed_limit", "accel_time", "backlash",
                 "gravity_preload", "torque", "torque_peak", "brake", "encoder")
 
 
 def list_files(folder: Path = ANLAGEN) -> list[str]:
     return sorted(p.stem for p in folder.glob("*.yaml") if not p.name.startswith("."))
+
+
+def templates(folder: Path = ANLAGEN) -> list[str]:
+    """Anlagendateien aus dem Repository (Vorlagen). Eigene Änderungen daran kollidieren beim
+    nächsten `git pull` – der Konfigurator speichert sie deshalb nur unter neuem Namen."""
+    try:
+        out = subprocess.run(["git", "ls-files", "--", "*.yaml"], cwd=folder, capture_output=True,
+                             text=True, timeout=5, check=True).stdout
+        names = {Path(line).stem for line in out.splitlines() if "/" not in line}
+    except (OSError, subprocess.SubprocessError):
+        names = TEMPLATES_FALLBACK & set(list_files(folder))
+    return sorted(names)
 
 
 def _meta(text: str) -> dict:
@@ -60,9 +75,17 @@ def load_station(name: str, folder: Path = ANLAGEN) -> dict:
     arm = cfg.get("arm", {})
     geom = ArmGeometry(**arm)
     outlet = cfg.get("outlet", {})
+    source = cfg.get("source") or {}
+    example = load_config(ANLAGEN / "beispiel.yaml")["calibration"]["matrix"]
+    matrix = cfg.get("calibration", {}).get("matrix")
     return {
         "name": name,
         "exists": path.exists(),
+        "template": name in templates(folder),
+        "source": {k: source[k] for k in SOURCE_FIELDS if k in source},
+        "calibration": {"matrix": matrix,
+                        "example": bool(np.allclose(np.asarray(matrix, float),
+                                                    np.asarray(example, float)))},
         "meta": {"anlage": name, "name": ""} | (_meta(path.read_text(encoding="utf-8"))
                                                 if path.exists() else {}),
         "plc_url": cfg.get("plc", {}).get("url", ""),
@@ -122,6 +145,9 @@ def preview(data: dict) -> dict:
     ws = data.get("commissioning") or {}
     if ws.get("workspace_min") and ws.get("workspace_max"):
         out["workspace"] = [ws["workspace_min"], ws["workspace_max"]]
+    m = (data.get("calibration") or {}).get("matrix")
+    if m:
+        out["sensor"] = [round(float(m[i][3]), 3) for i in range(3)]
     drives = Drives.from_config(data.get("drives"))
     if drives.configured:
         out["drive_speed"] = {k: round(d.speed_max, 2) for k, d in drives.axes.items()}
@@ -137,18 +163,39 @@ def _clean_drives(drives: dict | None) -> dict:
     return out
 
 
-def station_yaml(data: dict, folder: Path, name: str) -> str:
+def _own_sections(path: Path) -> dict:
+    """Abschnitte einer Anlagendatei samt geerbter Anlagendateien, ohne die Standardwerte
+    (default.yaml). So nimmt „Speichern unter“ alles mit, was die Vorlage ausmacht."""
+    raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    parent = raw.pop("extends", None)
+    if parent:
+        p = (path.parent / parent).resolve()
+        if p.parent == path.parent.resolve() and p.exists():  # nur andere Anlagendateien
+            raw = _merge(_own_sections(p), raw)
+    return raw
+
+
+def station_yaml(data: dict, folder: Path, name: str, origin: str | None = None) -> str:
     path = folder / f"{name}.yaml"
+    src = path if path.exists() else folder / f"{origin}.yaml" if origin else path
     keep = {}
-    if path.exists():  # eigene Abschnitte der Datei (ohne extends-Basis) erhalten
-        keep = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    base = load_config(path if path.exists() else ANLAGEN / "beispiel.yaml")
+    if src.exists():  # eigene Abschnitte der Datei bzw. der Vorlage (Speichern unter) erhalten
+        keep = _own_sections(src)
+    base = load_config(src if src.exists() else ANLAGEN / "beispiel.yaml")
     arm = _arm(data)
     extra_arm = dict(keep.get("arm") or {})
     extra_arm["drop_tilt_deg"] = arm.pop("drop_tilt_deg")
     if not extra_arm["drop_tilt_deg"]:
         extra_arm.pop("drop_tilt_deg")
     keep["arm"] = extra_arm
+    src = {k: v for k, v in (data.get("source") or {}).items()
+           if k in SOURCE_FIELDS and v not in ("", None)}
+    if not data.get("source_changed"):
+        src = {}
+    if src.get("type") == "sick":  # nur, was die Kamera braucht; Pfade der Dateiquelle weg
+        src = {k: v for k, v in src.items() if k not in ("path", "pattern")}
+    if src:
+        keep["source"] = {**(keep.get("source") or {}), **src}
     drives = _clean_drives(data.get("drives"))
     if drives:
         keep["drives"] = drives
@@ -165,10 +212,10 @@ def station_yaml(data: dict, folder: Path, name: str) -> str:
 
 
 def save_station(data: dict, name: str, folder: Path = ANLAGEN,
-                 backup: Path = BACKUP) -> Path:
-    if not NAME.match(name):
+                 backup: Path = BACKUP, origin: str | None = None) -> Path:
+    if not NAME.match(name) or (origin and not NAME.match(origin)):
         raise ValueError("Name nur aus Buchstaben, Ziffern, _ und - (max. 60 Zeichen)")
-    text = station_yaml(data, folder, name)
+    text = station_yaml(data, folder, name, origin)
     path = folder / f"{name}.yaml"
     if path.exists():
         backup.mkdir(parents=True, exist_ok=True)
@@ -183,7 +230,8 @@ def commissioning(data: dict, name: str, folder: Path = ANLAGEN) -> dict:
     """Inbetriebnahmeprüfung mit den Formularwerten (ohne zu speichern)."""
     tmp = folder / f".pruefung_{threading.get_ident()}.yaml"
     try:
-        tmp.write_text(station_yaml(data, folder, name if NAME.match(name) else "neu"),
+        origin = data.get("name") if NAME.match(str(data.get("name"))) else None
+        tmp.write_text(station_yaml(data, folder, name if NAME.match(name) else "neu", origin),
                        encoding="utf-8")
         buf = io.StringIO()
         ok = commissioning_check(load_config(tmp), f"{name}.yaml (nicht gespeichert)", out=buf)
@@ -217,7 +265,7 @@ def make_handler(folder: Path = ANLAGEN, backup: Path = BACKUP):
             if self.path in ("/", "/index.html"):
                 self._send(page, ctype="text/html; charset=utf-8")
             elif self.path == "/api/files":
-                self._send({"files": list_files(folder)})
+                self._send({"files": list_files(folder), "templates": templates(folder)})
             elif self.path.startswith("/api/load?name="):
                 name = self.path.split("=", 1)[1]
                 if not NAME.match(name):
@@ -232,7 +280,11 @@ def make_handler(folder: Path = ANLAGEN, backup: Path = BACKUP):
                 if self.path == "/api/check":
                     self._send(preview(body["data"]))
                 elif self.path == "/api/save":
-                    path = save_station(body["data"], body["name"], folder, backup)
+                    if body["name"] in templates(folder) and not body.get("overwrite_template"):
+                        raise ValueError(f"{body['name']} ist eine Vorlage aus dem Repository – "
+                                         "bitte unter eigenem Namen speichern")
+                    path = save_station(body["data"], body["name"], folder, backup,
+                                        body.get("origin"))
                     self._send({"ok": True, "path": str(path), "files": list_files(folder)})
                 elif self.path == "/api/commissioning":
                     self._send(commissioning(body["data"], body.get("name", "neu"), folder))

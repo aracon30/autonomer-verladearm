@@ -6,6 +6,9 @@
 #   tools/simulation.sh --netz          Live-Ansicht im Netzwerk erreichbar (0.0.0.0)
 #   tools/simulation.sh --anlage NAME   Anlagendatei vision/config/anlagen/NAME.yaml simulieren
 #                                       (z. B. im Konfigurator angelegt; Standard: heta_prototyp)
+#   tools/simulation.sh --bedienen      selbst bedienen wie an der Anlage (Fahrzeug, Produkt,
+#                                       Start, Beladung beendet, Handbetrieb; ? = Hilfe)
+#                                       statt Dauertest (Verladung auf Verladung)
 #   PORT=8080 tools/simulation.sh       anderer Port für die Live-Ansicht
 #   ZEITRAFFER=1 tools/simulation.sh    Achsen in Echtzeit (Standard 0.25 = vierfach schneller)
 #
@@ -23,9 +26,11 @@ PORT="${PORT:-8000}"
 ZEITRAFFER="${ZEITRAFFER:-0.25}"
 HOST=127.0.0.1
 ANLAGE=""
+BEDIENEN=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --netz) HOST=0.0.0.0 ;;
+    --bedienen) BEDIENEN=1 ;;
     --anlage) ANLAGE="${2:?Name der Anlagendatei fehlt}"; shift ;;
     *) echo "Unbekannte Option: $1"; exit 1 ;;
   esac
@@ -67,21 +72,24 @@ if port_busy 4840; then
 fi
 
 pids=()
-cleanup() { echo; echo "Stoppe Simulation ..."; kill "${pids[@]}" 2>/dev/null || true; wait; }
+cleanup() { trap - EXIT INT TERM; echo; echo "Stoppe Simulation ..."; kill "${pids[@]}" 2>/dev/null || true; wait; }
 trap cleanup EXIT INT TERM
 
-$PY tools/plc_simulator.py --config "$CONFIG" --zeitraffer "$ZEITRAFFER" \
-  > data/logs/sps.log 2>&1 & pids+=($!)
-sleep 2
+SPS_ARGS=(tools/plc_simulator.py --config "$CONFIG" --zeitraffer "$ZEITRAFFER")
+if [[ $BEDIENEN == 0 ]]; then
+  $PY "${SPS_ARGS[@]}" > data/logs/sps.log 2>&1 & pids+=($!)
+  sleep 2
+fi
 $PY -m verladearm_vision.service.main --config "$CONFIG" > data/logs/vision.log 2>&1 & pids+=($!)
 $PY -m verladearm_vision.viewer --opcua --config "$CONFIG" --host "$HOST" --port "$PORT" \
   > data/logs/viewer.log 2>&1 & pids+=($!)
 
 sleep 3
-for i in 0 1 2; do
+names=(vision viewer); [[ $BEDIENEN == 0 ]] && names=(sps vision viewer)
+for i in "${!pids[@]}"; do
   if ! kill -0 "${pids[$i]}" 2>/dev/null; then
-    log=(sps vision viewer); echo "Start fehlgeschlagen, siehe data/logs/${log[$i]}.log:"
-    tail -n 5 "data/logs/${log[$i]}.log"; exit 1
+    echo "Start fehlgeschlagen, siehe data/logs/${names[$i]}.log:"
+    tail -n 5 "data/logs/${names[$i]}.log"; exit 1
   fi
 done
 echo "Simulation läuft: SPS-Simulator, Vision-Dienst, Live-Ansicht  (Anlage: ${ANLAGE:-heta_prototyp})"
@@ -94,5 +102,11 @@ else
   echo "  Live-Ansicht: http://127.0.0.1:${PORT}  (vom eigenen PC: ssh -L ${PORT}:127.0.0.1:${PORT} <benutzer>@<server>)"
 fi
 echo "  Logs:         data/logs/{sps,vision,viewer}.log"
+if [[ $BEDIENEN == 1 ]]; then
+  echo "  Bedienung:    Befehle hier eingeben (? = Hilfe, q = beenden)"
+  echo
+  $PY -u "${SPS_ARGS[@]}" --bedienen 2>&1 | tee data/logs/sps.log
+  exit 0
+fi
 echo "  Beenden:      Strg+C"
 tail -n +1 -F data/logs/vision.log

@@ -188,11 +188,16 @@ class PlcInterface:
 
                 hb_pc = (hb_pc + 1) % 32767
                 plc_alive = now - last_change < self.heartbeat_timeout_s
-                if plc_alive != ready:
-                    ready = plc_alive
+                # Ready nur mit SPS-Heartbeat und bereitem Sensor (Kamera startet z. B. noch)
+                sensor_ok = bool(getattr(measure, "ready", True))
+                if (plc_alive and sensor_ok) != ready:
+                    ready = plc_alive and sensor_ok
                     await self._write(HeartbeatPC=hb_pc, Ready=ready)
-                    log.log(logging.INFO if ready else logging.WARNING,
-                            "SPS-Heartbeat %s", "OK" if ready else "ausgefallen")
+                    if ready:
+                        log.info("Bereit (SPS-Heartbeat OK, Sensor bereit)")
+                    else:
+                        log.warning("Nicht bereit: %s", "SPS-Heartbeat ausgefallen"
+                                    if not plc_alive else "Sensor nicht verbunden")
                 else:
                     await self._write(HeartbeatPC=hb_pc)
                 if not ready:

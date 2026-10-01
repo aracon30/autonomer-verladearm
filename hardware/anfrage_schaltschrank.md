@@ -2,13 +2,13 @@
 
 **An:** Peter (Schaltschrankbau)
 
-**Betreff:** Verladearm Prototyp – Schaltschrank und Verkabelung für Automatisierung
+**Betreff:** Verladearm Prototyp – Schaltschrank, Verkabelung und SPS-Programm
 
 Hallo Peter,
 
 wir automatisieren den Verladearm-Prototyp: Eine 3D-Kamera erkennt den Dom am Tankwagen, ein
-Industrie-PC berechnet die Fahrt, eine neue S7-1500 fährt die drei Achsen. Für Schaltschrank und
-Verkabelung brauchen wir dich. Bitte schau dir die Punkte an und gib uns ein Angebot bzw. eine erste
+Industrie-PC berechnet die Fahrt, eine neue S7-1500 fährt die drei Achsen. Für Schaltschrank,
+Verkabelung und SPS-Programm brauchen wir dich. Bitte schau dir die Punkte an und gib uns ein Angebot bzw. eine erste
 Einschätzung zu Aufwand, Platzbedarf und Termin – für Schaltschrank, Verkabelung und SPS-Programm.
 
 **1. Komponenten im Schaltschrank**

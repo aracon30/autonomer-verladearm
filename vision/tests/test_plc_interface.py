@@ -70,3 +70,51 @@ def test_auftrag_und_stuetzpunkte_ueber_opcua():
     assert out["WaypointsJ1"][:3] == [10.0, 11.0, 0.0] and len(out["WaypointsJ1"]) == 16
     assert out["WaypointsJ3"][:2] == [5.0, 4.0]
     assert abs(out["CorrectionX"] - 2.5) < 1e-6 and out["TargetX"] == 3100.0
+
+
+class SlowSensor:
+    """Messfunktion, deren Sensor erst nach einiger Zeit bereit ist (Kamera startet)."""
+
+    ready = False
+
+    def __call__(self, req: Request) -> MeasureResult:
+        return MeasureResult(ok=True)
+
+
+def test_ready_erst_mit_bereitem_sensor():
+    sensor = SlowSensor()
+
+    async def scenario():
+        server = Server()
+        await server.init()
+        server.set_endpoint(f"opc.tcp://127.0.0.1:{PORT + 1}/")
+        idx = await server.register_namespace(NS)
+        db = await server.nodes.objects.add_object(ua.NodeId('"DB_Vision"', idx), "DB_Vision")
+        var = {}
+        for name, (vtype, _, length) in VARIABLES.items():
+            default = False if vtype == ua.VariantType.Boolean else 0
+            default = [default] * length if length else default
+            var[name] = await db.add_variable(ua.NodeId(f'"DB_Vision"."{name}"', idx), name,
+                                              ua.Variant(default, vtype))
+            await var[name].set_writable()
+        async with server:
+            plc = PlcInterface(f"opc.tcp://127.0.0.1:{PORT + 1}/", NS,
+                               'ns={ns};s="DB_Vision"."{name}"', cycle_s=0.02)
+            task = asyncio.create_task(plc.run(sensor))
+            seen = []
+            try:
+                for step in range(80):
+                    hb = ua.Variant(step + 1, VARIABLES["HeartbeatPLC"][0])
+                    await var["HeartbeatPLC"].write_value(hb)
+                    if step == 40:
+                        sensor.ready = True
+                    if step in (35, 79):
+                        seen.append(await var["Ready"].read_value())
+                    await asyncio.sleep(0.02)
+                return seen, await var["HeartbeatPC"].read_value()
+            finally:
+                task.cancel()
+
+    seen, hb_pc = asyncio.run(scenario())
+    assert seen == [False, True]  # Heartbeat lief, aber erst mit Sensor bereit
+    assert hb_pc > 0  # PC-Heartbeat läuft auch ohne Sensor (SPS sieht: PC lebt)

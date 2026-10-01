@@ -137,6 +137,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
         <dt>HeartbeatPLC / PC</dt><dd id="s-hb">–</dd>
         <dt>ProductId</dt><dd id="s-prod">–</dd>
         <dt>InterfaceVersion</dt><dd id="s-ver">–</dd>
+        <dt id="s-op-label" hidden>Bedienung (Simulator)</dt><dd id="s-op" hidden>–</dd>
       </dl>
       <p class="note">Messungen und Bewegungen steuert die SPS. Die Ansicht zeigt den Arm aus den Istwinkeln und schreibt nichts in den DB_Vision. Gelbe Punkte: geplante Stützpunkte.</p>
     </section>
@@ -704,6 +705,9 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     const JOBS = { 0: "–", 1: "1 Messen", 2: "2 Nachmessen", 3: "3 Rückfahrt" };
     const ARM = { 0: "Park", 1: "fährt", 2: "über Dom", 3: "eingetaucht", 9: "Störung" };
     set("s-job", up ? (JOBS[g.Job] || g.Job) + " / " + (ARM[g.ArmState] || g.ArmState) : "–");
+    const op = s && s.operation;
+    document.getElementById("s-op-label").hidden = document.getElementById("s-op").hidden = !op;
+    if (op) set("s-op", op.split(" | ").join(" · "));
     set("s-act", up && g.AxesHomed ? [g.ActualJ1, g.ActualJ2, g.ActualJ3].map(v => v.toFixed(1).replace(".", ",")).join(" / ") + " °" : "–");
     if (s && s.arm_pts) {
       if (!armPts) setGround(s.ground_z);

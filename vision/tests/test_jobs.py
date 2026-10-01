@@ -96,3 +96,54 @@ def test_auslass_ohne_scheibe_von_der_seite():
     dome = b - [0, 0, 0.3]
     found = detect_outlet(p, dome, sensor, OutletConfig(marker_radius=None))
     assert np.hypot(*(found - b)[:2]) < 0.005
+
+
+def _path_collision(geom, servo_waypoints, start_servo, s):
+    """Gelenkraum-Fahrt wie die SPS (alle Achsen synchron, linear) gegen `geom` prüfen."""
+    from verladearm_vision.kinematics import first_collision, forward_many
+
+    qs = [model(s, start_servo)] + [model(s, w) for w in servo_waypoints]
+    for a, b in zip(qs[:-1], qs[1:], strict=True):
+        t = np.linspace(0, 1, 60)[:, None]
+        hit, name = first_collision(geom, forward_many(geom, a + t * (b - a)))
+        if hit is not None:
+            return name
+    return None
+
+
+@pytest.mark.parametrize("seed", [0, 1, 2, 3])
+def test_rueckfahrt_ohne_jobkontext_misst_hindernisse_neu(seed):
+    """Nach Handbetrieb/Neustart: Job 3 ohne Messung aus Job 1 nimmt Tank und Deckel neu auf."""
+    s = make_service(seed)
+    r1 = s(Request(job=1, actual_deg=park(s), axes_homed=True))
+    r2 = s(Request(job=2, actual_deg=r1.waypoints[r1.approach_index - 1], axes_homed=True))
+    assert r1.ok and r2.ok
+    real = s.geom.with_obstacles(s.last["obstacles"])  # Tank, Kragen, Deckel aus Job 1
+    inside = r2.waypoints[-1]
+    s.last = None  # z. B. Dienst neu gestartet oder Arm von Hand in den Dom gefahren
+
+    r3 = s(Request(job=3, actual_deg=inside, axes_homed=True))
+    assert r3.ok, r3.message
+    assert s._info["rueckfahrt_neu_gemessen"]["quader"] > 0
+    assert np.allclose(r3.waypoints[-1], park(s), atol=0.01)
+    assert _path_collision(real, r3.waypoints, inside, s) is None
+
+
+def test_rueckfahrt_misst_neu_wenn_auslass_woanders_steht():
+    s = make_service()
+    r1 = s(Request(job=1, actual_deg=park(s), axes_homed=True))
+    assert r1.ok
+    s.last["target_mm"] = (s.last["target_mm"][0] + 1500.0, *s.last["target_mm"][1:])
+    s(Request(job=3, actual_deg=r1.waypoints[r1.approach_index - 1], axes_homed=True))
+    assert "neben dem gemessenen Dom" in s._info["rueckfahrt_neu_gemessen"]["grund"]
+
+
+def test_rueckfahrt_ohne_kontext_und_ohne_kamera_wird_abgelehnt(monkeypatch):
+    s = make_service()
+
+    def no_camera():
+        raise RuntimeError("Visionary-T Mini nicht verbunden")
+
+    monkeypatch.setattr(s.source, "grab", no_camera)
+    r = s(Request(job=3, actual_deg=park(s), axes_homed=True))
+    assert not r.ok and r.error_code == 90 and "Handbetrieb" in r.message

@@ -2,6 +2,7 @@
 
 import json
 import threading
+import urllib.error
 import urllib.request
 from http.server import ThreadingHTTPServer
 
@@ -73,5 +74,61 @@ def test_http_schnittstelle(tmp_path):
                                      .encode(), {"Content-Type": "application/json"})
         r = json.loads(urllib.request.urlopen(req).read())
         assert r["ok"] and "neu_2" in r["files"]
+    finally:
+        server.shutdown()
+
+
+def _copy_station(tmp_path, name="heta_prototyp"):
+    """Anlagendatei mit Standardwerten in einen Testordner (wie vision/config/anlagen)."""
+    from verladearm_vision.einrichtung import ANLAGEN
+
+    folder = tmp_path / "config" / "anlagen"
+    folder.mkdir(parents=True)
+    (tmp_path / "config" / "default.yaml").write_text(
+        (ANLAGEN.parent / "default.yaml").read_text(encoding="utf-8"), encoding="utf-8")
+    for n in {name, "beispiel"}:  # heta_prototyp erbt von beispiel
+        (folder / f"{n}.yaml").write_text((ANLAGEN / f"{n}.yaml").read_text(encoding="utf-8"),
+                                          encoding="utf-8")
+    return folder
+
+
+def test_speichern_unter_uebernimmt_alles_aus_der_vorlage(tmp_path):
+    folder = _copy_station(tmp_path)
+    d = load_station("heta_prototyp", folder)
+    assert d["template"]  # ohne git: bekannte Vorlagen
+    path = save_station(d, "vor_ort", folder, tmp_path / "bak", origin="heta_prototyp")
+    assert load_config(path) == load_config(folder / "heta_prototyp.yaml")
+
+
+def test_sensor_nur_bei_aenderung_geschrieben(tmp_path):
+    folder = _copy_station(tmp_path)
+    d = load_station("heta_prototyp", folder)
+    path = save_station(d, "a", folder, tmp_path / "bak", origin="heta_prototyp")
+    assert "source:" not in path.read_text(encoding="utf-8")
+    d["source"] = {"type": "sick", "ip": "192.168.1.20", "frames": 5, "path": "data/x"}
+    d["source_changed"] = True
+    cfg = load_config(save_station(d, "b", folder, tmp_path / "bak", origin="heta_prototyp"))
+    assert cfg["source"]["type"] == "sick" and cfg["source"]["ip"] == "192.168.1.20"
+    assert cfg["source"]["frames"] == 5
+    assert load_station("b", folder)["calibration"]["example"]  # noch Beispielwerte
+
+
+def test_vorlage_wird_nicht_ueberschrieben(tmp_path):
+    folder = _copy_station(tmp_path)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(folder, tmp_path / "bak"))
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    try:
+        files = json.loads(urllib.request.urlopen(base + "/api/files").read())
+        assert files["templates"] == ["beispiel", "heta_prototyp"]
+        d = json.loads(urllib.request.urlopen(base + "/api/load?name=heta_prototyp").read())
+        req = urllib.request.Request(base + "/api/save", json.dumps(
+            {"name": "heta_prototyp", "data": d}).encode(), {"Content-Type": "application/json"})
+        try:
+            urllib.request.urlopen(req)
+        except urllib.error.HTTPError as e:
+            assert e.code == 400 and "Vorlage" in json.loads(e.read())["error"]
+        else:
+            raise AssertionError("Vorlage überschrieben")
     finally:
         server.shutdown()

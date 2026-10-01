@@ -381,8 +381,9 @@ class PlcSim:
             if axis not in (1, 2, 3):
                 return print("Achse 1, 2 oder 3")
             if cmd == "b" and axis == 3:
-                return print("J3: Bremse lüften gesperrt (Last hängt an der Schnecke, Selbsthemmung "
-                             "nicht zugesichert – Arm könnte absacken). Nur tippen: j 3 <°>")
+                return print("J3: Bremse lüften gesperrt (Last hängt an der Schnecke, "
+                             "Selbsthemmung nicht zugesichert – Arm könnte absacken). "
+                             "Nur tippen: j 3 <°>")
             target = self.actual.copy()
             target[axis - 1] += delta
             if cmd == "j":

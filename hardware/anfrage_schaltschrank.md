@@ -72,6 +72,10 @@ Einschätzung zu Aufwand, Platzbedarf und Termin – für Schaltschrank, Verkabe
   die Klapptreppe nicht ausfahren. Fällt die Lichtschranke ab oder verlässt die Treppe die
   Ruhelage: Bewegung stoppen, Meldung. Optional Ampel für den Fahrer (rot = nicht wegfahren,
   Arm im Dom). Steuert ihr die Klapptreppe mit dieser SPS oder mit einer anderen?
+- **Parkstellung:** „Arm in Parkstellung“ prüft die SPS selbst: Servowinkel J1–J3 innerhalb einer
+  Toleranz (z. B. ±0,5°) um die Parkwerte. Die Parkwerte bitte als Parameter (am HMI änderbar),
+  sie müssen mit unserer Anlagendatei übereinstimmen (heute J1 70°, J2 −135°, J3 10°, wird vor
+  Ort festgelegt).
 - **Ablauf der Verladung** nach unserer Schnittstellenbeschreibung (`docs/schnittstelle.md`,
   Datenbaustein `plc/DB_Vision.db` als SCL-Quelle liegt vor): Aufträge an den PC (Job 1–3),
   Handshake und Heartbeat, Prüfung der Stützpunkte, **synchrones Fahren** der drei Achsen

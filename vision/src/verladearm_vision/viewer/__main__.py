@@ -42,7 +42,9 @@ from verladearm_vision.kinematics import (
     plan_correction,
     plan_motion,
     product_insertion_depth,
+    shift_obstacle,
 )
+from verladearm_vision.kinematics import tip as model_tip
 from verladearm_vision.plc import VARIABLES
 from verladearm_vision.scene import SceneConfig, build_obstacles
 from verladearm_vision.service.main import build_source
@@ -134,7 +136,12 @@ class FrameProducer:
         except DetectionError as e:
             arm["correction_note"] = str(e)
             return
-        corr = plan_correction(geom, q_above, tip, res["target_mm"], res["normal"],
+        # wie im Vision-Dienst: Fahrzeug-Hindernisse um den gemessenen Modellfehler verschieben
+        offset = np.asarray(tip, float) - model_tip(self.geom, q_above)
+        offset[2] = 0.0
+        scene_obs = [o for o in geom.obstacles if o not in self.geom.obstacles]
+        corr_geom = self.geom.with_obstacles([shift_obstacle(o, -offset) for o in scene_obs])
+        corr = plan_correction(corr_geom, q_above, tip, res["target_mm"], res["normal"],
                                arm["insertion_depth"])
         if not corr["ok"]:
             arm["correction_note"] = corr["reason"]

@@ -25,8 +25,10 @@ ANLAGEN = Path(__file__).resolve().parents[2] / "config" / "anlagen"
 
 # (Schlüssel, Frage, kleinster, größter plausibler Wert) – Maße in m
 DIMENSIONS = [
-    ("base_height", "Höhe Rohrmitte innerer Ausleger an der Achse J1 über Fahrbahn "
-                    "(Standfläche Tankwagen)", 2.0, 12.0),
+    ("flange_height", "Höhe Oberkante Schnittstellenflansch am Eintritt J1 (Fallleitung von oben) "
+                      "über Fahrbahn (Standfläche Tankwagen)", 2.0, 15.0),
+    ("flange_offset", "Höhendifferenz Oberkante Schnittstellenflansch bis Rohrmitte innerer "
+                      "Ausleger, senkrecht auf Achse J1", 0.0, 3.0),
     ("inner_length", "Innerer Ausleger: Achse J1 bis Mitte Winkel nach unten", 0.3, 10.0),
     ("incline_deg", "Festes Gefälle des inneren Auslegers [Grad, nach unten positiv]", -15.0, 15.0),
     ("drop", "Fallrohr: Winkel nach unten bis Mitte Winkel nach rechts (Achse J2)", 0.05, 3.0),
@@ -101,11 +103,26 @@ class Dialog:
             self.print(text)
 
 
+def with_flange(arm: dict) -> dict:
+    """Höhenbezug Schnittstellenflansch ergänzen: ältere Dateien kennen nur base_height
+    (Rohrmitte innerer Ausleger auf J1) – dann Flanschhöhe = base_height, Differenz 0."""
+    out = dict(arm)
+    offset = float(out.get("flange_offset") or 0.0)
+    height = out.get("flange_height")
+    if height is None:
+        height = float(out.get("base_height", 5.0)) + offset
+    out.update(flange_height=float(height), flange_offset=offset,
+               base_height=round(float(height) - offset, 4))
+    return out
+
+
 def ask_arm(d: Dialog, cur: dict) -> dict:
     d.step("1. Maße des Arms [m]", "Immer Rohrmitte zu Rohrmitte bzw. Gelenkachse zu Gelenkachse "
            "messen, nie Außenkanten.\nBei 90°-Winkeln zählt der Schnittpunkt der beiden "
-           "Rohrmittellinien (Skizze: docs/inbetriebnahme.md).")
-    return {k: d.number(q, cur.get(k), lo, hi) for k, q, lo, hi in DIMENSIONS}
+           "Rohrmittellinien (Skizze: docs/inbetriebnahme.md).\nHöhenbezug ist die Oberkante "
+           "des Schnittstellenflansches am Eintritt J1 (Fallleitung von oben, Achse = J1).")
+    cur = with_flange(cur)
+    return with_flange({k: d.number(q, cur.get(k), lo, hi) for k, q, lo, hi in DIMENSIONS})
 
 
 def ask_joints(d: Dialog, cur: dict, read_angles=None) -> dict:
@@ -245,7 +262,7 @@ def _flow(v) -> str:
 
 
 KNOWN = {"extends", "plc", "calibration", "arm", "products", "outlet", "commissioning"}
-ARM_KNOWN = {k for k, *_ in DIMENSIONS} | {"joints", "obstacles", "clearance"}
+ARM_KNOWN = {k for k, *_ in DIMENSIONS} | {"base_height", "joints", "obstacles", "clearance"}
 
 
 def render(meta: dict, plc_url: str, calibration: list, arm: dict, products: dict,
@@ -278,6 +295,8 @@ def render(meta: dict, plc_url: str, calibration: list, arm: dict, products: dic
         "arm:",
         "  # Maße von Gelenkachse zu Gelenkachse bzw. Rohrmitte [m]",
         *[f"  {k}: {fmt(float(arm[k]))}" for k, *_ in DIMENSIONS],
+        f"  base_height: {fmt(round(float(arm['flange_height']) - float(arm['flange_offset']), 4))}"
+        "   # berechnet: flange_height − flange_offset (Rohrmitte innerer Ausleger auf J1)",
         "  # Servoachsen in Servo-Grad wie am Antrieb angezeigt (zero = Ausleger gestreckt nach",
         "  # vorne; direction +1 = steigender Servowert dreht nach links bzw. hebt)",
         "  joints:",

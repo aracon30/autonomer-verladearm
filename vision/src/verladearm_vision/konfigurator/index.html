@@ -241,20 +241,23 @@ function sketch() {
   // Schemaskizze Seitenansicht mit Bezeichnungen der Maße
   const svg = `<svg class="sketch" viewBox="0 0 560 190" aria-hidden="true">
     <line x1="20" y1="180" x2="540" y2="180" class="dim"/><text x="24" y="175">Fahrbahn</text>
-    <path class="pipe" d="M40 40 L230 52 L230 100 L420 100 L420 160"/>
-    <circle class="joint" cx="40" cy="40" r="8"/><text x="22" y="26">J1</text>
+    <path class="pipe" d="M40 2 L40 26"/><text x="50" y="12">Fallleitung</text>
+    <rect x="26" y="24" width="28" height="5" fill="var(--ink)"/>
+    <path class="pipe" d="M40 30 L40 40 L230 52 L230 100 L420 100 L420 160"/>
+    <circle class="joint" cx="40" cy="40" r="8"/><text x="14" y="50">J1</text>
     <circle class="joint" cx="230" cy="76" r="7"/><text x="240" y="80">J2</text>
     <circle class="joint" cx="230" cy="100" r="7"/><text x="200" y="120">J3</text>
     <circle class="free" cx="420" cy="100" r="7"/><text x="430" y="96">J4</text>
-    <line x1="40" y1="48" x2="40" y2="180" class="dim" stroke-dasharray="4 3"/><text x="46" y="140">① Höhe</text>
-    <text x="90" y="34">② innerer Ausleger, ③ Gefälle</text>
+    <line x1="40" y1="48" x2="40" y2="180" class="dim" stroke-dasharray="4 3"/><text x="46" y="140">① Höhe OK Flansch</text>
+    <text x="58" y="36">①a</text>
+    <text x="70" y="70">② innerer Ausleger, ③ Gefälle</text>
     <text x="212" y="64">④</text><text x="262" y="92">⑥ äußerer Ausleger</text>
     <text x="428" y="140">⑧ Auslass</text>
     <text x="250" y="176">⑤ nach rechts, ⑦ nach links: quer zur Bildebene</text>
   </svg>`;
   const d = el("div"); d.innerHTML = svg; return d.firstChild;
 }
-const DIMNO = { base_height: "①", inner_length: "②", incline_deg: "③", drop: "④", offset_right: "⑤", outer_length: "⑥", offset_left: "⑦", outlet_length: "⑧" };
+const DIMNO = { flange_height: "①", flange_offset: "①a", inner_length: "②", incline_deg: "③", drop: "④", offset_right: "⑤", outer_length: "⑥", offset_left: "⑦", outlet_length: "⑧" };
 
 function buildForm() {
   const f = $("#form"); f.replaceChildren();
@@ -269,8 +272,14 @@ function buildForm() {
   for (const d of data.dimensions) {
     const deg = d.key.endsWith("_deg");
     dims.append(numField({ id: "d-" + d.key, label: `${DIMNO[d.key] || ""} ${d.text}`, unit: deg ? "°" : "m", min: d.min, max: d.max,
-      get: () => data.arm[d.key], set: v => data.arm[d.key] = v }));
+      get: () => data.arm[d.key], set: v => { data.arm[d.key] = v; if (d.key.startsWith("flange_")) baseUpd(); } }));
   }
+  // Rohrmitte innerer Ausleger auf J1 = Flanschhöhe − Höhendifferenz (Bezug aller z-Werte)
+  const baseOut = el("dd", { style: "margin:0;font-family:var(--f-mono)" });
+  const baseUpd = () => { data.arm.base_height = +(data.arm.flange_height - data.arm.flange_offset).toFixed(4);
+    baseOut.textContent = fmt(data.arm.base_height) + " m"; };
+  baseUpd();
+  dims.append(el("div", { class: "field" }, el("label", {}, "Rohrmitte innerer Ausleger auf J1 über Fahrbahn (berechnet: ① − ①a, Ursprung Armbasis)"), baseOut));
   dims.append(numField({ id: "d-drop_tilt", label: "Neigung Fallrohr (J2-Achse) gegen die Senkrechte – meist 0", unit: "°", min: -15, max: 15,
     get: () => data.arm.drop_tilt_deg, set: v => data.arm.drop_tilt_deg = v }));
   f.append(card(1, "Maße des Arms", "Rohrmitte zu Rohrmitte bzw. Gelenkachse zu Gelenkachse, nie Außenkanten", sketch(), dims));

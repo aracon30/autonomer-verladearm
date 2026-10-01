@@ -14,6 +14,9 @@ arm:
   flange_height: 5.904    # Oberkante Flansch über Fahrbahn – vor Ort messen
   flange_offset: 0.404    # Oberkante Flansch bis Rohrmitte 3°-Rohr auf Achse J1 (Zeichnung)
   base_height: 5.5        # berechnet: flange_height − flange_offset
+  support: oben           # Zulauf als Fallleitung von oben durch J1 (keine Säule)
+  feed_length: 1.5        # sichtbare Fallleitung über dem Flansch – vor Ort messen
+  pipe_diameter: 0.114    # Rohr der Ausleger (DN100) – Zeichnung prüfen
   inner_length: 2.4       # Zeichnung: 2548 − 148
   incline_deg: 3          # nur innerer Ausleger; Winkel danach 87° -> Fallrohr/J2 senkrecht
   drop: 0.43              # aus 961 − 404 − 2400·tan 3° (prüfen)

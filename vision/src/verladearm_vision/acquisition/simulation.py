@@ -1,7 +1,8 @@
 """Simulierter Sensor für Tests ohne Hardware (source.type: sim).
 
 Erzeugt zu jeder Verladung (Job 1) einen neuen Tankwagen (Lkw oder Kesselwagen) an zufälliger
-Stelle und rendert zusätzlich Auslegerende und Auslass in der tatsächlichen Stellung des Arms.
+Stelle und rendert zusätzlich den ganzen Arm in seiner tatsächlichen Stellung (Rohrdurchmesser
+`arm.pipe_diameter`) sowie die Bauform am Haltepunkt (Fallleitung von oben bzw. Säule).
 `joint_error_deg` simuliert den Unterschied zwischen gemeldetem Servowinkel und realer Gelenklage
 (Getriebespiel, Durchbiegung), damit das Nachmessen in Job 2 etwas zu korrigieren hat.
 Am Auslass sitzt eine Markierungsscheibe (siehe detection/outlet.py); `marker_radius: null`
@@ -17,7 +18,7 @@ import numpy as np
 
 from verladearm_vision.calibration import SensorToArm
 from verladearm_vision.drives import Backlash
-from verladearm_vision.kinematics import JOINTS, ArmGeometry, forward
+from verladearm_vision.kinematics import JOINTS, ArmGeometry, fixed_parts, forward
 from verladearm_vision.synthetic import make_tank_vehicle
 
 # Höhe Oberkante Domkragen über Fahrbahn [m]
@@ -54,6 +55,9 @@ class SimulatedScene:
         self.marker_radius, self.marker_offset = marker_radius, marker_offset
         self.pipe_radius = pipe_radius  # Auslassrohr
         self.rng = np.random.default_rng(seed)
+        # eigener Zufall für das Messrauschen: die Fahrzeugfolge hängt so nicht davon ab,
+        # wie viele Punkte vom Arm sichtbar sind
+        self.noise = np.random.default_rng(None if seed is None else seed + 7919)
         # sensor_matrix: tatsächliche Montagelage (Sensor -> Armbasis), falls sie von der
         # Konfiguration abweichen soll (Test der Kalibrierung)
         self.true_t = np.asarray(sensor_matrix, float) if sensor_matrix is not None else transform.T
@@ -88,12 +92,14 @@ class SimulatedScene:
         self.kind = kind
 
     def _arm_points(self, q, spacing=0.012):
-        radius = (0.075, 0.075, self.pipe_radius)
         pts = forward(self.geom, q)
         sensor = self.true_t[:3, 3]
+        r_arm = self.geom.pipe_diameter / 2
+        radius = (r_arm, r_arm, r_arm, r_arm, r_arm, self.pipe_radius)
         out = []
-        for (a, b), r in zip(((pts[3], pts[4]), (pts[4], pts[5]), (pts[5], pts[6])), radius,
-                             strict=True):
+        segments = [((pts[i], pts[i + 1]), radius[i]) for i in range(6)]
+        segments += [((a, b), r) for a, b, r, _ in fixed_parts(self.geom)]
+        for (a, b), r in segments:
             axis = b - a
             length = np.linalg.norm(axis)
             axis /= length
@@ -110,7 +116,7 @@ class SimulatedScene:
             out.append(p[visible])
         if self.marker_radius:  # Oberseite der Markierungsscheibe
             ang = self.rng.uniform(0, 2 * np.pi, 1500)
-            rr = np.sqrt(self.rng.uniform(radius[2] ** 2, self.marker_radius ** 2, 1500))
+            rr = np.sqrt(self.rng.uniform(self.pipe_radius ** 2, self.marker_radius ** 2, 1500))
             axis = (pts[5] - pts[6]) / np.linalg.norm(pts[5] - pts[6])
             m = pts[6] + self.marker_offset * axis  # Mitte der Markierung auf der Rohrachse
             u = np.cross(axis, [1.0, 0.0, 0.0])
@@ -118,8 +124,8 @@ class SimulatedScene:
             v = np.cross(axis, u)  # Scheibe/Flansch rechtwinklig zum Rohr
             disc = m + (rr * np.cos(ang))[:, None] * u + (rr * np.sin(ang))[:, None] * v
             side = (pts[4] - pts[5]) / np.linalg.norm(pts[4] - pts[5])
-            blockers = [(pts[3], pts[4], radius[0]), (pts[4], pts[5], radius[1]),
-                        (m, pts[5], radius[2]),  # Auslassrohr über der Markierung
+            blockers = [(pts[3], pts[4], r_arm), (pts[4], pts[5], r_arm),
+                        (m, pts[5], self.pipe_radius),  # Auslassrohr über der Markierung
                         (pts[5] + 0.12 * side, pts[5] + 0.17 * side, 0.11)]  # Flansch J4
             hidden = np.zeros(len(disc), bool)
             for a, b, r in blockers:
@@ -134,5 +140,5 @@ class SimulatedScene:
         if self.q_true is not None:
             arm = self._arm_points(self.q_true)
             arm_sensor = arm @ self.inv[:3, :3].T + self.inv[:3, 3]
-            parts.append(arm_sensor + self.rng.normal(0, 0.003, arm_sensor.shape))
+            parts.append(arm_sensor + self.noise.normal(0, 0.003, arm_sensor.shape))
         return np.vstack(parts)

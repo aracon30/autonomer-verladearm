@@ -29,7 +29,7 @@ from verladearm_vision.config import _merge, load_config
 from verladearm_vision.drives import Drives
 from verladearm_vision.einrichtung import ANLAGEN, DIMENSIONS, render, with_flange
 from verladearm_vision.kinematics import JOINTS, ArmGeometry, forward, validate
-from verladearm_vision.viewer.__main__ import obstacle_for_view
+from verladearm_vision.viewer.__main__ import obstacles_for_view, structure_for_view
 
 log = logging.getLogger("verladearm.konfigurator")
 NAME = re.compile(r"^[A-Za-z0-9_\-]{1,60}$")
@@ -94,6 +94,8 @@ def load_station(name: str, folder: Path = ANLAGEN) -> dict:
         "plc_url": cfg.get("plc", {}).get("url", ""),
         "arm": {k: float(dims[k]) for k in [d[0] for d in DIMENSIONS] + ["base_height"]}
         | {"drop_tilt_deg": float(arm.get("drop_tilt_deg", 0.0)),
+           "support": geom.support, "feed_length": float(geom.feed_length),
+           "pipe_diameter": float(geom.pipe_diameter),
            "clearance": float(arm.get("clearance", 0.15)),
            "joints": {k: {f: arm["joints"][k][f] for f in ("min", "max", "park", "zero",
                                                            "direction")}
@@ -115,6 +117,9 @@ def _arm(data: dict) -> dict:
     arm = {k: float(a[k]) for k, *_ in DIMENSIONS}
     arm["base_height"] = round(arm["flange_height"] - arm["flange_offset"], 4)
     arm["drop_tilt_deg"] = float(a.get("drop_tilt_deg") or 0.0)
+    arm["support"] = a.get("support") or "unten"
+    arm["feed_length"] = float(a.get("feed_length") or 1.5)
+    arm["pipe_diameter"] = float(a.get("pipe_diameter") or 0.15)
     arm["clearance"] = float(a["clearance"])
     arm["joints"] = {k: {"min": float(j["min"]), "max": float(j["max"]), "park": float(j["park"]),
                          "zero": float(j["zero"]), "direction": int(j["direction"])}
@@ -132,7 +137,8 @@ def preview(data: dict) -> dict:
         return {"ok": False, "problems": [f"Eingabe unvollständig oder ungültig: {e}"]}
     problems = validate(geom)
     out = {"ok": not problems, "problems": problems,
-           "obstacles": [obstacle_for_view(o) for o in geom.obstacles],
+           "obstacles": obstacles_for_view(geom),
+           "structure": structure_for_view(geom),
            "ground_z": -geom.base_height}
     lo, hi = geom.bounds
     if np.all(hi > lo):
@@ -191,6 +197,8 @@ def station_yaml(data: dict, folder: Path, name: str, origin: str | None = None)
     extra_arm["drop_tilt_deg"] = arm.pop("drop_tilt_deg")
     if not extra_arm["drop_tilt_deg"]:
         extra_arm.pop("drop_tilt_deg")
+    for k in ("support", "feed_length", "pipe_diameter"):  # Bauform am Haltepunkt
+        extra_arm[k] = arm.pop(k)
     keep["arm"] = extra_arm
     src = {k: v for k, v in (data.get("source") or {}).items()
            if k in SOURCE_FIELDS and v not in ("", None)}

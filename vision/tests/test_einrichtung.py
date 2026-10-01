@@ -74,11 +74,13 @@ def test_servowerte_aus_der_sps(tmp_path):
 
 def test_vorhandene_anlage_bearbeiten(tmp_path):
     target = tmp_path / "a.yaml"
-    run(scripted([("Höhe Rohrmitte", "6,2")])[0], target)
+    run(scripted([("Höhe Oberkante Schnittstellenflansch", "6,6"),
+                  ("Höhendifferenz", "0,4")])[0], target)
     d, _, asked, _ = scripted([])
     run(d, target)  # alles mit Enter: Werte bleiben
     cfg = load_config(target)
-    assert cfg["arm"]["base_height"] == 6.2
+    assert cfg["arm"]["base_height"] == 6.2  # 6,6 − 0,4: Rohrmitte innerer Ausleger auf J1
+    assert cfg["arm"]["flange_height"] == 6.6 and cfg["arm"]["flange_offset"] == 0.4
     assert len(cfg["arm"]["obstacles"]) == 2
     assert np.allclose(cfg["calibration"]["matrix"][0], [1, 0, 0, 3.0])
 

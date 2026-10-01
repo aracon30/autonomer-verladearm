@@ -27,7 +27,7 @@ import yaml
 from verladearm_vision.commissioning import check as commissioning_check
 from verladearm_vision.config import _merge, load_config
 from verladearm_vision.drives import Drives
-from verladearm_vision.einrichtung import ANLAGEN, DIMENSIONS, render
+from verladearm_vision.einrichtung import ANLAGEN, DIMENSIONS, render, with_flange
 from verladearm_vision.kinematics import JOINTS, ArmGeometry, forward, validate
 from verladearm_vision.viewer.__main__ import obstacle_for_view
 
@@ -75,6 +75,9 @@ def load_station(name: str, folder: Path = ANLAGEN) -> dict:
     arm = cfg.get("arm", {})
     geom = ArmGeometry(**arm)
     outlet = cfg.get("outlet", {})
+    # Maße samt Höhenbezug Schnittstellenflansch (ältere Dateien: nur base_height)
+    dims = with_flange({k: getattr(geom, k) for k, *_ in DIMENSIONS if hasattr(geom, k)}
+                       | {"base_height": geom.base_height} | arm)
     source = cfg.get("source") or {}
     example = load_config(ANLAGEN / "beispiel.yaml")["calibration"]["matrix"]
     matrix = cfg.get("calibration", {}).get("matrix")
@@ -89,7 +92,7 @@ def load_station(name: str, folder: Path = ANLAGEN) -> dict:
         "meta": {"anlage": name, "name": ""} | (_meta(path.read_text(encoding="utf-8"))
                                                 if path.exists() else {}),
         "plc_url": cfg.get("plc", {}).get("url", ""),
-        "arm": {k: float(arm.get(k, getattr(geom, k))) for k, *_ in DIMENSIONS}
+        "arm": {k: float(dims[k]) for k in [d[0] for d in DIMENSIONS] + ["base_height"]}
         | {"drop_tilt_deg": float(arm.get("drop_tilt_deg", 0.0)),
            "clearance": float(arm.get("clearance", 0.15)),
            "joints": {k: {f: arm["joints"][k][f] for f in ("min", "max", "park", "zero",
@@ -110,6 +113,7 @@ def load_station(name: str, folder: Path = ANLAGEN) -> dict:
 def _arm(data: dict) -> dict:
     a = data["arm"]
     arm = {k: float(a[k]) for k, *_ in DIMENSIONS}
+    arm["base_height"] = round(arm["flange_height"] - arm["flange_offset"], 4)
     arm["drop_tilt_deg"] = float(a.get("drop_tilt_deg") or 0.0)
     arm["clearance"] = float(a["clearance"])
     arm["joints"] = {k: {"min": float(j["min"]), "max": float(j["max"]), "park": float(j["park"]),

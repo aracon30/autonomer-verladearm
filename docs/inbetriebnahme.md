@@ -59,18 +59,22 @@ Danach weiter mit Schritt 7 (Kalibrierung).
    Bei 90°-Winkeln zählt der Schnittpunkt der beiden Rohrmittellinien (gedachter Eckpunkt).
 
    ```
-                 Drehachse J1
-                      │
-   Rohrleitung ═══════╪═════ innerer Ausleger ──(inner_length)──┐ Winkel nach unten
-                      │                                         │ drop
-                      │ base_height                  J2 ────────┘── Winkel nach rechts ...
+                Fallleitung (von oben, Achse = Drehachse J1)
+                      ║
+                   ═══╩═══  Oberkante Schnittstellenflansch ──┐
+                      │                                       │ flange_offset (HETA: 404 mm)
+                      ●──── innerer Ausleger 3° ──(inner_length)──┐ Winkel nach unten
+                      │  (Rohrmitte auf Achse J1)               │ drop
+       flange_height  │                              J2 ────────┘── Winkel nach rechts ...
                       │
    ═══════════════════╧══════ Fahrbahn
    ```
 
    | Parameter | Strecke |
    |---|---|
-   | `base_height` | senkrecht: Fahrbahn (Standfläche Tankwagen) bis Rohrmitte innerer Ausleger an der Achse J1 |
+   | `flange_height` | senkrecht: Fahrbahn (Standfläche Tankwagen) bis **Oberkante Schnittstellenflansch** am Eintritt J1 (Fallleitung von oben) |
+   | `flange_offset` | senkrecht auf Achse J1: Oberkante Schnittstellenflansch bis Rohrmitte des 3°-Rohrs (innerer Ausleger) |
+   | `base_height` | wird berechnet: `flange_height − flange_offset` = Rohrmitte innerer Ausleger auf J1 = Ursprung der Armbasis-Koordinaten (z = 0). Ältere Anlagendateien ohne Flanschmaße geben `base_height` direkt an |
    | `inner_length` | Achse J1 bis Mitte Winkel nach unten |
    | `drop` | Winkel nach unten bis Mitte Winkel nach rechts |
    | `offset_right` | Winkel nach rechts bis Mitte Winkel nach vorne |

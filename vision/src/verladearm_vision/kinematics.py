@@ -161,7 +161,11 @@ def obstacle_from_dict(o: dict):
 
 @dataclass
 class ArmGeometry:
-    base_height: float = 5.0  # Höhe J1 über Fahrbahn [m]
+    base_height: float = 5.0  # Rohrmitte innerer Ausleger auf Achse J1 über Fahrbahn [m]
+    # Höhenbezug vor Ort: Oberkante Schnittstellenflansch am Eintritt J1 (Fallleitung von oben).
+    # Ist flange_height gesetzt, gilt base_height = flange_height − flange_offset.
+    flange_height: float | None = None  # Oberkante Schnittstellenflansch über Fahrbahn [m]
+    flange_offset: float = 0.0  # Oberkante Flansch bis Rohrmitte innerer Ausleger auf J1 [m]
     incline_deg: float = 3.0  # festes Gefälle des inneren Auslegers [°]
     drop_tilt_deg: float = 0.0  # Neigung des Fallrohrs (J2-Achse) gegen die Senkrechte [°]
     inner_length: float = 2.2
@@ -178,6 +182,8 @@ class ArmGeometry:
     insertion_depth: float = 0.4  # Eintauchtiefe, wenn für das Produkt nichts hinterlegt ist [m]
 
     def __post_init__(self):
+        if self.flange_height is not None:
+            self.base_height = float(self.flange_height) - float(self.flange_offset)
         self.joints = {
             k: j if isinstance(j, Joint) else Joint(**j) for k, j in self.joints.items()
         }
@@ -259,6 +265,8 @@ def validate(geom: ArmGeometry) -> list[str]:
                  "outlet_length", "base_height"):
         if getattr(geom, name) <= 0:
             problems.append(f"{name} muss größer 0 sein")
+    if not 0.0 <= geom.flange_offset <= 3.0:
+        problems.append("flange_offset (Flansch bis Rohrmitte innerer Ausleger) 0 … 3 m")
     for k in JOINTS:
         j = geom.joints.get(k)
         if j is None:

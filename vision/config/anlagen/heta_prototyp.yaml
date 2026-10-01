@@ -10,7 +10,10 @@
 extends: beispiel.yaml
 
 arm:
-  base_height: 5.5        # vor Ort messen
+  # Höhenbezug: Oberkante Schnittstellenflansch am Eintritt J1 (Fallleitung von oben)
+  flange_height: 5.904    # Oberkante Flansch über Fahrbahn – vor Ort messen
+  flange_offset: 0.404    # Oberkante Flansch bis Rohrmitte 3°-Rohr auf Achse J1 (Zeichnung)
+  base_height: 5.5        # berechnet: flange_height − flange_offset
   inner_length: 2.4       # Zeichnung: 2548 − 148
   incline_deg: 3          # nur innerer Ausleger; Winkel danach 87° -> Fallrohr/J2 senkrecht
   drop: 0.43              # aus 961 − 404 − 2400·tan 3° (prüfen)

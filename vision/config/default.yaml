@@ -19,8 +19,9 @@ detection:
   ransac_iterations: 300
   ransac_sample: 5000           # Punkte zur Bewertung der RANSAC-Hypothesen
   grid_size: 0.02               # Rasterweite [m], an Punktdichte des Sensors anpassen
-  min_diameter: 0.35            # erwarteter Domdurchmesser [m]
-  max_diameter: 0.65
+  min_diameter: 0.18            # Öffnung zum Eintauchen: kleine Füllöffnung im Domdeckel …
+  max_diameter: 0.70            # … bis offenes Mannloch [m]
+  deep_min: 0.25                # tiefer als das unter der Oberfläche = Blick ins Tankinnere [m]
   min_points: 2000
 
 calibration:
@@ -60,7 +61,8 @@ arm:
 outlet:
   # Nachmessen des Auslasses (Job 2). Markierungsscheibe am Auslass, von oben immer sichtbar.
   marker_radius: 0.125    # Außenradius Scheibe [m]; null = ohne Scheibe (Rohrwand, unsicherer)
-  marker_offset: 0.15     # Scheibe über dem Auslassende [m]
+  marker_offset: 0.8      # Scheibe über dem Auslassende [m]; muss über der größten
+                          # Eintauchtiefe liegen, wenn sie nicht durch die Füllöffnung passt
 
 planning:
   move_waypoints: 3       # Stützpunkte für die Anfahrt (synchrone Gelenkbewegung)

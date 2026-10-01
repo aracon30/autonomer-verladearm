@@ -221,6 +221,18 @@ class ArmGeometry:
 FEED_NAME = "Fallleitung Zulauf J1"
 
 
+def shift_obstacle(o, d):
+    """Hindernis um d [m] verschoben (gemessene Lage -> Modellraum bei bekanntem Modellfehler)."""
+    d = np.asarray(d, float)
+    p = o.passage and (o.passage[0] + d[0], o.passage[1] + d[1], o.passage[2])
+    if isinstance(o, Obstacle):
+        return dataclasses.replace(o, min=(np.asarray(o.min) + d).tolist(),
+                                   max=(np.asarray(o.max) + d).tolist(), passage=p)
+    if isinstance(o, OrientedBoxObstacle):
+        return dataclasses.replace(o, center=(np.asarray(o.center) + d).tolist(), passage=p)
+    return dataclasses.replace(o, p0=(np.asarray(o.p0) + d).tolist(), passage=p)
+
+
 def fixed_parts(geom: "ArmGeometry") -> list:
     """Feste bzw. nur um die eigene Achse drehende Teile am Haltepunkt als Rohrstücke
     (Anfang, Ende, Radius, Art) in Armbasis-Koordinaten: Zulauf von oben samt Stück bis zum

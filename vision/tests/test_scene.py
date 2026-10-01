@@ -65,7 +65,9 @@ def test_deckel_erkannt(kind, az):
     t, pts = _scene(kind, az, seed=abs(az))
     op = detect_opening(pts)
     obstacles, info = build_obstacles(op, t, pts, OutletConfig())
-    assert [o.name for o in obstacles] == ["Tankkörper", "Domkragen", "Domdeckel"]
+    names = [o.name for o in obstacles]
+    assert names[:3] == ["Tankkörper", "Domkragen", "Domdeckel"]
+    assert set(names[3:]) <= {"Aufbauten am Dom"}  # Reste neben dem Deckel
     d = t.direction(np.array([np.cos(np.radians(az)), np.sin(np.radians(az)), 0.0]))
     expected = np.degrees(np.arctan2(d[1], d[0]))
     diff = (info["deckel"]["azimuth_deg"] - expected + 180) % 360 - 180
@@ -198,3 +200,21 @@ def test_hoehenkarte_ohne_arm_und_mit_durchgang():
     assert collision(geom.with_obstacles(obstacles), pts) is None  # eigener Arm nicht
     above = tip(geom, q) + [0.0, 0.0, 1.5]
     assert collision(geom.with_obstacles(obstacles), [tip(geom, q), above]) is None  # Durchgang
+
+
+def test_verdeckte_oeffnung_sperrt_eintauchen():
+    from verladearm_vision.scene import dome_structures
+
+    rng = np.random.default_rng(0)
+    center = np.array([3.0, 0.0, -2.0])
+    ring = np.column_stack([3.0 + 0.3 * np.cos(a := rng.uniform(0, 2 * np.pi, 3000)),
+                            0.3 * np.sin(a), np.full(3000, -1.9)])  # Domring 10 cm über Rand
+    passage = (3.0, 0.0, 0.05)
+    obstacles, info = dome_structures(ring, center, passage)
+    assert info["durchgang_frei"] and obstacles
+    assert all(o.passage == passage for o in obstacles)
+    flap = np.column_stack([rng.uniform(2.97, 3.03, 500), rng.uniform(-0.03, 0.03, 500),
+                            rng.uniform(-1.9, -1.8, 500)])  # Klappe hängt über der Öffnung
+    obstacles, info = dome_structures(np.vstack([ring, flap]), center, passage)
+    assert not info["durchgang_frei"] and obstacles[0].name == "Öffnung verdeckt"
+    assert obstacles[0].contains(np.array([[3.0, 0.0, -1.85]]), 0.0).all()

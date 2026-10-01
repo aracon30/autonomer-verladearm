@@ -4,11 +4,15 @@ Ablauf:
 1. Punktwolke auf den Arbeitsraum zuschneiden
 2. Tankoberfläche per RANSAC als quadratische Höhenfläche z = f(x, y) fitten. Das deckt ebene,
    geneigte und runde Tankdächer (Lkw, Kesselwagen) im Bereich um den Scheitel ab.
-3. Raster in Blickrichtung des Sensors: belegt sind Zellen mit Punkten auf der Oberfläche oder
-   knapp darüber (Domkragen, Deckel). Tiefer liegende Punkte (Blick ins Tankinnere) und
-   Störpunkte weit oberhalb (Geländer, Arm) zählen nicht.
-4. Geschlossene Lücke passender Größe = Domöffnung. Höhe und Normale aus dem Rand der Öffnung
-   (Oberkante Domkragen bzw. Dachfläche).
+3. Raster in Blickrichtung des Sensors: belegt sind Zellen mit Punkten nahe der Oberfläche –
+   darüber (Domkragen, Armaturen, Deckel, Laufstege) oder wenig darunter (vertiefter Domdeckel
+   im Domring). Nur Punkte deutlich tiefer (`deep_min`, Blick ins Tankinnere) und Störpunkte
+   weit oberhalb (Geländer, Arm) zählen nicht.
+4. Geschlossene Lücke passender Größe = Öffnung, durch die der Auslass eintaucht. Bei Domen mit
+   Armaturen ist das die kleine, oft seitlich versetzte Füllöffnung im Domdeckel, bei offenem
+   Mannloch das ganze Mannloch.
+5. Mittelpunkt und Durchmesser per Kreis-Fit auf dem innersten Rand der Öffnung (je 5°-Sektor),
+   Höhe und Normale aus diesem Rand.
 
 Der Sensor muss ungefähr senkrecht nach unten blicken. Der Arbeitsraum (roi) muss die Fahrbahn
 ausschließen, sonst kann statt des Tanks der Boden als Oberfläche gefunden werden.
@@ -43,8 +47,9 @@ class DetectorConfig:
     ransac_sample: int = 5000  # Punkte zur Bewertung der Hypothesen
     min_surface_fraction: float = 0.3
     grid_size: float = 0.02  # m
-    min_diameter: float = 0.35  # m
-    max_diameter: float = 0.65  # m
+    min_diameter: float = 0.18  # m (kleine Füllöffnung im Domdeckel)
+    max_diameter: float = 0.70  # m (offenes Mannloch)
+    deep_min: float = 0.25  # m unter der Oberfläche: ab hier Blick ins Tankinnere
     min_points: int = 2000
     seed: int = 0
 
@@ -124,6 +129,41 @@ def fit_surface_ransac(points, threshold, iterations, rng, sample_size=5000):
     return Surface(c, center, scale), inliers
 
 
+def _edge(solid_pts: np.ndarray, c2d, radius: float, g: float) -> np.ndarray:
+    """Innerster Randpunkt der Öffnung je 5°-Sektor (aus den belegten Punkten um die Lücke)."""
+    d = solid_pts[:, :2] - c2d
+    r = np.hypot(d[:, 0], d[:, 1])
+    near = (r > 0.5 * radius) & (r < radius + 4 * g)
+    p, r = solid_pts[near], r[near]
+    sector = ((np.arctan2(d[near, 1], d[near, 0]) + np.pi) / np.radians(5)).astype(int)
+    order = np.lexsort((r, sector))
+    first = np.ones(len(order), bool)
+    first[1:] = sector[order][1:] != sector[order][:-1]
+    return p[order[first]]
+
+
+def _fit_circle(xy: np.ndarray, rounds: int = 3, tol: float = 0.012):
+    """Kreis durch Randpunkte (algebraisch, Ausreißer werden schrittweise verworfen)."""
+    pts = np.asarray(xy, float)
+    for _ in range(rounds):
+        if len(pts) < 8:
+            return None
+        a = np.column_stack([pts, np.ones(len(pts))])
+        b = (pts**2).sum(axis=1)
+        (cx2, cy2, c), *_ = np.linalg.lstsq(a, b, rcond=None)
+        center = np.array([cx2 / 2, cy2 / 2])
+        r2 = c + center @ center
+        if r2 <= 0:
+            return None
+        radius = float(np.sqrt(r2))
+        resid = np.abs(np.linalg.norm(pts - center, axis=1) - radius)
+        keep = resid < max(tol, 2.5 * np.median(resid))
+        if keep.all():
+            break
+        pts = pts[keep]
+    return center, radius
+
+
 def detect_opening(points: np.ndarray, cfg: DetectorConfig | None = None) -> Opening:
     cfg = cfg or DetectorConfig()
     rng = np.random.default_rng(cfg.seed)
@@ -140,7 +180,7 @@ def detect_opening(points: np.ndarray, cfg: DetectorConfig | None = None) -> Ope
 
     # Höhe über der Oberfläche (Sensor-z zeigt nach unten, also f - z)
     above = surface.height(pts) - pts[:, 2]
-    solid = inliers | ((above > 0) & (above <= cfg.raised_max))
+    solid = inliers | ((above > -cfg.deep_min) & (above <= cfg.raised_max))
 
     # Raster in Blickrichtung
     g = cfg.grid_size
@@ -178,12 +218,16 @@ def detect_opening(points: np.ndarray, cfg: DetectorConfig | None = None) -> Ope
 
     c2d, diameter, confidence = candidates[0]
 
-    # Rand der Öffnung: Oberkante Domkragen bzw. Dachfläche direkt an der Lücke
-    rim_pts = pts[solid]
-    r = np.linalg.norm(rim_pts[:, :2] - c2d, axis=1)
-    rim = rim_pts[(r >= diameter / 2 - g) & (r <= diameter / 2 + 2.5 * g)]
+    # Rand der Öffnung: innerster Punkt je Sektor, darauf Kreis-Fit (genauer als Rasterzellen)
+    rim = _edge(pts[solid], c2d, diameter / 2, g)
+    fit = _fit_circle(rim[:, :2]) if len(rim) >= 20 else None
+    if fit is not None and abs(2 * fit[1] - diameter) < 0.3 * diameter:
+        c2d, diameter = fit[0], 2 * fit[1]
     if len(rim) >= 20:
-        top = rim[rim[:, 2] <= np.percentile(rim[:, 2], 60)]  # oberster Teil = Lippe
+        # vorherrschende Randhöhe: Klappe, Armaturen oder Kragenwand am Rand sind Ausreißer
+        top = rim[np.abs(rim[:, 2] - np.median(rim[:, 2])) < 0.015]
+        if len(top) < 10:
+            top = rim
         centroid = top.mean(axis=0)
         normal = np.linalg.eigh(np.cov((top - centroid).T))[1][:, 0]
         center = np.array([c2d[0], c2d[1], centroid[2]])

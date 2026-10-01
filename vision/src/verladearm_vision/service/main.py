@@ -37,8 +37,10 @@ from verladearm_vision.kinematics import (
     plan_motion,
     plan_retract,
     product_insertion_depth,
+    shift_obstacle,
     tip,
 )
+from verladearm_vision.kinematics import tip as model_tip  # in Job 2 ist `tip` ein Messwert
 from verladearm_vision.plc import (
     JOB_CORRECT,
     JOB_MEASURE_PLAN,
@@ -172,9 +174,21 @@ class VisionService:
             return [q_start] + vias, len(vias)
         return plan["q_move"], n
 
-    def _scene_geom(self):
-        """Armgeometrie mit den Hindernissen des aktuellen Tankwagens (aus Job 1)."""
-        return self.geom.with_obstacles((self.last or {}).get("obstacles"))
+    def _scene_geom(self, model_offset=None):
+        """Armgeometrie mit den Hindernissen des aktuellen Tankwagens (aus Job 1).
+
+        `model_offset` (gemessen − Modell, aus Job 2): Die Fahrzeug-Hindernisse liegen in
+        gemessenen Koordinaten; für die Planung im Modell werden sie um den Modellfehler
+        verschoben – sonst wäre der schmale Durchgang durch die Füllöffnung um die Korrektur
+        versetzt."""
+        last = self.last or {}
+        if model_offset is None:
+            model_offset = last.get("model_offset")
+        obstacles = last.get("obstacles") or []
+        if model_offset is not None:
+            d = -np.asarray(model_offset, float)
+            obstacles = [shift_obstacle(o, d) for o in obstacles]
+        return self.geom.with_obstacles(obstacles)
 
     def _fail(self, code, message, **kw):
         log.warning("%s (Code %d)", message, code)
@@ -230,6 +244,15 @@ class VisionService:
         if not res.ok:
             return res
         depth = product_insertion_depth(self.products, req.product_id, self.geom.insertion_depth)
+        # Referenzflansch am Auslass muss über dem Öffnungsrand bleiben, wenn er nicht hindurchpasst
+        oc, sc = self.outlet_cfg, self.scene_cfg
+        if (oc.marker_radius and oc.marker_radius > res.diameter_mm / 2000 - sc.passage_margin
+                and depth > oc.marker_offset - sc.flange_margin):
+            return self._fail(30, f"Eintauchtiefe {depth * 1000:.0f} mm zu groß: Referenzflansch "
+                              f"({oc.marker_offset * 1000:.0f} mm über Auslassende) passt nicht "
+                              f"durch die Öffnung Ø {res.diameter_mm:.0f} mm",
+                              target_mm=res.target_mm, normal=res.normal,
+                              diameter_mm=res.diameter_mm, confidence=res.confidence)
         # Tankkörper, Domkragen und offener Deckel als Hindernisse für alle folgenden Bahnen
         obstacles, scene_info = build_obstacles(op, self.transform, self._points,
                                                 self.outlet_cfg, self.scene_cfg)
@@ -272,13 +295,16 @@ class VisionService:
                                                       self.outlet_cfg.marker_offset))
         except DetectionError as e:
             return self._fail(e.code, str(e), **keep)
-        plan = plan_correction(self._scene_geom(), q_act, tip, last["target_mm"],
+        model_offset = np.asarray(tip, float) - model_tip(self.geom, q_act)
+        model_offset[2] = 0.0  # wie plan_correction: nur waagerecht
+        plan = plan_correction(self._scene_geom(model_offset), q_act, tip, last["target_mm"],
                                last["normal"], last["depth"])
         self._info.update(auslass_gemessen_mm=(tip * 1000).round(1),
                           modellabweichung_mm=plan["model_offset_mm"])
         corr = tuple(plan["correction_mm"][:2])
         if not plan["ok"]:
             return self._fail(plan["code"], plan["reason"], correction_mm=corr, **keep)
+        last["model_offset"] = model_offset.tolist()  # gilt auch für die Rückfahrt (Job 3)
         q_ins = plan["q_insert"]
         wps, _ = self._waypoints(([q_act, q_ins[0]], 1, False), (q_ins, self.insert_waypoints,
                                                                    False))

@@ -68,11 +68,28 @@ dass sich kein Punkt des Arms zwischen zwei Prüfstellungen mehr als 3 cm bewegt
 | Anlagendatei `arm.obstacles` | Stützen, Geländer, Bühne … | `quader` (achsparallel), `quader_gedreht`, `zylinder` |
 | jede Messung (Job 1) | Tankkörper | Zylinder entlang der gemessenen Tankachse (Radius aus der Messung); ebenes Dach: Quader |
 | jede Messung | Domkragen | senkrechter Zylinder, Öffnung + Wandstärke |
-| jede Messung | **offener Domdeckel** | gedrehter Quader aus den Deckelpunkten |
+| jede Messung | **offener Domdeckel** bzw. Füllklappe | gedrehter Quader aus den Deckelpunkten |
+| jede Messung | **Aufbauten am Dom**: Domring, Armaturen, Laufstege | Höhenkarte (6-cm-Raster) im Umkreis `dome_scan`, alles höher als `dome_min_height` über dem Öffnungsrand |
+| Anlagendatei `arm.support: oben` | Fallleitung über J1 | senkrechter Zylinder |
 
-Tank und Domkragen lassen über der Öffnung einen senkrechten **Durchgang** frei
-(Radius = Öffnung − max(Rohr, Markierungsscheibe) − `passage_margin`, bei 500 mm Öffnung ≈ 88 mm).
-Nur dort darf der Auslass hinein. Die Hindernisse aus Job 1 gelten auch für Job 2 und Job 3.
+Alle Fahrzeug-Hindernisse lassen über der Öffnung einen senkrechten **Durchgang** frei
+(Radius = Öffnung − Auslassrohr − `passage_margin`; Füllöffnung 250 mm, Rohr 114 mm → 38 mm).
+Nur dort darf der Auslass hinein. Ragt etwas in diesen Durchgang (Klappe nicht ganz offen), wird
+er als **„Öffnung verdeckt“** gesperrt → Fehler 31. Die Hindernisse aus Job 1 gelten auch für
+Job 2 und Job 3; nach dem Nachmessen (Job 2) werden sie um den gemessenen Modellfehler verschoben,
+damit der schmale Durchgang im Modell an der richtigen Stelle liegt.
+
+**Dombauarten** (Erkennung siehe `detection/opening.py`): Als Öffnung gilt die Stelle, an der
+der Blick tief in den Tank geht (`deep_min` unter der Oberfläche).
+- **Offenes Mannloch:** das ganze Mannloch (ca. 0,4–0,7 m).
+- **Dom mit Armaturen** (übliche Bauform): Domring mit vertieftem, geschlossenem Domdeckel; das
+  Ziel ist die kleine, oft seitlich versetzte **Füllöffnung** (ca. 0,2–0,35 m) – nicht die Mitte
+  des Domrings. Mittelpunkt per Kreis-Fit auf dem innersten Rand.
+- **Referenzflansch:** Passt er nicht durch die Öffnung, muss er über dem Rand bleiben:
+  Eintauchtiefe ≤ `outlet.marker_offset − scene.flange_margin`, sonst Fehler 30.
+
+In der Simulation (beide Bauarten, Klappe offen, Laufstege) traf der Auslass die Füllöffnung im
+Mittel auf 3 mm, höchstens 7 mm genau; Spiel bis zum Rand mindestens 52 mm.
 
 **Deckelerkennung:** Punkte seitlich der Öffnung (bis `lid_search` außerhalb) und über der
 Domoberkante (bis `lid_max_above`) werden auf ein 4-cm-Raster gelegt. Die größte zusammenhängende
@@ -116,7 +133,9 @@ Plausibilisierung und als Referenz für die SPS-Programmierung.
 
 ## Offene Punkte
 
-- Rohrdurchmesser nur über `clearance` berücksichtigt (Rohrachse als Linie)
+- Rohrdurchmesser nur über `clearance` berücksichtigt (Rohrachse als Linie); der Referenzflansch
+  am Auslass ist nicht als Körper modelliert (nur Höhenprüfung gegen die Eintauchtiefe)
+- Dombauarten nur nach einem Foto modelliert: mit echten Aufnahmen verschiedener Fahrzeuge prüfen
 - Pendeln des Auslasses beim Anfahren (J4 frei): Beschleunigungen begrenzen, Beruhigungszeit
   vor dem Eintauchen
 - Hand-Auge-Kalibrierung, siehe Schnittstelle (`docs/kalibrierung.md`, offen)

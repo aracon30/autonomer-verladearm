@@ -42,9 +42,9 @@ def _segment_distance(p, s, a, b) -> np.ndarray:
 class SimulatedScene:
     def __init__(self, geom: ArmGeometry, transform: SensorToArm, vehicles=("lkw", "kesselwagen"),
                  joint_error_deg=(0.0, 0.0, 0.0), dome_spread=0.35, marker_radius=0.125,
-                 marker_offset=0.15, empty=False, sensor_matrix=None, lid=True,
+                 marker_offset=0.8, empty=False, sensor_matrix=None, lid=True,
                  backlash_deg=(0.0, 0.0, 0.0), backlash_preload=(False, False, True),
-                 pipe_radius=0.06, seed=None):
+                 pipe_radius=0.06, domes=("offen", "armatur"), walkways=0.5, seed=None):
         self.geom, self.transform = geom, transform
         self.vehicles = list(vehicles)
         self.joint_error = np.radians(np.asarray(joint_error_deg, dtype=float))
@@ -64,6 +64,9 @@ class SimulatedScene:
         self.inv = np.linalg.inv(self.true_t)
         self.empty = empty  # leere Station (Kalibrierung): kein Tankwagen
         self.lid = lid  # offener Domdeckel in zufälliger Richtung
+        self.domes = list(domes)  # Dombauarten, zufällig je Fahrzeug
+        self.walkways = walkways  # Anteil Fahrzeuge mit Laufstegen am Dom
+        self.truth = None  # Sollwerte der Öffnung (Armbasis): center, diameter, dome
         self.tank = None
         self.q_true = None
         self.count = 0
@@ -85,10 +88,17 @@ class SimulatedScene:
         rim_z = -self.geom.base_height + self.rng.uniform(*RIM_HEIGHT[kind])
         dx, dy = self.rng.uniform(-self.dome_spread, self.dome_spread, 2)
         lid_az = float(self.rng.uniform(-180, 180)) if self.lid else None
-        self.tank = make_tank_vehicle(kind, center_xy=(dx, dy), height=sensor_z - rim_z,
-                                      lid_azimuth_deg=lid_az,
-                                      lid_open_deg=float(self.rng.uniform(95, 115)),
-                                      seed=int(self.rng.integers(1 << 30)))
+        dome = self.domes[int(self.rng.integers(len(self.domes)))]
+        walk = bool(self.rng.uniform() < self.walkways)
+        tank_s, info = make_tank_vehicle(kind, center_xy=(dx, dy), height=sensor_z - rim_z,
+                                         lid_azimuth_deg=lid_az,
+                                         lid_open_deg=float(self.rng.uniform(95, 115)),
+                                         dome=dome, walkways=walk,
+                                         seed=int(self.rng.integers(1 << 30)), return_info=True)
+        self.tank = tank_s  # Sensorkoordinaten; Sollwert über die tatsächliche Sensorlage
+        c = self.true_t[:3, :3] @ info["center"] + self.true_t[:3, 3]
+        self.truth = {"center": c,
+                      "diameter": info["diameter"], "dome": dome, "walkways": walk}
         self.kind = kind
 
     def _arm_points(self, q, spacing=0.012):

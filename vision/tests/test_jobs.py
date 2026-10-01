@@ -147,3 +147,36 @@ def test_rueckfahrt_ohne_kontext_und_ohne_kamera_wird_abgelehnt(monkeypatch):
     monkeypatch.setattr(s.source, "grab", no_camera)
     r = s(Request(job=3, actual_deg=park(s), axes_homed=True))
     assert not r.ok and r.error_code == 90 and "Handbetrieb" in r.message
+
+
+@pytest.mark.parametrize("seed", [0, 1, 2])
+def test_auslass_trifft_fuelloeffnung_im_domdeckel(seed):
+    """HETA-Arm, Dom mit Armaturen: der Auslass taucht in die kleine Füllöffnung, nicht in die
+    Mitte des Domrings."""
+    cfg = load_config(BEISPIEL.with_name("heta_prototyp.yaml"))
+    cfg["source"] = {"type": "sim", "seed": seed, "joint_error_deg": [0.3, -0.25, 0.2],
+                     "domes": ["armatur"]}
+    cfg["recording"] = {"enabled": False}
+    cfg["snapshot"] = {"path": None}
+    s = VisionService(cfg)
+    r1 = s(Request(job=1, actual_deg=park(s), axes_homed=True))
+    assert r1.ok, r1.message
+    truth = s.source.truth
+    assert abs(r1.diameter_mm / 1000 - truth["diameter"]) < 0.02
+    r2 = s(Request(job=2, actual_deg=r1.waypoints[r1.approach_index - 1], axes_homed=True))
+    assert r2.ok, r2.message
+    q = model(s, r2.waypoints[-1])
+    inside = tip(s.geom, q + s.source.offset)  # tatsächliche Lage des Auslassendes
+    room = truth["diameter"] / 2 - s.outlet_cfg.pipe_radius
+    assert np.hypot(*(inside - truth["center"])[:2]) < min(0.015, room)
+    r3 = s(Request(job=3, actual_deg=r2.waypoints[-1], axes_homed=True))
+    assert r3.ok, r3.message
+
+
+def test_referenzflansch_zu_tief(monkeypatch):
+    """Passt der Referenzflansch nicht durch die Öffnung, darf er nicht eintauchen."""
+    s = make_service()
+    s.outlet_cfg.marker_offset = 0.3  # Scheibe nur 30 cm über dem Auslassende
+    s.source.domes = ["armatur"]  # kleine Füllöffnung
+    r = s(Request(job=1, product_id=0, actual_deg=park(s), axes_homed=True))
+    assert r.error_code == 30 and "Referenzflansch" in r.message

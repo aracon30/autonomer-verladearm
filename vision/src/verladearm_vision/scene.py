@@ -34,6 +34,12 @@ class SceneConfig:
     lid_min_points: int = 80
     lid_margin: float = 0.05
     lid_clearance: float = 0.08
+    # Aufbauten am Dom (Domring, Füllklappe, Armaturen, Laufstege): alles im Umkreis, was über den
+    # Rand der Öffnung ragt, wird Hindernis; über der Öffnung bleibt der Durchgang frei
+    dome_scan: float = 1.0  # Umkreis um die Öffnung [m]
+    dome_min_height: float = 0.03  # ab dieser Höhe über dem Öffnungsrand [m]
+    dome_cell: float = 0.06  # Rasterweite [m]
+    flange_margin: float = 0.03  # Referenzflansch mindestens so weit über dem Öffnungsrand [m]
     # Rückfahrt ohne gültige Messung aus Job 1 (z. B. nach Handbetrieb): Höhenkarte, neu aufgenommen
     context_max_age_s: float = 4 * 3600  # Messung aus Job 1 gilt so lange für die Rückfahrt
     context_max_offset: float = 0.5  # Auslass so weit neben dem gemessenen Dom: neu messen [m]
@@ -101,7 +107,7 @@ def build_obstacles(op, transform, points_sensor, outlet_cfg, cfg: SceneConfig |
     center = transform.point(op.center)  # Oberkante Domkragen, Mitte
     apex = transform.point(op.tank_apex)  # Tankoberfläche unter der Mitte
     r_open = op.diameter / 2
-    inner = max(outlet_cfg.pipe_radius, outlet_cfg.marker_radius or 0.0)
+    inner = outlet_cfg.pipe_radius  # durch die Öffnung taucht nur das Auslassrohr
     passage = (float(center[0]), float(center[1]),
                max(0.02, r_open - inner - cfg.passage_margin))
     obstacles, info = [], {"durchgang_radius_m": round(passage[2], 3)}
@@ -128,8 +134,71 @@ def build_obstacles(op, transform, points_sensor, outlet_cfg, cfg: SceneConfig |
     lid = detect_lid(arm_pts, center, r_open, cfg)
     if lid:
         obstacles.append(OrientedBoxObstacle("Domdeckel", lid["center"], lid["axes"],
-                                             lid["half"], clearance=cfg.lid_clearance))
+                                             lid["half"], passage, cfg.lid_clearance))
         info["deckel"] = lid
+    built, info["aufbauten"] = dome_structures(arm_pts, center, passage, cfg, lid)
+    obstacles += built
+    return obstacles, info
+
+
+def dome_structures(arm_pts: np.ndarray, center, passage, cfg: SceneConfig | None = None,
+                    lid: dict | None = None):
+    """Aufbauten rund um die Öffnung als Höhenkarte: Domring, Füllklappe, Armaturen, Laufstege.
+
+    Jede Rasterzelle mit Punkten höher als `dome_min_height` über dem Öffnungsrand wird ein Quader
+    bis zu ihrer Höhe; der senkrechte Durchgang über der Öffnung bleibt frei. Ragt etwas in den
+    Durchgang (z. B. Klappe nicht ganz geöffnet), entsteht dort ein Hindernis ohne Durchgang – das
+    Eintauchen wird dann abgelehnt (Fehler 31).
+    """
+    cfg = cfg or SceneConfig()
+    c = np.asarray(center, float)
+    p = np.asarray(arm_pts, float)
+    d = np.hypot(p[:, 0] - c[0], p[:, 1] - c[1])
+    h = p[:, 2] - c[2]
+    p = p[(d < cfg.dome_scan) & (h > cfg.dome_min_height) & (h < cfg.lid_max_above)]
+    if lid:  # der Deckel ist schon als eng anliegender Quader erfasst
+        local = (p - np.asarray(lid["center"])) @ np.asarray(lid["axes"]).T
+        p = p[np.any(np.abs(local) > np.asarray(lid["half"]), axis=1)]
+    info = {"punkte": int(len(p)), "quader": 0, "durchgang_frei": True}
+    if len(p) == 0:
+        return [], info
+    vox = np.floor(p / 0.05).astype(int)  # vereinzelte Punkte verwerfen
+    _, vinv, vcount = np.unique(vox, axis=0, return_inverse=True, return_counts=True)
+    p = p[vcount[vinv.ravel()] >= 3]
+    obstacles = []
+    inside = np.hypot(p[:, 0] - passage[0], p[:, 1] - passage[1]) < passage[2]
+    if inside.sum() >= 15:  # etwas hängt über der Öffnung
+        q = p[inside]
+        obstacles.append(Obstacle("Öffnung verdeckt", (q.min(axis=0) - 0.02).tolist(),
+                                  (q.max(axis=0) + 0.02).tolist(), None, cfg.lid_clearance))
+        info["durchgang_frei"] = False
+    p = p[~inside]
+    if len(p) == 0:
+        return obstacles, info
+    g = cfg.dome_cell
+    idx = np.floor(p[:, :2] / g).astype(int)
+    cells, inv, counts = np.unique(idx, axis=0, return_inverse=True, return_counts=True)
+    inv = inv.ravel()
+    order = np.argsort(inv, kind="stable")
+    tops = np.array([np.sort(z)[-3] if len(z) >= 3 else -np.inf
+                     for z in np.split(p[order, 2], np.cumsum(counts)[:-1])])
+    ok = counts >= 3
+    cells, tops = cells[ok], np.ceil(tops[ok] / 0.02) * 0.02
+    bottom = float(c[2] - 0.3)
+    for iy in np.unique(cells[:, 1]):  # Zellen einer Zeile mit gleicher Höhe zusammenfassen
+        row = np.where(cells[:, 1] == iy)[0]
+        row = row[np.argsort(cells[row, 0])]
+        start = row[0]
+        for prev, cur in zip(list(row), list(row[1:]) + [None], strict=True):
+            if (cur is not None and cells[cur, 0] == cells[prev, 0] + 1
+                    and np.isclose(tops[cur], tops[start])):
+                continue
+            obstacles.append(Obstacle(
+                "Aufbauten am Dom", [cells[start, 0] * g, iy * g, bottom],
+                [(cells[prev, 0] + 1) * g, (iy + 1) * g, float(tops[start])], passage,
+                cfg.lid_clearance))
+            start = cur
+    info["quader"] = len(obstacles)
     return obstacles, info
 
 

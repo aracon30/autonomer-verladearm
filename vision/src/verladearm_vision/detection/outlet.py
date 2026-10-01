@@ -40,7 +40,7 @@ class OutletConfig:
     min_above: float = 0.08  # m über der Domoberkante
     max_above: float | None = None  # m; None = aus marker_offset (Anfahrhöhe + Reserve)
     marker_radius: float | None = 0.125  # m, Außenradius Markierungsscheibe; None = ohne
-    marker_offset: float = 0.15  # m, Scheibe über dem Auslassende
+    marker_offset: float = 0.8  # m, Scheibe über dem Auslassende (über größter Eintauchtiefe)
     tip_band: float = 0.1  # m, ohne Scheibe: ausgewertetes unterstes Band der Rohrwand
     pipe_radius: float = 0.06  # m, Außenradius Auslassrohr
     min_points: int = 15

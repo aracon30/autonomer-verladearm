@@ -112,3 +112,21 @@ def test_flansch_stark_verdeckt_rohrachse_hilft():
     pts = np.vstack([disc, pipe]) + rng.normal(0, 0.002, (len(disc) + len(pipe), 3))
     found = detect_marker(pts, m - [0, 0, 1.1], cfg, expected=m + [0.025, -0.02, 0.0])
     assert np.hypot(*(found - m)[:2]) < 0.004
+
+
+@pytest.mark.parametrize("seed", range(8))
+def test_fuelloeffnung_im_domdeckel(seed):
+    """Dom mit Armaturen: kleine, versetzte Füllöffnung im vertieften Domdeckel, Klappe offen."""
+
+    rng = np.random.default_rng(seed)
+    pts, truth = make_tank_vehicle(("lkw", "kesselwagen")[seed % 2],
+                                   tuple(rng.uniform(-0.3, 0.3, 2)), float(rng.uniform(3.2, 4.2)),
+                                   dome="armatur", walkways=bool(seed % 2),
+                                   lid_azimuth_deg=float(rng.uniform(-180, 180)),
+                                   seed=seed, return_info=True)
+    op = detect_opening(pts)
+    assert np.hypot(*(op.center[:2] - truth["center"][:2])) < 0.005  # nicht die Ringmitte
+    assert abs(op.center[2] - truth["center"][2]) < 0.01
+    assert abs(op.diameter - truth["diameter"]) < 0.02
+    ring = np.hypot(*(truth["ring_center"][:2] - truth["center"][:2]))
+    assert ring < 0.005 or np.hypot(*(op.center[:2] - truth["ring_center"][:2])) > ring / 2

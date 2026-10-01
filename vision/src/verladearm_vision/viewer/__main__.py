@@ -258,10 +258,18 @@ class PlcMonitor:
                         client.get_node(self.node_template.format(ns=ns, name=n)) for n in names
                     ]
                     log.info("OPC UA verbunden mit %s", self.url)
+                    # nur der SPS-Simulator hat einen Bedienstatus (Betriebsart, Verriegelungen)
+                    status = client.get_node(f'ns={ns};s="Simulator"."Bedienstatus"')
+                    try:
+                        await status.read_value()
+                    except Exception:
+                        status = None
                     while True:
                         values = await client.read_values(nodes)
+                        sim_status = await status.read_value() if status else None
                         with self.lock:
                             self.values = dict(zip(names, values, strict=True))
+                            self.values["Bedienstatus"] = sim_status
                             self.connected, self.error = True, ""
                             self.updated = time.time()
                         await asyncio.sleep(self.poll_s)
@@ -281,6 +289,7 @@ class PlcMonitor:
             "connected": connected,
             "error": error,
             "signals": {k: v.get(k) for k in SIGNALS},
+            "operation": v.get("Bedienstatus"),
             "ground_z": -self.geom.base_height,
             "obstacles": [obstacle_for_view(o) for o in self.geom.obstacles],
         }

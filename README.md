@@ -45,6 +45,22 @@ Rampen, Getriebespiel; Fahrten im Zeitraffer, `ZEITRAFFER=1` für Echtzeit). Liv
 Logs unter `data/logs/`, Beenden mit Strg+C. Eine im Konfigurator angelegte Anlage simulieren:
 `tools/simulation.sh --netz --anlage <name>` (Datei `vision/config/anlagen/<name>.yaml`).
 
+Selbst bedienen wie an der Anlage statt Dauertest: `tools/simulation.sh --netz --bedienen`.
+Befehle im Terminal (`?` zeigt alle):
+
+| Befehl | Bedeutung |
+|---|---|
+| `n` | neues Fahrzeug: fährt vor (Lichtschranke belegt), Klapptreppe aus, Dom öffnen, Treppe zurück |
+| `p 1`, `f`, `s` | Produkt wählen, „Fahrzeug bereit“ bestätigen, „Automatisch beladen“ starten |
+| `e` | „Beladung beendet“ → Rückfahrt in die Parkstellung |
+| `l`, `t` | Lichtschranke / Klapptreppe umschalten (Verriegelungen testen) |
+| `x` | Stopp |
+| `h` | Handbetrieb: `j 3 +5` tippen, `b 2 -20` Bremse lüften und von Hand schieben (nur J1/J2), `d` Arm wie von Hand in einen Dom führen |
+| `z` | „Automatisch in Parkstellung“ aus jeder Lage (Job 3, misst ohne Job 1 neu) |
+
+Der Simulator setzt die Startbedingungen und Verriegelungen um, die das SPS-Programm haben
+soll (`docs/schnittstelle.md`); der Bedienstatus erscheint auch in der Live-Ansicht.
+
 Anlagendatei eines Arms im Browser bearbeiten (Konfigurator, http://<IP>:8090):
 
 ```bash

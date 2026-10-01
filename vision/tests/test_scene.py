@@ -171,3 +171,30 @@ def test_suche_im_gelenkraum_umfaehrt_hindernis():
     idx, frames, _, pts = found
     assert idx == 1 and np.allclose(frames[-1], goal) and len(frames) <= 8
     assert all(collision(geom, p) is None for p in pts)
+
+
+def test_hoehenkarte_ohne_arm_und_mit_durchgang():
+    from verladearm_vision.kinematics import ArmGeometry, collision, forward, tip
+    from verladearm_vision.scene import obstacles_from_points
+
+    geom = ArmGeometry()
+    q = np.radians([10.0, -20.0, -5.0])
+    t = tip(geom, q)
+    rng = np.random.default_rng(0)
+    roof_z = t[2] - 0.3  # Arm steckt 30 cm tief im Dom
+    roof = np.column_stack([rng.uniform(t[0] - 2, t[0] + 2, 20000),
+                            rng.uniform(t[1] - 1.2, t[1] + 1.2, 20000),
+                            np.full(20000, roof_z)])
+    roof = roof[np.hypot(roof[:, 0] - t[0], roof[:, 1] - t[1]) > 0.3]  # Domöffnung
+    lid = np.column_stack([rng.uniform(t[0] + 0.5, t[0] + 0.6, 2000),
+                           rng.uniform(t[1] - 0.3, t[1] + 0.3, 2000),
+                           rng.uniform(roof_z, roof_z + 0.8, 2000)])
+    pts = forward(geom, q)
+    arm = np.vstack([a + np.linspace(0, 1, 200)[:, None] * (b - a)
+                     for a, b in zip(pts[:-1], pts[1:], strict=True)])
+    obstacles, info = obstacles_from_points(np.vstack([roof, lid, arm]), geom, q)
+    assert info["quader"] > 0
+    assert max(o.max[2] for o in obstacles) >= roof_z + 0.75  # Deckel ist drin
+    assert collision(geom.with_obstacles(obstacles), pts) is None  # eigener Arm nicht
+    above = tip(geom, q) + [0.0, 0.0, 1.5]
+    assert collision(geom.with_obstacles(obstacles), [tip(geom, q), above]) is None  # Durchgang

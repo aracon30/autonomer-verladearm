@@ -36,7 +36,7 @@ Begründung: [ADR 0002](adr/0002-gelenkwinkel-vom-pc.md).
 | Name | Typ | Bedeutung |
 |---|---|---|
 | HeartbeatPC | Int | Zählt je Zyklus (~50 ms) hoch |
-| Ready | Bool | Vision-Dienst bereit, SPS-Heartbeat OK |
+| Ready | Bool | Vision-Dienst bereit: SPS-Heartbeat OK **und** Kamera verbunden (nach dem Einschalten ca. 20 s) |
 | Busy | Bool | Auftrag läuft |
 | Done | Bool | Ergebnis liegt vor (gültig oder Fehler) |
 | Error | Bool | Auftrag fehlgeschlagen, siehe ErrorCode |
@@ -97,10 +97,14 @@ Bei Fehler, fehlendem Ergebnis oder Heartbeat-Ausfall: Bewegung stoppen, sichere
 - Die Multiturn-Absolutgeber bleiben gültig (`AxesHomed` bleibt `TRUE`), die SPS meldet weiter
   die Istwinkel.
 - **„Automatisch in Parkstellung“** aus beliebiger Lage = **Job 3**: Der PC plant ab Istlage
-  erst senkrecht heraus (größte hinterlegte Eintauchtiefe, falls kein Job 1 vorliegt), dann
-  kollisionsfrei in die Parkstellung.
-- Hindernisse (Tank, Deckel) aus einem früheren Job 1 gelten nur für dasselbe Fahrzeug. Die SPS
-  startet nach Handbetrieb eine neue Verladung immer mit Job 1 aus der Parkstellung.
+  erst senkrecht heraus, dann kollisionsfrei in die Parkstellung.
+- Liegt **keine passende Messung aus Job 1** vor (Arm von Hand in einen Dom gefahren, Dienst neu
+  gestartet, Messung älter als `scene.context_max_age_s`, Auslass mehr als
+  `scene.context_max_offset` neben dem gemessenen Dom), nimmt Job 3 **neu auf**: Alles außer dem
+  Arm (Tankwagen, offener Deckel, Treppe) wird als Höhenkarte zum Hindernis, herausgefahren wird
+  um die größte hinterlegte Eintauchtiefe. Ist die Kamera nicht verfügbar: Fehler 90, Rückfahrt
+  im Handbetrieb.
+- Die SPS startet nach Handbetrieb eine neue Verladung immer mit Job 1 aus der Parkstellung.
 
 ## Handshake
 

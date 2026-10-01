@@ -13,6 +13,7 @@ Hand-Auge-Kalibrierung (calibration.matrix).
 """
 
 import logging
+import threading
 import time
 import warnings
 from dataclasses import dataclass
@@ -58,7 +59,12 @@ def depth_to_points(distance_mm: np.ndarray, cam: CameraParams) -> np.ndarray:
 
 
 class SickVisionarySource:
-    """Punktquelle für den Visionary-T Mini CX (siehe PointSource)."""
+    """Punktquelle für den Visionary-T Mini CX (siehe PointSource).
+
+    Die Kamera braucht nach dem Einschalten ca. 20 s (bei Frost länger). Der Dienst startet
+    trotzdem: Ein Hintergrund-Thread verbindet sich alle `retry_s` Sekunden neu, bis die Kamera
+    antwortet. `ready` meldet, ob sie verbunden ist (die SPS sieht dann `Ready`).
+    """
 
     def __init__(
         self,
@@ -68,6 +74,7 @@ class SickVisionarySource:
         frames: int = 3,
         password: str = "CUST_SERV",
         min_valid_fraction: float = 0.2,
+        retry_s: float = 5.0,
         connect: bool = True,
     ):
         self.ip = ip
@@ -76,12 +83,39 @@ class SickVisionarySource:
         self.frames = max(1, int(frames))
         self.password = password
         self.min_valid_fraction = min_valid_fraction
+        self.retry_s = retry_s
+        self._auto = connect  # False: ohne Gerät (Tests), kein Verbindungsaufbau
         self._control = None
         self._stream = None
+        self._lock = threading.RLock()
+        self._stop = threading.Event()
         if connect:
-            self._connect()
+            threading.Thread(target=self._keep_connected, name="sick-verbinden",
+                             daemon=True).start()
+
+    @property
+    def ready(self) -> bool:
+        """Kamera verbunden und bereit (ohne Gerät, z. B. in Tests: immer bereit)."""
+        return self._control is not None or not self._auto
 
     # --- Geräteanbindung (SICK-Bibliothek) -------------------------------------------------
+    def _keep_connected(self):
+        failed = 0
+        while not self._stop.is_set():
+            if self._control is None and self._lock.acquire(blocking=False):
+                try:  # Lock nur, wenn gerade keine Messung läuft (die verbindet selbst neu)
+                    if self._control is None:
+                        self._connect()
+                    failed = 0
+                except Exception as e:  # Kamera startet noch, Netz weg, falsche IP
+                    failed += 1
+                    log.log(logging.WARNING if failed in (1, 12) else logging.DEBUG,
+                            "Visionary-T Mini %s nicht erreichbar (%s), neuer Versuch alle %.0f s",
+                            self.ip, e, self.retry_s)
+                finally:
+                    self._lock.release()
+            self._stop.wait(self.retry_s)
+
     def _connect(self):
         try:
             from python_base.Control import Control
@@ -101,7 +135,11 @@ class SickVisionarySource:
         stream.openStream()
         self._control, self._stream = control, stream
         # Nach dem Stoppen braucht das Frontend ein Aufwärmbild (Hinweis in den SICK-Beispielen)
-        self._snapshot()
+        try:
+            self._snapshot()
+        except Exception:
+            self._drop()
+            raise
         log.info("Visionary-T Mini bereit")
 
     def _snapshot(self):
@@ -120,32 +158,48 @@ class SickVisionarySource:
         dist[(conf != 0) | (dist <= 0)] = np.nan  # SICK: Zustandswert 0 = gültig
         return dist, cam
 
-    def close(self):
-        if self._control is None:
-            return
-        try:
-            from python_base.Control import Control
-            from python_base.Usertypes import FrontendMode
-
-            self._stream.closeStream()
-            self._control.login(Control.USERLEVEL_SERVICE, self.password)
-            self._control.setFrontendMode(FrontendMode.Continuous)
-            self._control.logout()
-            self._control.close()
-        except Exception as e:  # beim Beenden nur protokollieren
-            log.warning("Visionary-T Mini sauber trennen fehlgeschlagen: %s", e)
+    def _drop(self):
+        """Verbindung verwerfen (nach Fehler), der Hintergrund-Thread verbindet neu."""
+        for closer in (lambda: self._stream.closeStream(), lambda: self._control.close()):
+            try:
+                closer()
+            except Exception:
+                pass
         self._control = self._stream = None
+
+    def close(self):
+        self._stop.set()
+        with self._lock:
+            if self._control is None:
+                return
+            try:
+                from python_base.Control import Control
+                from python_base.Usertypes import FrontendMode
+
+                self._stream.closeStream()
+                self._control.login(Control.USERLEVEL_SERVICE, self.password)
+                self._control.setFrontendMode(FrontendMode.Continuous)
+                self._control.logout()
+                self._control.close()
+            except Exception as e:  # beim Beenden nur protokollieren
+                log.warning("Visionary-T Mini sauber trennen fehlgeschlagen: %s", e)
+            self._control = self._stream = None
 
     # --- PointSource ---------------------------------------------------------------------
     def grab(self) -> np.ndarray:
-        try:
-            return self._grab()
-        except (OSError, RuntimeError) as e:  # Verbindung weg: einmal neu verbinden
-            log.warning("Visionary-T Mini: %s, verbinde neu", e)
-            self.close()
-            time.sleep(1.0)
-            self._connect()
-            return self._grab()
+        if not self.ready:  # sofort melden, nicht auf einen laufenden Verbindungsversuch warten
+            raise RuntimeError(f"Visionary-T Mini {self.ip} nicht verbunden")
+        with self._lock:
+            try:
+                return self._grab()
+            except (OSError, RuntimeError) as e:  # Verbindung weg: einmal neu verbinden
+                if not self._auto:
+                    raise
+                log.warning("Visionary-T Mini: %s, verbinde neu", e)
+                self._drop()
+                time.sleep(1.0)
+                self._connect()
+                return self._grab()
 
     def _grab(self) -> np.ndarray:
         shots = [self._snapshot() for _ in range(self.frames)]

@@ -12,7 +12,13 @@ from dataclasses import dataclass
 import numpy as np
 from scipy import ndimage
 
-from verladearm_vision.kinematics import CylinderObstacle, Obstacle, OrientedBoxObstacle
+from verladearm_vision.kinematics import (
+    CylinderObstacle,
+    Obstacle,
+    OrientedBoxObstacle,
+    forward,
+    tip,
+)
 
 
 @dataclass
@@ -27,6 +33,15 @@ class SceneConfig:
     lid_min_points: int = 80
     lid_margin: float = 0.05
     lid_clearance: float = 0.08
+    # Rückfahrt ohne gültige Messung aus Job 1 (z. B. nach Handbetrieb): Höhenkarte, neu aufgenommen
+    context_max_age_s: float = 4 * 3600  # Messung aus Job 1 gilt so lange für die Rückfahrt
+    context_max_offset: float = 0.5  # Auslass so weit neben dem gemessenen Dom: neu messen [m]
+    map_cell: float = 0.3  # Rasterweite der Höhenkarte [m]
+    map_min_points: int = 5  # Punkte je Zelle, damit sie als belegt gilt
+    map_voxel_points: int = 4  # Mindestpunkte je 10-cm-Würfel (Ausreißer verwerfen)
+    map_step: float = 0.05  # Höhen auf diese Stufen aufrunden (fasst Zellen zusammen) [m]
+    map_clearance: float = 0.08  # Mindestabstand Rohrachse zur Höhenkarte (wie Deckel) [m]
+    arm_exclude: float = 0.35  # Punkte so nah am eigenen Arm gehören zum Arm [m]
 
 
 def detect_lid(arm_pts: np.ndarray, center, open_radius: float, cfg: SceneConfig | None = None):
@@ -114,4 +129,71 @@ def build_obstacles(op, transform, points_sensor, outlet_cfg, cfg: SceneConfig |
         obstacles.append(OrientedBoxObstacle("Domdeckel", lid["center"], lid["axes"],
                                              lid["half"], clearance=cfg.lid_clearance))
         info["deckel"] = lid
+    return obstacles, info
+
+
+def _segment_distance(p, a, b):
+    ab = b - a
+    t = np.clip((p - a) @ ab / max(ab @ ab, 1e-12), 0.0, 1.0)
+    return np.linalg.norm(p - (a + t[:, None] * ab), axis=1)
+
+
+def obstacles_from_points(arm_pts: np.ndarray, geom, q, cfg: SceneConfig | None = None):
+    """Hindernisse aus einer Aufnahme ohne Domerkennung: Höhenkarte von allem, was nicht Arm ist.
+
+    Für die Rückfahrt, wenn keine passende Messung aus Job 1 vorliegt (Arm von Hand in einen Dom
+    gefahren, Dienst neu gestartet). Jede belegte Rasterzelle wird ein Quader vom Boden bis zur
+    höchsten Stelle, die mindestens `map_min_points` Punkte erreichen – Tankwagen, offener Deckel,
+    Treppe, Geländer. Punkte nahe der Rohrführung in Stellung `q` gehören zum Arm und entfallen.
+    Senkrecht über dem Auslass bleibt ein Durchgang frei, damit der Arm herausfahren kann.
+    """
+    cfg = cfg or SceneConfig()
+    p = np.asarray(arm_pts, float)
+    ground = -geom.base_height
+    pts = forward(geom, q)
+    keep = p[:, 2] > ground + 0.2
+    for a, b in zip(pts[:-1], pts[1:], strict=True):
+        keep &= _segment_distance(p, a, b) > cfg.arm_exclude
+    p = p[keep]
+    # vereinzelte Punkte (fliegende Pixel an Kanten, Regen, Insekten) verwerfen: Würfel mit 10 cm
+    # Kantenlänge brauchen mehrere Punkte; echte Flächen liefern dort Dutzende
+    if len(p):
+        vox = np.floor(p / 0.1).astype(int)
+        _, vinv, vcount = np.unique(vox, axis=0, return_inverse=True, return_counts=True)
+        p = p[vcount[vinv.ravel()] >= cfg.map_voxel_points]
+    t = tip(geom, q)
+    passage = (float(t[0]), float(t[1]), 0.05)
+    info = {"punkte": int(len(p)), "zellen": 0, "quader": 0}
+    if len(p) == 0:
+        return [], info
+    g = cfg.map_cell
+    idx = np.floor(p[:, :2] / g).astype(int)
+    cells, inv, counts = np.unique(idx, axis=0, return_inverse=True, return_counts=True)
+    inv = inv.ravel()
+    order = np.argsort(inv, kind="stable")
+    splits = np.cumsum(counts)[:-1]
+    k = cfg.map_min_points  # Höhe, die mindestens k Punkte erreichen: einzelne Ausreißer
+    ok = counts >= k        # (fliegende Pixel, Regen) blähen die Zelle so nicht auf
+    heights = np.array([np.sort(z)[-k] if len(z) >= k else -np.inf
+                        for z in np.split(p[order, 2], splits)])
+    cells, heights = cells[ok], heights[ok]
+    info["zellen"] = int(len(cells))
+    levels = np.ceil((heights - ground) / cfg.map_step) * cfg.map_step + ground
+    # benachbarte Zellen einer Zeile mit gleicher Höhenstufe zu einem Quader zusammenfassen
+    obstacles = []
+    for iy in np.unique(cells[:, 1]):
+        row = np.where(cells[:, 1] == iy)[0]
+        row = row[np.argsort(cells[row, 0])]
+        start = row[0]
+        for prev, cur in zip(list(row), list(row[1:]) + [None], strict=True):
+            if (cur is not None and cells[cur, 0] == cells[prev, 0] + 1
+                    and np.isclose(levels[cur], levels[start])):
+                continue
+            x0, x1 = cells[start, 0] * g, (cells[prev, 0] + 1) * g
+            obstacles.append(Obstacle(
+                "Fahrzeug/Aufbau (Höhenkarte)", [x0, iy * g, ground],
+                [x1, (iy + 1) * g, float(levels[start])], passage, cfg.map_clearance))
+            start = cur
+    info["quader"] = len(obstacles)
+    info["hoechster_punkt_m"] = round(float(heights.max()), 3) if len(heights) else None
     return obstacles, info

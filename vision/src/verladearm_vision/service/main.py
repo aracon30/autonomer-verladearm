@@ -37,6 +37,7 @@ from verladearm_vision.kinematics import (
     plan_motion,
     plan_retract,
     product_insertion_depth,
+    tip,
 )
 from verladearm_vision.plc import (
     JOB_CORRECT,
@@ -48,12 +49,14 @@ from verladearm_vision.plc import (
     Request,
 )
 from verladearm_vision.recording import Recorder
-from verladearm_vision.scene import SceneConfig, build_obstacles
+from verladearm_vision.scene import SceneConfig, build_obstacles, obstacles_from_points
 
 log = logging.getLogger("verladearm")
 
 ERR_NOT_HOMED = 32
+ERR_FEW_POINTS = 11
 ERR_NO_TARGET = 34  # Job 2 ohne vorheriges Ergebnis aus Job 1
+ERR_INTERNAL = 90
 ERR_UNKNOWN_JOB = 91
 
 
@@ -177,6 +180,11 @@ class VisionService:
         log.warning("%s (Code %d)", message, code)
         return MeasureResult(ok=False, error_code=code, message=message, **kw)
 
+    @property
+    def ready(self) -> bool:
+        """Sensor verbunden (die SPS bekommt `Ready` nur dann)."""
+        return bool(getattr(self.source, "ready", True))
+
     # --- Aufträge -------------------------------------------------------------------------
     def __call__(self, req: Request) -> MeasureResult:
         self._points, self._info = None, {}
@@ -198,7 +206,7 @@ class VisionService:
             return self._job_measure_plan(req, q_act)
         if req.job == JOB_CORRECT:
             return self._job_correct(req, q_act)
-        return self._job_retract(q_act)
+        return self._job_retract(req, q_act)
 
     def _measure(self, req: Request):
         try:
@@ -227,7 +235,7 @@ class VisionService:
                                                 self.outlet_cfg, self.scene_cfg)
         context = dict(target_mm=res.target_mm, normal=res.normal, depth=depth,
                        diameter_mm=res.diameter_mm, confidence=res.confidence,
-                       obstacles=obstacles)
+                       obstacles=obstacles, time=time.monotonic())
         scene_geom = self.geom.with_obstacles(obstacles)
         plan = plan_motion(scene_geom, res.target_mm, res.normal, insertion_depth=depth,
                            q_start=q_act, time_limit=self.plan_time_limit)
@@ -277,14 +285,44 @@ class VisionService:
         log.info("Korrektur %s mm, Modellabweichung %s mm", corr, plan["model_offset_mm"])
         return MeasureResult(ok=True, waypoints=wps, approach_index=1, correction_mm=corr, **keep)
 
-    def _job_retract(self, q_act) -> MeasureResult:
-        if self.last is not None:
+    def _context_for_retract(self, q_act):
+        """Messung aus Job 1 für die Rückfahrt verwendbar? (ja/nein, Grund)"""
+        if self.last is None:
+            return False, "keine Messung aus Job 1"
+        age = time.monotonic() - self.last.get("time", 0.0)
+        if age > self.scene_cfg.context_max_age_s:
+            return False, f"Messung aus Job 1 ist {age / 60:.0f} min alt"
+        off = float(np.hypot(*(tip(self.geom, q_act)[:2]
+                               - np.asarray(self.last["target_mm"][:2]) / 1000.0)))
+        if off > self.scene_cfg.context_max_offset:
+            return False, f"Auslass {off:.2f} m neben dem gemessenen Dom (von Hand verfahren?)"
+        return True, ""
+
+    def _job_retract(self, req: Request, q_act) -> MeasureResult:
+        valid, why = self._context_for_retract(q_act)
+        if valid:
+            scene = self._scene_geom()
             lift = self.geom.approach_height + self.geom.approach_lift + self.last["depth"]
-        else:  # z. B. nach Neustart: größte hinterlegte Eintauchtiefe annehmen
+        else:
+            # Ohne passende Messung nicht blind schwenken: Tankwagen, Deckel, Treppe neu aufnehmen
+            log.info("Rückfahrt: %s – Hindernisse werden neu gemessen", why)
+            try:
+                points = self._grab(req)
+            except Exception as e:  # Kamera weg: Rückfahrt nur von Hand
+                return self._fail(ERR_INTERNAL, f"Rückfahrt ohne Messung nicht möglich ({e}), "
+                                  "Arm im Handbetrieb zurückfahren")
+            if len(points) < self.det_cfg.min_points:
+                return self._fail(ERR_FEW_POINTS, "Rückfahrt: zu wenige Messpunkte für die "
+                                  "Hinderniserkennung, Arm im Handbetrieb zurückfahren")
+            arm_pts = points @ self.transform.T[:3, :3].T + self.transform.T[:3, 3]
+            obstacles, info = obstacles_from_points(arm_pts, self.geom, q_act, self.scene_cfg)
+            scene = self.geom.with_obstacles(obstacles)
+            self._info["rueckfahrt_neu_gemessen"] = dict(info, grund=why)
+            # Eintauchtiefe unbekannt: größte hinterlegte annehmen
             depths = [product_insertion_depth(self.products, k, self.geom.insertion_depth)
                       for k in (self.products or {})] or [self.geom.insertion_depth]
             lift = self.geom.approach_height + self.geom.approach_lift + max(depths)
-        plan = plan_retract(self._scene_geom(), q_act, lift,
+        plan = plan_retract(scene, q_act, lift,
                             fallback=(self.last or {}).get("approach"),
                             time_limit=self.plan_time_limit)
         self._info["rueckfahrt_rueckwaerts"] = bool(plan.get("reversed"))

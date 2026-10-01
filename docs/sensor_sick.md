@@ -72,4 +72,9 @@ den Sensor (zweiter LAN-Port oder USB-LAN-Adapter), getrennt vom SPS-Netz.
   Umrechnung in Punkte mit den Kameraparametern aus dem Datenstrom (gleiche Formel wie SICK,
   per Test gegen die Bibliothek abgesichert). Die in SOPAS eingestellte Montage wird nicht
   verwendet, die Lage zum Arm bestimmt allein die Hand-Auge-Kalibrierung.
-- Bei Verbindungsabbruch einmal Neuverbindung, sonst Fehler 90 an die SPS.
+- **Start ohne Kamera:** Der Vision-Dienst startet auch, wenn die Kamera noch hochfährt (ca. 20 s,
+  bei Frost länger) oder nicht erreichbar ist. Ein Hintergrund-Thread verbindet alle `retry_s`
+  Sekunden (Standard 5 s) neu. Bis dahin läuft der PC-Heartbeat, aber `Ready = FALSE` – die SPS
+  sieht „PC lebt, Kamera fehlt“ und startet keine Aufträge.
+- Bei Verbindungsabbruch während einer Messung einmal Neuverbindung, sonst Fehler 90 an die SPS;
+  danach verbindet der Hintergrund-Thread weiter.

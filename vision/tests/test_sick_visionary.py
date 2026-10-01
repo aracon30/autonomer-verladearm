@@ -77,3 +77,38 @@ def test_median_ueber_mehrere_bilder():
     pts = FakeSource([a, b, c]).grab()
     assert len(pts) == CAM.width * CAM.height
     assert np.allclose(pts[:, 2], 3.5, atol=1e-6)
+
+
+class LateCamera(SickVisionarySource):
+    """Kamera, die erst nach zwei Verbindungsversuchen antwortet (startet noch)."""
+
+    def __init__(self):
+        self.attempts = 0
+        super().__init__(retry_s=0.02)
+
+    def _connect(self):
+        self.attempts += 1
+        if self.attempts < 3:
+            raise OSError("Verbindung abgelehnt")
+        self._control, self._stream = object(), object()
+
+
+def test_dienst_startet_ohne_kamera_und_verbindet_spaeter():
+    import time
+
+    cam = LateCamera()
+    deadline = time.time() + 2.0
+    while not cam.ready and time.time() < deadline:
+        time.sleep(0.01)
+    assert cam.ready and cam.attempts == 3
+    cam._stop.set()
+
+
+def test_ohne_kamera_nicht_bereit_und_klarer_fehler():
+    cam = SickVisionarySource(ip="192.0.2.1", retry_s=0.05)  # Testadresse, nie erreichbar
+    try:
+        assert not cam.ready
+        with pytest.raises(RuntimeError, match="nicht verbunden"):
+            cam.grab()
+    finally:
+        cam.close()

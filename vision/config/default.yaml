@@ -10,6 +10,7 @@ source:
   # type: sick
   # ip: 192.168.1.10
   # frames: 3           # Bilder je Messung, pixelweiser Median
+  # retry_s: 5          # Kamera nicht erreichbar: so oft neu verbinden (Ready erst danach)
 
 detection:
   roi_min: [-2.0, -2.0, 0.5]    # Arbeitsraum in Sensorkoordinaten [m]
@@ -85,6 +86,16 @@ scene:
   lid_min_points: 80      # Mindestpunktzahl für einen Deckel
   lid_margin: 0.05        # Zuschlag auf die gemessene Deckelgröße [m]
   lid_clearance: 0.08     # Abstand Rohrachse zum Deckel [m]
+  # Rückfahrt (Job 3) ohne passende Messung aus Job 1 – z. B. Arm von Hand in den Dom gefahren,
+  # Dienst neu gestartet: neue Aufnahme, alles außer dem Arm wird als Höhenkarte zum Hindernis.
+  context_max_age_s: 14400  # Messung aus Job 1 gilt so lange für die Rückfahrt [s]
+  context_max_offset: 0.5   # Auslass weiter neben dem gemessenen Dom: neu messen [m]
+  map_cell: 0.3             # Rasterweite der Höhenkarte [m]
+  map_min_points: 5         # Punkte je Zelle (und Mindestpunkte über der Zellenhöhe)
+  map_voxel_points: 4       # Mindestpunkte je 10-cm-Würfel, sonst Ausreißer
+  map_step: 0.05            # Höhenstufen [m]
+  map_clearance: 0.08       # Abstand Rohrachse zur Höhenkarte [m]
+  arm_exclude: 0.35         # Punkte so nah an der Rohrführung gehören zum Arm [m]
 
 products:
   # Eintauchtiefe je ProductId (aus DB_Vision); "default" gilt für alle anderen

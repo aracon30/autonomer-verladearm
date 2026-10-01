@@ -63,7 +63,7 @@ def test_handbetrieb_und_verriegelungen(capsys):
         assert "Nur im Handbetrieb" in capsys.readouterr().out
         await sim.command("h")
         await sim.command("b 3 5")
-        assert "selbsthemmend" in capsys.readouterr().out
+        assert "Bremse lüften gesperrt" in capsys.readouterr().out
         await sim.command("b 1 +4")  # Bremse lüften, von Hand schieben
         await sim.task
         assert sim.actual[0] == pytest.approx(sim.park[0] + 4)

@@ -1,5 +1,9 @@
 # Anfrage Schaltschrankbau (Entwurf 30.09.2026)
 
+> **Gesendet 01.10.2026** mit eigenen Anpassungen (HMI 11″, F-CPU „wenn sinnig“, ohne Windmesser,
+> Termin Endkunde April 2027). Abweichung: In der gesendeten Fassung steht „Von Hand bewegen
+> (J1/J2/J3)“ – J3 darf **nicht** gelüftet werden, Korrektur an Peter nachgereicht (siehe unten).
+
 **An:** Peter (Schaltschrankbau)
 
 **Betreff:** Verladearm Prototyp – Schaltschrank, Verkabelung und SPS-Programm
@@ -87,7 +91,8 @@ Einschätzung zu Aufwand, Platzbedarf und Termin – für Schaltschrank, Verkabe
     Zustimmtaster und Not-Halt**, damit der Bediener dort steht, wo er Dom und Auslass sieht.
   - **Von Hand bewegen (J1/J2):** Taster „Bremse lüften“ in Hand, Antrieb dabei in STO, Bremse
     nur offen, solange der Taster gedrückt ist. Arm am Auslass von Hand führen, wie bisher.
-    **J3 geht nicht von Hand** (Schneckengetriebe selbsthemmend) → J3 immer über Tippen.
+    **J3 nie Bremse lüften** (Last hängt an der Schnecke, Selbsthemmung nicht zugesichert,
+    Arm könnte absacken) → J3 immer über Tippen.
   - Die Absolutgeber zählen dabei weiter, keine Referenzfahrt nötig.
   - **„Automatisch in Parkstellung“** aus jeder Lage (PC plant die Rückfahrt: erst senkrecht
     heraus, dann kollisionsfrei in die Parkstellung = Job 3).
@@ -104,5 +109,18 @@ Einschätzung zu Aufwand, Platzbedarf und Termin – für Schaltschrank, Verkabe
 
 **Offene Punkte von unserer Seite:** Umrichtertyp (SEW), Ex-Zone, Aufstellort des Schranks.
 Stückliste und Antriebsdaten schicke ich dir gerne mit.
+
+Viele Grüße
+
+---
+
+## Nachtrag an Peter (Korrektur Handbetrieb J3)
+
+Hallo Peter,
+
+eine Korrektur zu meiner Mail, Punkt 5 Handbetrieb: „Bremse lüften“ bitte **nur für J1 und J2**.
+Bei J3 (Heben/Senken) hängt das Gewicht des Arms am Schneckengetriebe, dessen Selbsthemmung nicht
+zugesichert ist – mit gelüfteter Bremse könnte der Arm absacken. J3 im Handbetrieb nur tippen,
+„Bremse lüften“ für J3 bitte in der Steuerung sperren.
 
 Viele Grüße

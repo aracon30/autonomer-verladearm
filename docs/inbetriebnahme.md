@@ -82,6 +82,9 @@ Danach weiter mit Schritt 7 (Kalibrierung).
    | `offset_left` | Winkel nach links bis Mitte Winkel nach unten (freies Gelenk J4) |
    | `outlet_length` | Winkel nach unten bis Auslassende |
    | `incline_deg` | festes Gefälle des inneren Auslegers (Fallrohr senkrecht; sonst `drop_tilt_deg`) |
+   | `support` | Bauform am Haltepunkt: `oben` = Zulauf als Fallleitung von oben durch J1 (HETA), `unten` = Säule |
+   | `feed_length` | sichtbare Länge der Fallleitung über dem Flansch; wird als festes Hindernis berücksichtigt |
+   | `pipe_diameter` | Außendurchmesser der Ausleger-Rohre (Darstellung, Simulation) |
 
 3. **Servoachsen einstellen** (`arm.joints`, alle Werte in Servo-Grad wie am Antrieb angezeigt)
    - `zero`: Arm im Handbetrieb so stellen, dass beide Ausleger gestreckt nach vorne zeigen und

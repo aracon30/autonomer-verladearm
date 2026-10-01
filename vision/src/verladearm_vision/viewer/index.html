@@ -377,8 +377,10 @@ ul.legend li{display:flex;align-items:center;gap:8px}
   const armMat = new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.3 });
   const servoMat = new THREE.MeshStandardMaterial({ color: 0x3b4148, roughness: 0.6 });
   const freeMat = new THREE.MeshStandardMaterial({ roughness: 0.5 });
-  const column = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 1, 20), servoMat);
-  scene.add(column);
+  // Bauform am Haltepunkt (Fallleitung von oben mit Flansch oder Säule) vom Server
+  const structure = new THREE.Group();
+  scene.add(structure);
+  let structureKey = "", pipeScale = 1;
   const pipes = Array.from({ length: 6 }, (_, i) =>
     new THREE.Mesh(new THREE.CylinderGeometry(i === 5 ? 0.06 : 0.075, i === 5 ? 0.06 : 0.075, 1, 16), armMat));
   pipes.forEach(m => scene.add(m));
@@ -443,7 +445,8 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     const v = P.map(p => toView(p[0], p[1], p[2]));
     for (let i = 0; i < 6; i++) {
       alongAxis(pipes[i], v[i].clone().lerp(v[i + 1], 0.5), v[i], v[i + 1]);
-      pipes[i].scale.set(1, v[i].distanceTo(v[i + 1]), 1);
+      const k = i === 5 ? 1 : pipeScale;
+      pipes[i].scale.set(k, v[i].distanceTo(v[i + 1]), k);
     }
     for (let i = 0; i < 5; i++) elbows[i].position.copy(v[i + 1]);
     alongAxis(joints[0], v[0], new THREE.Vector3(), UP);          // J1 senkrecht
@@ -459,8 +462,26 @@ ul.legend li{display:flex;align-items:center;gap:8px}
   function setGround(z) {
     groundY = z;
     grid.position.y = z;
-    column.scale.set(1, -z + 0.25, 1);
-    column.position.set(0, (z + 0.25) / 2, 0);
+  }
+  function setStructure(st) {
+    const key = JSON.stringify(st || null);
+    if (!st || key === structureKey) return;
+    structureKey = key;
+    structure.clear();
+    pipeScale = (st.pipe_r || 0.075) / 0.075;
+    for (const p of st.parts) {
+      const a = toView(...p.a), b = toView(...p.b);
+      const mat = p.kind === "anschluss" ? armMat : p.kind === "zulauf" ? freeMat : servoMat;
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(p.r, p.r, a.distanceTo(b), 20), mat);
+      alongAxis(m, a.clone().lerp(b, 0.5), a, b);
+      structure.add(m);
+    }
+    if (st.flange_z !== null && st.flange_z !== undefined) {  // Schnittstellenflansch J1
+      const r = (st.pipe_r || 0.075) * 1.9;
+      const f = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.04, 32), servoMat);
+      f.position.set(0, st.flange_z, 0);
+      structure.add(f);
+    }
   }
   setGround(groundY);
   function samplePath(path, u) {
@@ -523,6 +544,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     traverse.position.copy(sensor.position).add(new THREE.Vector3(0, 0.1, 0));
     if (f.arm) {
       setGround(f.arm.ground_z);
+      setStructure(f.arm.structure);
       drawObstacles(f.arm.obstacles);
       setMarker(f.arm.marker);
       if (!armPts) drawArm(f.arm.park);
@@ -711,6 +733,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     set("s-act", up && g.AxesHomed ? [g.ActualJ1, g.ActualJ2, g.ActualJ3].map(v => v.toFixed(1).replace(".", ",")).join(" / ") + " °" : "–");
     if (s && s.arm_pts) {
       if (!armPts) setGround(s.ground_z);
+      setStructure(s.structure);
       setMarker(s.marker);
       drawObstacles(s.obstacles);
       drawArm(s.arm_pts);

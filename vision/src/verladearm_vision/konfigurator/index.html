@@ -250,7 +250,7 @@ function sketch() {
     <circle class="free" cx="420" cy="100" r="7"/><text x="430" y="96">J4</text>
     <line x1="40" y1="48" x2="40" y2="180" class="dim" stroke-dasharray="4 3"/><text x="46" y="140">① Höhe OK Flansch</text>
     <text x="58" y="36">①a</text>
-    <text x="70" y="70">② innerer Ausleger, ③ Gefälle</text>
+    <text x="95" y="36">② innerer Ausleger, ③ Gefälle</text>
     <text x="212" y="64">④</text><text x="262" y="92">⑥ äußerer Ausleger</text>
     <text x="428" y="140">⑧ Auslass</text>
     <text x="250" y="176">⑤ nach rechts, ⑦ nach links: quer zur Bildebene</text>
@@ -282,6 +282,19 @@ function buildForm() {
   dims.append(el("div", { class: "field" }, el("label", {}, "Rohrmitte innerer Ausleger auf J1 über Fahrbahn (berechnet: ① − ①a, Ursprung Armbasis)"), baseOut));
   dims.append(numField({ id: "d-drop_tilt", label: "Neigung Fallrohr (J2-Achse) gegen die Senkrechte – meist 0", unit: "°", min: -15, max: 15,
     get: () => data.arm.drop_tilt_deg, set: v => data.arm.drop_tilt_deg = v }));
+  // Bauform am Haltepunkt
+  const sup = el("select", { id: "d-support" },
+    el("option", { value: "oben" }, "Fallleitung von oben durch J1 (Schnittstellenflansch)"),
+    el("option", { value: "unten" }, "Säule von unten"));
+  sup.value = data.arm.support || "unten";
+  const feed = numField({ id: "d-feed", label: "Fallleitung über dem Flansch (sichtbare Länge, wird Hindernis)", unit: "m", min: 0.1, max: 10,
+    get: () => data.arm.feed_length, set: v => data.arm.feed_length = v });
+  const showFeed = () => { feed.hidden = sup.value !== "oben"; };
+  sup.addEventListener("change", () => { data.arm.support = sup.value; showFeed(); changed(); });
+  showFeed();
+  dims.append(el("div", { class: "field" }, el("label", { for: "d-support" }, "Bauform am Haltepunkt J1"), sup), feed,
+    numField({ id: "d-pipe", label: "Außendurchmesser Rohr der Ausleger (Darstellung, Simulation)", unit: "m", min: 0.03, max: 0.6,
+      get: () => data.arm.pipe_diameter, set: v => data.arm.pipe_diameter = v }));
   f.append(card(1, "Maße des Arms", "Rohrmitte zu Rohrmitte bzw. Gelenkachse zu Gelenkachse, nie Außenkanten", sketch(), dims));
   // 2 Servoachsen
   const plcVals = el("span", { class: "vals" }, "–");
@@ -509,6 +522,8 @@ function draw() {
     if (c.tips) pts.push(...c.tips);
     if (c.workspace) pts.push(c.workspace[0], c.workspace[1]);
     if (c.sensor) pts.push(c.sensor);
+    const sparts = (c.structure && c.structure.parts) || [];
+    sparts.forEach(p => pts.push(p.a, p.b));
     if (v.side && c.ground_z !== undefined) pts.push([0, 0, c.ground_z]);
     const obs = (c.obstacles || []).map(o => o.type === "box" ? [o.min, o.max] : o.type === "cyl" ? [
       [o.p0[0] - o.radius, o.p0[1] - o.radius, o.p0[2] - o.half_length * Math.abs(o.axis[2])], [o.p0[0] + o.radius, o.p0[1] + o.radius, o.p0[2] + o.half_length * Math.abs(o.axis[2])]] :
@@ -536,6 +551,13 @@ function draw() {
     parts.push(line(c.zero, col("--muted"), 2, "6 4") || "");
     parts.push(line(c.park, col("--signal"), 5) || "");
     if (c.park) { const p = v.p(c.park[6]); parts.push(`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="4" fill="${col("--ink")}"/>`); }
+    for (const p of sparts) { const a = v.p(p.a), b = v.p(p.b);
+      const w = Math.max(3, 2 * p.r * s), colr = p.kind === "anschluss" ? col("--signal") : col("--steel");
+      if (v.side) parts.push(`<line x1="${X(a[0])}" y1="${Y(a[1])}" x2="${X(b[0])}" y2="${Y(b[1])}" stroke="${colr}" stroke-width="${w}" stroke-linecap="butt" opacity=".85"/>`);
+      else parts.push(`<circle cx="${X(a[0])}" cy="${Y(a[1])}" r="${Math.max(3, p.r * s)}" fill="${colr}" opacity=".6"/>`); }
+    const fz = c.structure && c.structure.flange_z;
+    if (v.side && fz !== null && fz !== undefined) { const r = c.structure.pipe_r * 1.9;
+      parts.push(`<line x1="${X(-r)}" y1="${Y(fz)}" x2="${X(r)}" y2="${Y(fz)}" stroke="${col("--ink")}" stroke-width="4"/><text x="${X(-r) - 5}" y="${Y(fz) + 4}" font-size="11" text-anchor="end" fill="${col("--ink")}">Flansch</text>`); }
     if (c.sensor) { const q = v.p(c.sensor);
       parts.push(`<rect x="${X(q[0]) - 6}" y="${Y(q[1]) - 5}" width="12" height="10" fill="${col("--steel")}" stroke="${col("--ink")}"/><text x="${X(q[0]) + 9}" y="${Y(q[1]) + 4}" font-size="11" fill="${col("--ink")}">Kamera</text>`); }
     parts.push(`<circle cx="${X(0)}" cy="${Y(0)}" r="6" fill="${col("--signal")}" stroke="${col("--ink")}" stroke-width="1.5"/><text x="${X(0) + 9}" y="${Y(0) - 8}" font-size="12" fill="${col("--ink")}" font-weight="600">J1</text>`);

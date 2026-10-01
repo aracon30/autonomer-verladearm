@@ -30,10 +30,12 @@ from verladearm_vision.detection import (
     detect_outlet,
 )
 from verladearm_vision.kinematics import (
+    FEED_NAME,
     JOINTS,
     ArmGeometry,
     CylinderObstacle,
     OrientedBoxObstacle,
+    fixed_parts,
     forward,
     marker_point,
     outlet_axis,
@@ -200,6 +202,20 @@ def obstacle_for_view(o) -> dict:
     return {"name": o.name, "type": "box", "min": list(o.min), "max": list(o.max)}
 
 
+def structure_for_view(geom: ArmGeometry) -> dict:
+    """Bauform am Haltepunkt für die 3D-Ansicht: Fallleitung von oben samt Flansch oder Säule,
+    dazu der Rohrdurchmesser der Ausleger."""
+    return {"support": geom.support, "pipe_r": geom.pipe_diameter / 2,
+            "flange_z": geom.flange_offset if geom.support == "oben" else None,
+            "parts": [{"a": a.round(4).tolist(), "b": b.round(4).tolist(), "r": r, "kind": k}
+                      for a, b, r, k in fixed_parts(geom)]}
+
+
+def obstacles_for_view(geom: ArmGeometry) -> list:
+    """Hindernisse ohne die Fallleitung (die zeigt die Bauform selbst)."""
+    return [obstacle_for_view(o) for o in geom.obstacles if o.name != FEED_NAME]
+
+
 def arm_for_view(geom: ArmGeometry, result: dict, product_id: int = 0,
                  products: dict | None = None, outlet: OutletConfig | None = None) -> dict:
     """Geplante Armbewegung zum Ergebnis; ohne gültiges Ziel nur die Parkstellung."""
@@ -210,7 +226,8 @@ def arm_for_view(geom: ArmGeometry, result: dict, product_id: int = 0,
         arm = {"ok": False, "park": forward(geom, geom.park).round(4).tolist()}
     arm["ground_z"] = -geom.base_height
     arm["product_id"] = product_id
-    arm["obstacles"] = [obstacle_for_view(o) for o in geom.obstacles]
+    arm["obstacles"] = obstacles_for_view(geom)
+    arm["structure"] = structure_for_view(geom)
     if outlet and outlet.marker_radius:
         arm["marker"] = {"radius": outlet.marker_radius, "offset": outlet.marker_offset}
     return arm
@@ -291,7 +308,8 @@ class PlcMonitor:
             "signals": {k: v.get(k) for k in SIGNALS},
             "operation": v.get("Bedienstatus"),
             "ground_z": -self.geom.base_height,
-            "obstacles": [obstacle_for_view(o) for o in self.geom.obstacles],
+            "obstacles": obstacles_for_view(self.geom),
+            "structure": structure_for_view(self.geom),
         }
         if self.outlet_cfg.marker_radius:
             state["marker"] = {"radius": self.outlet_cfg.marker_radius,

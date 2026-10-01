@@ -166,6 +166,11 @@ class ArmGeometry:
     # Ist flange_height gesetzt, gilt base_height = flange_height − flange_offset.
     flange_height: float | None = None  # Oberkante Schnittstellenflansch über Fahrbahn [m]
     flange_offset: float = 0.0  # Oberkante Flansch bis Rohrmitte innerer Ausleger auf J1 [m]
+    # Bauform am Haltepunkt: "oben" = Zulauf als Fallleitung von oben durch J1 (HETA),
+    # "unten" = Arm auf einer Säule. Bestimmt Darstellung, Simulation und festes Hindernis.
+    support: str = "unten"
+    feed_length: float = 1.5  # sichtbare Fallleitung über dem Schnittstellenflansch [m]
+    pipe_diameter: float = 0.15  # Außendurchmesser Rohr der Ausleger [m] (Darstellung, Simulation)
     incline_deg: float = 3.0  # festes Gefälle des inneren Auslegers [°]
     drop_tilt_deg: float = 0.0  # Neigung des Fallrohrs (J2-Achse) gegen die Senkrechte [°]
     inner_length: float = 2.2
@@ -188,7 +193,12 @@ class ArmGeometry:
             k: j if isinstance(j, Joint) else Joint(**j) for k, j in self.joints.items()
         }
         self.obstacles = [obstacle_from_dict(o) if isinstance(o, dict) else o
-                          for o in self.obstacles]
+                          for o in self.obstacles if getattr(o, "name", None) != FEED_NAME]
+        for a, b, r, kind in fixed_parts(self):  # Fallleitung über J1: nicht dagegen schwenken
+            if kind == "zulauf":
+                self.obstacles.append(CylinderObstacle(
+                    FEED_NAME, ((a + b) / 2).tolist(), [0.0, 0.0, 1.0], r,
+                    float(abs(b[2] - a[2]) / 2)))
 
     def with_obstacles(self, extra) -> "ArmGeometry":
         """Kopie mit zusätzlichen Hindernissen (z. B. erkannter Tankwagen und Domdeckel)."""
@@ -206,6 +216,23 @@ class ArmGeometry:
 
     def to_servo(self, q) -> list:
         return [round(float(self.joints[k].to_servo(v)), 2) for k, v in zip(JOINTS, q, strict=True)]
+
+
+FEED_NAME = "Fallleitung Zulauf J1"
+
+
+def fixed_parts(geom: "ArmGeometry") -> list:
+    """Feste bzw. nur um die eigene Achse drehende Teile am Haltepunkt als Rohrstücke
+    (Anfang, Ende, Radius, Art) in Armbasis-Koordinaten: Zulauf von oben samt Stück bis zum
+    3°-Rohr, oder die Säule von unten. Für Darstellung, Simulation und Höhenkarte."""
+    r = geom.pipe_diameter / 2
+    if geom.support == "oben":
+        top = geom.flange_offset + geom.feed_length
+        return [(np.array([0.0, 0.0, geom.flange_offset]), np.array([0.0, 0.0, top]), r,
+                 "zulauf"),
+                (np.zeros(3), np.array([0.0, 0.0, geom.flange_offset]), r, "anschluss")]
+    return [(np.array([0.0, 0.0, -geom.base_height]), np.array([0.0, 0.0, -0.25]), 0.18,
+             "saeule")]
 
 
 def product_insertion_depth(products: dict | None, product_id: int, fallback: float) -> float:
@@ -265,6 +292,8 @@ def validate(geom: ArmGeometry) -> list[str]:
                  "outlet_length", "base_height"):
         if getattr(geom, name) <= 0:
             problems.append(f"{name} muss größer 0 sein")
+    if geom.support not in ("oben", "unten"):
+        problems.append("support: oben (Fallleitung von oben) oder unten (Säule)")
     if not 0.0 <= geom.flange_offset <= 3.0:
         problems.append("flange_offset (Flansch bis Rohrmitte innerer Ausleger) 0 … 3 m")
     for k in JOINTS:

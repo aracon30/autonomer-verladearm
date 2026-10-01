@@ -55,7 +55,7 @@ Befehle im Terminal (`?` zeigt alle):
 | `e` | „Beladung beendet“ → Rückfahrt in die Parkstellung |
 | `l`, `t` | Lichtschranke / Klapptreppe umschalten (Verriegelungen testen) |
 | `x` | Stopp |
-| `h` | Handbetrieb: `j 3 +5` tippen, `b 2 -20` Bremse lüften und von Hand schieben (nur J1/J2), `d` Arm wie von Hand in einen Dom führen |
+| `h` | Handbetrieb: `j 3 +5` tippen, `b 2 -20` Bremse lüften und von Hand schieben (nur J1/J2, J3 gesperrt), `d` Arm wie von Hand in einen Dom führen |
 | `z` | „Automatisch in Parkstellung“ aus jeder Lage (Job 3, misst ohne Job 1 neu) |
 
 Der Simulator setzt die Startbedingungen und Verriegelungen um, die das SPS-Programm haben

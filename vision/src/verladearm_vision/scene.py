@@ -16,6 +16,7 @@ from verladearm_vision.kinematics import (
     CylinderObstacle,
     Obstacle,
     OrientedBoxObstacle,
+    fixed_parts,
     forward,
     tip,
 )
@@ -154,6 +155,8 @@ def obstacles_from_points(arm_pts: np.ndarray, geom, q, cfg: SceneConfig | None 
     keep = p[:, 2] > ground + 0.2
     for a, b in zip(pts[:-1], pts[1:], strict=True):
         keep &= _segment_distance(p, a, b) > cfg.arm_exclude
+    for a, b, r, _ in fixed_parts(geom):  # Fallleitung bzw. Säule am Haltepunkt
+        keep &= _segment_distance(p, a, b) > r + 0.2
     p = p[keep]
     # vereinzelte Punkte (fliegende Pixel an Kanten, Regen, Insekten) verwerfen: Würfel mit 10 cm
     # Kantenlänge brauchen mehrere Punkte; echte Flächen liefern dort Dutzende

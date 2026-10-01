@@ -93,7 +93,8 @@ Bei Fehler, fehlendem Ergebnis oder Heartbeat-Ausfall: Bewegung stoppen, sichere
 - **Tippen am Panel:** J1/J2/J3 einzeln, nur solange gedrückt, reduzierte Geschwindigkeit,
   Endlagen aktiv (Mobile Panel mit Zustimmtaster empfohlen).
 - **Von Hand führen (J1/J2):** „Bremse lüften“ nur im Handbetrieb, Antrieb in STO, Bremse offen
-  nur solange gedrückt. J3 ist selbsthemmend (Schnecke) und wird nur getippt.
+  nur solange gedrückt. **J3 nie Bremse lüften:** die Last hängt an der Schnecke, deren
+  Selbsthemmung nicht zugesichert ist (2-gängig) – der Arm könnte absacken. J3 wird nur getippt.
 - Die Multiturn-Absolutgeber bleiben gültig (`AxesHomed` bleibt `TRUE`), die SPS meldet weiter
   die Istwinkel.
 - **„Automatisch in Parkstellung“** aus beliebiger Lage = **Job 3**: Der PC plant ab Istlage

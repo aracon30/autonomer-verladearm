@@ -119,7 +119,7 @@ Siehe [Kalibrierung](docs/kalibrierung.md) und [Betrieb](docs/betrieb.md).
 
 | Ordner | Inhalt |
 |---|---|
-| `docs/` | Lastenheft, Schnittstelle, Kinematik, Inbetriebnahme, Kalibrierung, Betrieb, Architekturentscheidungen |
+| `docs/` | Lastenheft, Schnittstelle, Kinematik, Inbetriebnahme, Kalibrierung, Betrieb, Architekturentscheidungen, [Ideenspeicher](docs/ideenspeicher.md) (Open-Source-Bausteine, zurückgestellte Erweiterungen) |
 | `hardware/` | Stückliste, Halterungen, Elektro (Sensor: [docs/sensor_sick.md](docs/sensor_sick.md)) |
 | `plc/` | Schnittstellen-DB für TIA Portal |
 | `vision/src/verladearm_vision/` | acquisition, detection, calibration, kinematics, plc, service, viewer |

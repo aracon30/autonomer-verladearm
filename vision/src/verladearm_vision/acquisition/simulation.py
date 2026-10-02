@@ -44,7 +44,8 @@ class SimulatedScene:
                  joint_error_deg=(0.0, 0.0, 0.0), dome_spread=0.35, marker_radius=0.125,
                  marker_offset=0.8, empty=False, sensor_matrix=None, lid=True,
                  backlash_deg=(0.0, 0.0, 0.0), backlash_preload=(False, False, True),
-                 pipe_radius=0.06, domes=("offen", "armatur"), walkways=0.5, seed=None):
+                 pipe_radius=0.06, domes=("offen", "armatur"), walkways=0.5, foreign=0.0,
+                 seed=None):
         self.geom, self.transform = geom, transform
         self.vehicles = list(vehicles)
         self.joint_error = np.radians(np.asarray(joint_error_deg, dtype=float))
@@ -67,6 +68,8 @@ class SimulatedScene:
         self.domes = list(domes)  # Dombauarten, zufällig je Fahrzeug
         self.walkways = walkways  # Anteil Fahrzeuge mit Laufstegen am Dom
         self.truth = None  # Sollwerte der Öffnung (Armbasis): center, diameter, dome
+        self.foreign = foreign  # Anteil Fahrzeuge mit Fremdkörper daneben (Leiter, Pfosten …)
+        self.objects = []  # Fremdkörper als Quader (min, max) in Armbasis-Koordinaten
         self.tank = None
         self.q_true = None
         self.count = 0
@@ -100,6 +103,9 @@ class SimulatedScene:
         self.truth = {"center": c,
                       "diameter": info["diameter"], "dome": dome, "walkways": walk}
         self.kind = kind
+        self.objects = []
+        if self.foreign and self.rng.uniform() < self.foreign:
+            self.place_object()
 
     def _arm_points(self, q, spacing=0.012):
         pts = forward(self.geom, q)
@@ -125,8 +131,8 @@ class SimulatedScene:
             visible = np.einsum("...i,...i->...", normal, sensor - p) > 0  # dem Sensor zugewandt
             out.append(p[visible])
         if self.marker_radius:  # Oberseite der Markierungsscheibe
-            ang = self.rng.uniform(0, 2 * np.pi, 1500)
-            rr = np.sqrt(self.rng.uniform(self.pipe_radius ** 2, self.marker_radius ** 2, 1500))
+            ang = self.noise.uniform(0, 2 * np.pi, 1500)
+            rr = np.sqrt(self.noise.uniform(self.pipe_radius ** 2, self.marker_radius ** 2, 1500))
             axis = (pts[5] - pts[6]) / np.linalg.norm(pts[5] - pts[6])
             m = pts[6] + self.marker_offset * axis  # Mitte der Markierung auf der Rohrachse
             u = np.cross(axis, [1.0, 0.0, 0.0])
@@ -143,10 +149,42 @@ class SimulatedScene:
             out.append(disc[~hidden])
         return np.vstack(out)
 
+    def place_object(self, lo=None, hi=None):
+        """Fremdkörper (Quader) in die Szene stellen; ohne Angabe zufällig neben den Tank."""
+        if lo is None:
+            ground = -self.geom.base_height
+            c = self.truth["center"] if self.truth else np.array([3.0, 0.0, 0.0])
+            side = self.rng.choice([-1.0, 1.0])
+            w = self.rng.uniform(0.25, 0.6, 2)
+            x = c[0] + side * self.rng.uniform(1.8, 2.6)
+            y = c[1] + self.rng.uniform(-2.0, 2.0)
+            top = ground + self.rng.uniform(1.5, 4.5)
+            lo, hi = [x - w[0] / 2, y - w[1] / 2, ground], [x + w[0] / 2, y + w[1] / 2, top]
+        self.objects.append((np.asarray(lo, float), np.asarray(hi, float)))
+
+    def _object_points(self, spacing=0.02):
+        out = []
+        for lo, hi in self.objects:
+            gx = np.arange(lo[0], hi[0], spacing)
+            gy = np.arange(lo[1], hi[1], spacing)
+            mx, my = np.meshgrid(gx, gy)
+            out.append(np.column_stack([mx.ravel(), my.ravel(), np.full(mx.size, hi[2])]))
+            zs = np.arange(lo[2], hi[2], spacing * 2)
+            for xa in (lo[0], hi[0]):
+                mz, mm = np.meshgrid(zs, gy)
+                out.append(np.column_stack([np.full(mz.size, xa), mm.ravel(), mz.ravel()]))
+            for ya in (lo[1], hi[1]):
+                mz, mm = np.meshgrid(zs, gx)
+                out.append(np.column_stack([mm.ravel(), np.full(mz.size, ya), mz.ravel()]))
+        return np.vstack(out) if out else np.zeros((0, 3))
+
     def grab(self) -> np.ndarray:
         if self.tank is None:
             self._new_vehicle()
         parts = [] if self.empty else [self.tank]
+        if self.objects:  # Fremdkörper: Armbasis -> Sensor
+            obj = self._object_points()
+            parts.append(obj @ self.inv[:3, :3].T + self.inv[:3, 3])
         if self.q_true is not None:
             arm = self._arm_points(self.q_true)
             arm_sensor = arm @ self.inv[:3, :3].T + self.inv[:3, 3]

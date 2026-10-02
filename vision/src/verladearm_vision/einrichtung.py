@@ -227,12 +227,29 @@ def ask_outlet(d: Dialog, cur: dict) -> dict:
     return out
 
 
-def ask_workspace(d: Dialog, cur: dict) -> dict:
-    d.step("6. Arbeitsraum", "Bereich, in dem die Oberkante der Domöffnung bei dieser Station "
-           "liegen kann (alle Fahrzeuge, Abstellpositionen), Armbasis-Koordinaten in m.")
-    lo = d.ask("MIN x y z", cur.get("workspace_min"), parse_vec)
-    hi = d.ask("MAX x y z", cur.get("workspace_max"), parse_vec, larger_than(lo))
-    return {"workspace_min": lo, "workspace_max": hi, "step": cur.get("step", 0.2)}
+def ask_workspace(d: Dialog, cur: dict, base_height: float) -> dict:
+    d.step("6. Arbeitsraum", "Wo Dome bei dieser Station vorkommen (alle Fahrzeuge). Wird nur für "
+           "die Inbetriebnahmeprüfung und die Kalibrierstellungen gebraucht – im Betrieb findet "
+           "die Kamera den Dom selbst.")
+    lo = np.asarray(cur.get("workspace_min") or [2.6, -0.6, -2.0], float)
+    hi = np.asarray(cur.get("workspace_max") or [3.6, 0.6, -0.5], float)
+    lane = d.number("Abstand Mitte Fahrspur bis Achse J1 (waagerecht) [m]",
+                    round(float(lo[0] + hi[0]) / 2, 3), 0.5, 12)
+    along = d.number("Haltemarke längs gegenüber J1 (links +, rechts −) [m]",
+                     round(float(lo[1] + hi[1]) / 2, 3), -6, 6)
+    tol_c = d.number("Haltetoleranz quer zur Fahrspur (±) [m]", round(float(hi[0] - lo[0]) / 2, 3),
+                     0, 2)
+    tol_a = d.number("Haltetoleranz längs inkl. Lage des Doms (±) [m]",
+                     round(float(hi[1] - lo[1]) / 2, 3), 0, 4)
+    h_min = d.number("Domoberkante niedrigstes Fahrzeug über Fahrbahn [m]",
+                     round(float(lo[2]) + base_height, 3), 1, 8)
+    h_max = d.number("Domoberkante höchstes Fahrzeug über Fahrbahn [m]",
+                     round(float(hi[2]) + base_height, 3), h_min, 8)
+    return {"workspace_min": [round(lane - tol_c, 3), round(along - tol_a, 3),
+                              round(h_min - base_height, 3)],
+            "workspace_max": [round(lane + tol_c, 3), round(along + tol_a, 3),
+                              round(h_max - base_height, 3)],
+            "step": cur.get("step", 0.2)}
 
 
 def summary(arm: dict) -> list[str]:
@@ -369,7 +386,7 @@ def run(d: Dialog, target: Path, reader=None) -> Path | None:
                                                        arm["base_height"])
     products = ask_products(d, cur.get("products") or {})
     outlet = ask_outlet(d, cur.get("outlet", {}))
-    workspace = ask_workspace(d, cur.get("commissioning", {}))
+    workspace = ask_workspace(d, cur.get("commissioning", {}), arm["base_height"])
 
     d.step("7. Kontrolle")
     problems = validate(ArmGeometry(**arm))

@@ -112,8 +112,12 @@ Danach weiter mit Schritt 7 (Kalibrierung).
    den Rand mit bekanntem Durchmesser nahe der vom Armmodell erwarteten Lage und nutzt bei
    stark verdecktem Rand zusätzlich die Achse des Auslassrohrs über der Referenz.
 
-6. **Arbeitsraum** (`commissioning`): Bereich, in dem die Domöffnung bei dieser Station liegen
-   kann (unterschiedliche Tankwagen, Aufbauhöhen, Abstellpositionen).
+6. **Arbeitsraum** (`commissioning`): wo Dome bei dieser Station vorkommen. Nur für die
+   Inbetriebnahmeprüfung (welche Domlagen werden durchgerechnet) und die Kalibrierstellungen –
+   im Betrieb findet die Kamera den Dom selbst. Eingabe in Konfigurator und Dialog anschaulich:
+   Abstand Mitte Fahrspur bis J1, Haltemarke längs, Haltetoleranz quer/längs (±) und
+   Domoberkante des niedrigsten/höchsten Fahrzeugs über der Fahrbahn (Lkw ca. 3,2 m, Kesselwagen
+   ca. 4,6 m). Daraus wird `workspace_min/max` (Armbasis) berechnet.
 
 7. **Hand-Auge-Kalibrierung** → `calibration.matrix`, siehe [Kalibrierung](kalibrierung.md):
    `python -m verladearm_vision.calibrate --config vision/config/anlagen/<anlage>.yaml --from-plc`

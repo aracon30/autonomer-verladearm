@@ -391,19 +391,35 @@ function buildForm() {
       numField({ id: "o-off", label: "Oberkante Referenz bis unterster Punkt Auslass", unit: "m", min: 0.03, max: 1.5, get: () => data.outlet.marker_offset, set: v => data.outlet.marker_offset = v }),
       numField({ id: "o-pipe", label: "Außendurchmesser Auslassrohr", unit: "m", min: 0.05, max: 0.4, get: () => 2 * data.outlet.pipe_radius, set: v => data.outlet.pipe_radius = v / 2 })),
     el("p", { class: "note" }, "Rund, mittig und rechtwinklig zum Auslassrohr. Teilweise Verdeckung durch die Rohrleitung darüber ist zulässig.")));
-  // 6 Arbeitsraum
+  // 6 Arbeitsraum: aus anschaulichen Angaben zur Fahrspur und zu den Domhöhen berechnet
   const ws = data.commissioning;
   ws.workspace_min = ws.workspace_min || [2.6, -0.6, -2]; ws.workspace_max = ws.workspace_max || [3.6, 0.6, -0.5];
-  const wsGrid = el("div", { class: "grid" });
-  ["x", "y", "z"].forEach((a, n) => {
-    wsGrid.append(numField({ id: "ws-min-" + a, label: `MIN ${a}`, unit: "m", get: () => ws.workspace_min[n], set: v => ws.workspace_min[n] = v }));
-    wsGrid.append(numField({ id: "ws-max-" + a, label: `MAX ${a}`, unit: "m", get: () => ws.workspace_max[n], set: v => ws.workspace_max[n] = v }));
-  });
+  const h0 = data.arm.base_height;
+  const st = {  // zurückgerechnet aus dem gespeicherten Quader (Armbasis-Koordinaten)
+    lane: (ws.workspace_min[0] + ws.workspace_max[0]) / 2, along: (ws.workspace_min[1] + ws.workspace_max[1]) / 2,
+    tolCross: (ws.workspace_max[0] - ws.workspace_min[0]) / 2, tolAlong: (ws.workspace_max[1] - ws.workspace_min[1]) / 2,
+    hMin: ws.workspace_min[2] + h0, hMax: ws.workspace_max[2] + h0 };
+  const r2 = v => +v.toFixed(3);
+  const wsApply = () => {
+    const h = data.arm.base_height;
+    ws.workspace_min = [r2(st.lane - st.tolCross), r2(st.along - st.tolAlong), r2(Math.min(st.hMin, st.hMax) - h)];
+    ws.workspace_max = [r2(st.lane + st.tolCross), r2(st.along + st.tolAlong), r2(Math.max(st.hMin, st.hMax) - h)];
+    wsNote.textContent = `Ergibt den Prüfbereich x ${fmt(ws.workspace_min[0])} … ${fmt(ws.workspace_max[0])} m, ` +
+      `y ${fmt(ws.workspace_min[1])} … ${fmt(ws.workspace_max[1])} m, z ${fmt(ws.workspace_min[2])} … ${fmt(ws.workspace_max[2])} m (Armbasis).`;
+  };
+  const sf = (id, label, key, min, max) => numField({ id, label, unit: "m", min, max, get: () => r2(st[key]), set: v => { st[key] = v; wsApply(); } });
+  const wsGrid = el("div", { class: "grid" },
+    sf("ws-lane", "Abstand Mitte Fahrspur bis Achse J1 (waagerecht, nach vorne)", "lane", 0.5, 12),
+    sf("ws-along", "Haltemarke längs gegenüber J1 (links +, rechts −) – meist 0", "along", -6, 6),
+    sf("ws-tolc", "Haltetoleranz quer zur Fahrspur (±)", "tolCross", 0, 2),
+    sf("ws-tola", "Haltetoleranz längs, inkl. Lage des Doms am Fahrzeug (±)", "tolAlong", 0, 4),
+    sf("ws-hmin", "Domoberkante niedrigstes Fahrzeug über Fahrbahn (Lkw ca. 3,2)", "hMin", 1, 8),
+    sf("ws-hmax", "Domoberkante höchstes Fahrzeug über Fahrbahn (Kesselwagen ca. 4,6)", "hMax", 1, 8));
   const wsNote = el("p", { class: "note" });
-  const wsUpd = () => { const h = data.arm.base_height, a = ws.workspace_min[2], b = ws.workspace_max[2];
-    wsNote.textContent = `Armbasis-Koordinaten; z = Höhe über Fahrbahn − Höhe J1 (①). Domoberkante damit ${fmt((a + h).toFixed(2))} … ${fmt((b + h).toFixed(2))} m über der Fahrbahn.`; };
-  wsUpd(); wsGrid.addEventListener("input", wsUpd); $("#form").addEventListener("input", wsUpd);
-  f.append(card(6, "Arbeitsraum", "wo die Oberkante der Domöffnung liegen kann (alle Fahrzeuge)", wsGrid, wsNote));
+  wsApply();
+  $("#form").addEventListener("input", e => { if (e.target.id && e.target.id.startsWith("d-flange")) wsApply(); });
+  f.append(card(6, "Arbeitsraum", "wo Dome vorkommen – nur für Inbetriebnahmeprüfung und Kalibrierung", wsGrid, wsNote,
+    el("p", { class: "note" }, "Im Betrieb findet die Kamera den Dom selbst. Dieser Bereich legt fest, welche Domlagen die Inbetriebnahmeprüfung durchrechnet (erreichbar? Kollision? Fahrzeit?) und wo die Kalibrierstellungen liegen. Zu klein: spätere Fälle ungeprüft; zu groß: unnötige Warnungen.")));
   // 7 Antriebe
   const dwrap = el("div");
   JN.forEach(k => {

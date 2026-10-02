@@ -67,6 +67,9 @@ Anlagendatei eines Arms im Browser bearbeiten (Konfigurator, http://<IP>:8090):
 .venv/bin/python -m verladearm_vision.konfigurator --host 0.0.0.0 --port 8090
 ```
 
+Die folgenden Befehle setzen eine aktivierte Umgebung voraus (`source .venv/bin/activate`);
+sonst `.venv/bin/python` statt `python` schreiben.
+
 Kompletter Ablauf ohne Hardware, einzeln gestartet (SPS-Simulator mit Achsen, simulierter Sensor mit Getriebespiel):
 
 ```bash

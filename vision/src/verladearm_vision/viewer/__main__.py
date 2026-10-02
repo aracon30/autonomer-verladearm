@@ -365,7 +365,9 @@ class PlcMonitor:
             except Exception as e:  # Verbindung verloren: anzeigen und neu verbinden
                 with self.lock:
                     self.connected, self.error = False, f"{type(e).__name__}: {e}"
-                log.warning("OPC UA: %s, neuer Versuch in 2 s", self.error)
+                hint = (" (keine Antwort: IP/Port, Netz, OPC-UA-Server der SPS prüfen)"
+                        if isinstance(e, (TimeoutError, OSError)) else "")
+                log.warning("OPC UA %s: %s%s, neuer Versuch in 2 s", self.url, self.error, hint)
                 await asyncio.sleep(2.0)
 
     def state(self) -> dict:

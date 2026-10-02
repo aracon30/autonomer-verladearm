@@ -98,6 +98,10 @@ def main():
     else:
         from verladearm_vision.service.main import build_source
 
+        if cfg["source"].get("type") != "sick":
+            sys.exit(f"Kalibrierung braucht die Kamera an der Anlage (source.type: sick), "
+                     f"eingestellt ist '{cfg['source'].get('type')}'.\n"
+                     f"Probelauf ohne Hardware: --sim anhängen.")
         source = build_source(cfg["source"], cfg)
 
     print(f"{len(poses)} Stellungen vorgeschlagen. Station leer, Markierungsscheibe am Auslass.")

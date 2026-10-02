@@ -91,6 +91,12 @@ class Obstacle:
     passage: tuple | None = None
     clearance: float | None = None
 
+    def __post_init__(self):
+        # Ecken in beliebiger Reihenfolge erlaubt (z. B. z-Werte unter J1 negativ und leicht
+        # vertauscht): sonst wäre der Quader für die Kollisionsprüfung leer, aber sichtbar
+        a, b = np.asarray(self.min, float), np.asarray(self.max, float)
+        self.min, self.max = np.minimum(a, b).tolist(), np.maximum(a, b).tolist()
+
     def contains(self, samples: np.ndarray, clearance: float) -> np.ndarray:
         c = clearance if self.clearance is None else self.clearance
         lo, hi = np.asarray(self.min) - c, np.asarray(self.max) + c
@@ -108,6 +114,9 @@ class OrientedBoxObstacle:
     half: list
     passage: tuple | None = None
     clearance: float | None = None
+
+    def __post_init__(self):
+        self.half = np.abs(np.asarray(self.half, float)).tolist()
 
     def contains(self, samples: np.ndarray, clearance: float) -> np.ndarray:
         c = clearance if self.clearance is None else self.clearance
@@ -127,6 +136,9 @@ class CylinderObstacle:
     half_length: float
     passage: tuple | None = None
     clearance: float | None = None
+
+    def __post_init__(self):
+        self.radius, self.half_length = abs(float(self.radius)), abs(float(self.half_length))
 
     def contains(self, samples: np.ndarray, clearance: float) -> np.ndarray:
         c = clearance if self.clearance is None else self.clearance

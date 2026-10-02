@@ -151,3 +151,15 @@ def test_arbeitsraumraster_bleibt_in_den_grenzen():
     g = workspace_grid(cfg)
     assert g[:, 2].max() == pytest.approx(-0.5) and g[:, 2].min() == pytest.approx(-2.3)
     assert np.all(g <= np.array([3.6, 0.6, -0.5]) + 1e-9)
+
+
+def test_hindernis_mit_vertauschten_ecken_wirkt_trotzdem():
+    """Vertauschte min/max (z. B. z-Werte) dürfen das Hindernis nicht unsichtbar machen."""
+    from verladearm_vision.kinematics import ArmGeometry, collision
+
+    line = np.array([[3.0, 0.0, -2.0], [3.0, 0.0, 2.0]])
+    for o in ({"name": "Box", "min": [2, -1, 1], "max": [4, 1, -1]},
+              {"name": "Box", "min": [4, 1, 1], "max": [2, -1, -1]},
+              {"name": "Rohr", "form": "zylinder", "p0": [3, 0, 0], "axis": [0, 0, 1],
+               "radius": -0.3, "half_length": -1.0}):
+        assert collision(ArmGeometry(obstacles=[o]), line) is not None

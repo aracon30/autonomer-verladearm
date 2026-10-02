@@ -163,3 +163,16 @@ def test_hindernis_mit_vertauschten_ecken_wirkt_trotzdem():
               {"name": "Rohr", "form": "zylinder", "p0": [3, 0, 0], "axis": [0, 0, 1],
                "radius": -0.3, "half_length": -1.0}):
         assert collision(ArmGeometry(obstacles=[o]), line) is not None
+
+
+def test_fallleitung_eigener_abstand_unabhaengig_von_clearance():
+    from verladearm_vision.config import load_config
+    from verladearm_vision.kinematics import FEED_NAME, validate
+
+    arm = load_config("vision/config/anlagen/heta_prototyp.yaml")["arm"]
+    g = ArmGeometry(**dict(arm, clearance=0.5))  # großer Mindestabstand darf J1 nicht sperren
+    assert validate(g) == []
+    feed = next(o for o in g.obstacles if o.name == FEED_NAME)
+    pts = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, g.flange_offset - 0.01],  # Arm unter dem Flansch
+                    [0.15, 0.0, 0.8], [0.0, 0.0, g.flange_offset + 1.0]])  # an der Fallleitung
+    assert feed.contains(pts, g.clearance).tolist() == [False, False, True, True]

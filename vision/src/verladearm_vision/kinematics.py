@@ -208,9 +208,13 @@ class ArmGeometry:
                           for o in self.obstacles if getattr(o, "name", None) != FEED_NAME]
         for a, b, r, kind in fixed_parts(self):  # Fallleitung über J1: nicht dagegen schwenken
             if kind == "zulauf":
+                # Eigener Abstand (Rohrradius + 5 cm) statt `clearance`: Lage und Maß sind genau
+                # bekannt, und der Bereich darf nicht unter den Flansch bis an J1 heranreichen.
+                c = self.pipe_diameter / 2 + 0.05
+                lo, hi = float(min(a[2], b[2])), float(max(a[2], b[2])) + c
                 self.obstacles.append(CylinderObstacle(
-                    FEED_NAME, ((a + b) / 2).tolist(), [0.0, 0.0, 1.0], r,
-                    float(abs(b[2] - a[2]) / 2)))
+                    FEED_NAME, [0.0, 0.0, (lo + hi) / 2], [0.0, 0.0, 1.0], r,
+                    max(0.0, (hi - lo) / 2 - c), clearance=c))
 
     def with_obstacles(self, extra) -> "ArmGeometry":
         """Kopie mit zusätzlichen Hindernissen (z. B. erkannter Tankwagen und Domdeckel)."""

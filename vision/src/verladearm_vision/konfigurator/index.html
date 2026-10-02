@@ -67,6 +67,10 @@ td input,td select{width:100%;min-width:4.5rem;font-family:var(--f-mono);text-al
 td input.txt{text-align:left;font-family:var(--f-body)}
 td.axis{font-family:var(--f-display);font-weight:600;white-space:nowrap}
 .table-wrap{overflow-x:auto}
+svg#top,svg#sideview{touch-action:none}
+svg#top *:not([data-oi]),svg#sideview *:not([data-oi]){pointer-events:none}
+svg [data-oi]{cursor:move}svg [data-h]{cursor:nwse-resize}
+tr.sel td{background:color-mix(in srgb,var(--clutter) 14%,transparent)}
 .row-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
 .note{font-size:.85rem;color:var(--muted);margin:.4rem 0 0}
 .sketch{width:100%;max-width:560px;height:auto;display:block;margin:0 auto 10px}
@@ -181,6 +185,7 @@ const $ = (s, el = document) => el.querySelector(s);
 const JN = ["q1", "q2", "q3"];
 const JLABEL = { q1: "J1 Drehen am Haltepunkt", q2: "J2 Drehen am Fallrohr", q3: "J3 Heben/Senken" };
 let data = null, current = "", dirty = false, lastCheck = null, timer = null, templates = [];
+let sel = null, drag = null, refreshObstacles = () => {};  // Hindernis in der Vorschau bearbeiten
 
 // ---------- Hilfen ----------
 const num = v => { if (typeof v === "number") return v; const t = String(v ?? "").trim().replace(",", ".");
@@ -347,19 +352,23 @@ function buildForm() {
           el("span", { class: "badge" }, "z unten/oben"), cellNum(() => z.lo, v => { z.lo = v; upd(); }, { style: "width:5.2rem" }), cellNum(() => z.hi, v => { z.hi = v; upd(); }, { style: "width:5.2rem" }),
           el("span", { class: "badge" }, "Radius"), cellNum(() => o.radius, v => o.radius = v, { style: "width:5.2rem" }));
       } else { form = o.form; dims = el("span", { class: "note" }, "nur in der Datei bearbeitbar – bleibt erhalten"); }
-      tb.append(el("tr", {}, el("td", {}, name), el("td", {}, form), el("td", {}, dims),
-        el("td", {}, el("button", { type: "button", class: "small", "aria-label": "entfernen", on: { click: () => { data.arm.obstacles.splice(i, 1); buildObstacles(); changed(); } } }, "✕"))));
+      const tr = el("tr", { class: i === sel ? "sel" : "" }, el("td", {}, name), el("td", {}, form), el("td", {}, dims),
+        el("td", {}, el("button", { type: "button", class: "small", "aria-label": "entfernen", on: { click: () => { data.arm.obstacles.splice(i, 1); sel = null; buildObstacles(); changed(); } } }, "✕")));
+      tr.addEventListener("focusin", () => { if (sel !== i) { sel = i; tb.querySelectorAll("tr").forEach((r, k) => r.classList.toggle("sel", k === i)); draw(); } });
+      tb.append(tr);
     });
     if (!data.arm.obstacles.length) tb.append(el("tr", {}, el("td", { colspan: 4, class: "note" }, "Keine Hindernisse – Stützen, Bühne, Geländer im Schwenkbereich erfassen.")));
     t.append(tb); obox.replaceChildren(t);
   }
+  refreshObstacles = buildObstacles;
   buildObstacles();
   f.append(card(3, "Hindernisse im Schwenkbereich", "Ursprung Achse J1, x vorne, y links, z oben",
     obox, el("div", { class: "row-actions" },
-      el("button", { type: "button", on: { click: () => { const g = -data.arm.base_height; data.arm.obstacles.push({ name: "Hindernis", min: [-3.5, -3.5, g], max: [-3, -3, g + 1] }); buildObstacles(); changed(); } } }, "+ Quader"),
-      el("button", { type: "button", on: { click: () => { const g = -data.arm.base_height; data.arm.obstacles.push({ name: "Stütze", form: "zylinder", p0: [-3, -3, g / 2], axis: [0, 0, 1], radius: 0.15, half_length: Math.abs(g) / 2 + 0.5 }); buildObstacles(); changed(); } } }, "+ Zylinder (Stütze)"),
-      el("button", { type: "button", on: { click: () => { const g = -data.arm.base_height; data.arm.obstacles.push({ name: "Klapptreppe (eingefahren)", min: [1.0, -2.5, g + 2.0], max: [2.0, -1.5, g + 4.5] }); buildObstacles(); changed(); toast("Klapptreppe: Lage und Maße der eingefahrenen Treppe eintragen"); } } }, "+ Klapptreppe")),
+      el("button", { type: "button", on: { click: () => { const g = -data.arm.base_height; data.arm.obstacles.push({ name: "Hindernis", min: [-3.5, -3.5, g], max: [-3, -3, g + 1] }); sel = data.arm.obstacles.length - 1; buildObstacles(); changed(); } } }, "+ Quader"),
+      el("button", { type: "button", on: { click: () => { const g = -data.arm.base_height; data.arm.obstacles.push({ name: "Stütze", form: "zylinder", p0: [-3, -3, g / 2], axis: [0, 0, 1], radius: 0.15, half_length: Math.abs(g) / 2 + 0.5 }); sel = data.arm.obstacles.length - 1; buildObstacles(); changed(); } } }, "+ Zylinder (Stütze)"),
+      el("button", { type: "button", on: { click: () => { const g = -data.arm.base_height; data.arm.obstacles.push({ name: "Klapptreppe (eingefahren)", min: [1.0, -2.5, g + 2.0], max: [2.0, -1.5, g + 4.5] }); sel = data.arm.obstacles.length - 1; buildObstacles(); changed(); toast("Klapptreppe: Lage und Maße der eingefahrenen Treppe eintragen"); } } }, "+ Klapptreppe")),
     el("div", { class: "grid", style: "margin-top:10px" }, numField({ id: "clear", label: "Mindestabstand Rohrachse zu Hindernissen", unit: "m", min: 0.05, max: 1, get: () => data.arm.clearance, set: v => data.arm.clearance = v })),
+    el("p", { class: "note" }, "In der Vorschau rechts: Hindernis anklicken und ziehen = verschieben, an den gelben Eckpunkten ziehen = größer/kleiner (Raster 5 cm). Draufsicht ändert x/y, Seitenansicht x/Höhe. Pfeiltasten verschieben das gewählte Hindernis um 5 cm, Entf löscht es."),
     el("p", { class: "note" }, "Tankwagen, Domkragen und offener Deckel werden bei jeder Messung erfasst und müssen hier nicht eingetragen werden.")));
   // 4 Produkte
   const ptab = el("div", { class: "table-wrap" });
@@ -527,7 +536,36 @@ async function runCheck() {
   draw();
 }
 
-function draw() {
+// Hindernis aus der Datei als Hüllquader [lo, hi]; null = nur in der Datei bearbeitbar
+function editShape(o) {
+  if (!o.form || o.form === "quader") return { kind: "box", lo: [0, 1, 2].map(k => Math.min(o.min[k], o.max[k])), hi: [0, 1, 2].map(k => Math.max(o.min[k], o.max[k])) };
+  if (o.form === "zylinder" && Math.abs(o.axis[2]) > 0.999 && Math.abs(o.axis[0]) < 1e-3 && Math.abs(o.axis[1]) < 1e-3)
+    return { kind: "cyl", lo: [o.p0[0] - o.radius, o.p0[1] - o.radius, o.p0[2] - o.half_length], hi: [o.p0[0] + o.radius, o.p0[1] + o.radius, o.p0[2] + o.half_length] };
+  return null;
+}
+const SNAP = 0.05, r3 = v => Math.round(v * 1000) / 1000, snap = v => Math.round(v / SNAP) * SNAP;
+// Ziehen anwenden: d = Weg in den beiden Achsen der Ansicht (A), h = Griff ("00".."11", "r") oder null = verschieben
+function applyDrag(o, st, A, d, h) {
+  const k3 = [0, 1];
+  if (!h) {
+    if (!o.form || o.form === "quader") k3.forEach(k => { o.min[A[k]] = r3(st.min[A[k]] + d[k]); o.max[A[k]] = r3(st.max[A[k]] + d[k]); });
+    else k3.forEach(k => { o.p0[A[k]] = r3(st.p0[A[k]] + d[k]); });
+    return;
+  }
+  if (!o.form || o.form === "quader") {
+    k3.forEach(k => { const i = A[k], lo = Math.min(st.min[i], st.max[i]), hi = Math.max(st.min[i], st.max[i]);
+      if (h[k] === "0") { o.min[i] = r3(Math.min(lo + d[k], hi - SNAP)); o.max[i] = hi; }
+      else { o.min[i] = lo; o.max[i] = r3(Math.max(hi + d[k], lo + SNAP)); } });
+    return;
+  }
+  if (h === "r") { o.radius = r3(Math.max(SNAP, st.radius + d[0])); return; }
+  o.radius = r3(Math.max(SNAP, st.radius + (h[0] === "0" ? -d[0] : d[0])));
+  let zlo = st.p0[2] - st.half_length, zhi = st.p0[2] + st.half_length;
+  if (h[1] === "0") zlo = Math.min(zlo + d[1], zhi - SNAP); else zhi = Math.max(zhi + d[1], zlo + SNAP);
+  o.p0[2] = r3((zlo + zhi) / 2); o.half_length = r3((zhi - zlo) / 2);
+}
+
+function draw(freeze = false) {
   const c = lastCheck || {};
   const views = [{ svg: $("#top"), w: 440, h: 300, p: q => [q[0], q[1]], side: false }, { svg: $("#sideview"), w: 440, h: 260, p: q => [q[0], q[2]], side: true }];
   const css = getComputedStyle(document.documentElement);
@@ -541,25 +579,39 @@ function draw() {
     const sparts = (c.structure && c.structure.parts) || [];
     sparts.forEach(p => pts.push(p.a, p.b));
     if (v.side && c.ground_z !== undefined) pts.push([0, 0, c.ground_z]);
-    const obs = (c.obstacles || []).map(o => o.type === "box" ? [o.min, o.max] : o.type === "cyl" ? [
+    const srv = o => o.type === "box" ? [o.min, o.max] : o.type === "cyl" ? [
       [o.p0[0] - o.radius, o.p0[1] - o.radius, o.p0[2] - o.half_length * Math.abs(o.axis[2])], [o.p0[0] + o.radius, o.p0[1] + o.radius, o.p0[2] + o.half_length * Math.abs(o.axis[2])]] :
-      [o.center.map((x, i) => x - Math.max(...o.half)), o.center.map((x, i) => x + Math.max(...o.half))]);
-    obs.forEach(b => pts.push(b[0], b[1]));
+      [o.center.map((x, i) => x - Math.max(...o.half)), o.center.map((x, i) => x + Math.max(...o.half))];
+    const own = (data && data.arm.obstacles) || [];
+    const obs = own.map((o, i) => { const e = editShape(o); return e ? { i, kind: e.kind, b: [e.lo, e.hi] } : (c.obstacles && c.obstacles[i] ? { i, kind: null, b: srv(c.obstacles[i]) } : null); }).filter(Boolean);
+    obs.forEach(o => pts.push(o.b[0], o.b[1]));
     const P = pts.map(v.p);
     let [x0, x1] = [Math.min(...P.map(p => p[0])), Math.max(...P.map(p => p[0]))];
     let [y0, y1] = [Math.min(...P.map(p => p[1])), Math.max(...P.map(p => p[1]))];
     const pad = 0.4; x0 -= pad; x1 += pad; y0 -= pad; y1 += pad;
-    const s = Math.min((v.w - 20) / (x1 - x0), (v.h - 20) / (y1 - y0));
-    const ox = 10 + ((v.w - 20) - s * (x1 - x0)) / 2, oy = 10 + ((v.h - 20) - s * (y1 - y0)) / 2;
+    let s = Math.min((v.w - 20) / (x1 - x0), (v.h - 20) / (y1 - y0));
+    let ox = 10 + ((v.w - 20) - s * (x1 - x0)) / 2, oy = 10 + ((v.h - 20) - s * (y1 - y0)) / 2;
+    if (freeze && v.svg._T) ({ x0, x1, y0, y1, s, ox, oy } = v.svg._T);  // beim Ziehen Maßstab festhalten
+    v.svg._T = { x0, x1, y0, y1, s, ox, oy, h: v.h, A: v.side ? [0, 2] : [0, 1] };
     const X = x => ox + (x - x0) * s, Y = y => v.h - (oy + (y - y0) * s);
     const parts = [];
     for (let g = Math.ceil(x0); g <= x1; g++) parts.push(`<line x1="${X(g)}" y1="0" x2="${X(g)}" y2="${v.h}" stroke="${col("--grid")}"/>`);
     for (let g = Math.ceil(y0); g <= y1; g++) parts.push(`<line x1="0" y1="${Y(g)}" x2="${v.w}" y2="${Y(g)}" stroke="${col("--grid")}"/>`);
     parts.push(`<text x="${v.w - 6}" y="${v.h - 6}" font-size="11" text-anchor="end" fill="${col("--muted")}">Raster 1 m</text>`);
     if (v.side && c.ground_z !== undefined) parts.push(`<line x1="0" y1="${Y(c.ground_z)}" x2="${v.w}" y2="${Y(c.ground_z)}" stroke="${col("--ink")}" stroke-width="2"/><text x="6" y="${Y(c.ground_z) - 4}" font-size="11" fill="${col("--muted")}">Fahrbahn</text>`);
-    for (const b of obs) { const a = v.p(b[0]), d = v.p(b[1]);
-      parts.push(`<rect x="${X(Math.min(a[0], d[0]))}" y="${Y(Math.max(a[1], d[1]))}" width="${Math.abs(d[0] - a[0]) * s}" height="${Math.abs(d[1] - a[1]) * s}" fill="${col("--clutter")}" fill-opacity=".25" stroke="${col("--clutter")}"/>`); }
-    (c.obstacles || []).forEach((o, i) => { if (o.type === "cyl" && !v.side) parts.push(`<circle cx="${X(o.p0[0])}" cy="${Y(o.p0[1])}" r="${o.radius * s}" fill="none" stroke="${col("--clutter")}"/>`); });
+    const handles = [];
+    for (const o of obs) { const a = v.p(o.b[0]), d = v.p(o.b[1]), on = o.i === sel;
+      const st = `fill="${col("--clutter")}" fill-opacity="${on ? ".45" : ".25"}" stroke="${col("--clutter")}" stroke-width="${on ? 2.5 : 1}" ${o.kind ? `data-oi="${o.i}"` : ""}`;
+      const xl = X(Math.min(a[0], d[0])), xr = X(Math.max(a[0], d[0])), yt = Y(Math.max(a[1], d[1])), yb = Y(Math.min(a[1], d[1]));
+      if (o.kind === "cyl" && !v.side) {
+        const cx = (xl + xr) / 2, cy = (yt + yb) / 2, r = (xr - xl) / 2;
+        parts.push(`<circle cx="${cx}" cy="${cy}" r="${r}" ${st}/>`);
+        if (on) handles.push([xr + 6, cy, "r"]);  // Griffe außen, damit kleine Körper greifbar bleiben
+      } else {
+        parts.push(`<rect x="${xl}" y="${yt}" width="${xr - xl}" height="${yb - yt}" ${st}/>`);
+        if (on && o.kind) handles.push([xl - 6, yb + 6, "00"], [xr + 6, yb + 6, "10"], [xl - 6, yt - 6, "01"], [xr + 6, yt - 6, "11"]);
+      }
+      handles.forEach(hd => hd.length === 3 && hd.push(o.i)); }
     if (c.workspace) { const a = v.p(c.workspace[0]), d = v.p(c.workspace[1]);
       parts.push(`<rect x="${X(Math.min(a[0], d[0]))}" y="${Y(Math.max(a[1], d[1]))}" width="${Math.abs(d[0] - a[0]) * s}" height="${Math.abs(d[1] - a[1]) * s}" fill="none" stroke="${col("--steel")}" stroke-dasharray="2 3" stroke-width="1.5"/>`); }
     if (c.tips) parts.push(...c.tips.map(t => { const q = v.p(t); return `<circle cx="${X(q[0])}" cy="${Y(q[1])}" r="1" fill="${col("--muted")}" fill-opacity=".3"/>`; }));
@@ -577,8 +629,45 @@ function draw() {
     if (c.sensor) { const q = v.p(c.sensor);
       parts.push(`<rect x="${X(q[0]) - 6}" y="${Y(q[1]) - 5}" width="12" height="10" fill="${col("--steel")}" stroke="${col("--ink")}"/><text x="${X(q[0]) + 9}" y="${Y(q[1]) + 4}" font-size="11" fill="${col("--ink")}">Kamera</text>`); }
     parts.push(`<circle cx="${X(0)}" cy="${Y(0)}" r="6" fill="${col("--signal")}" stroke="${col("--ink")}" stroke-width="1.5"/><text x="${X(0) + 9}" y="${Y(0) - 8}" font-size="12" fill="${col("--ink")}" font-weight="600">J1</text>`);
+    handles.forEach(([hx, hy, h, i]) => parts.push(`<rect x="${hx - 5}" y="${hy - 5}" width="10" height="10" fill="${col("--signal")}" stroke="${col("--ink")}" data-oi="${i}" data-h="${h}"/>`));
     v.svg.innerHTML = parts.join("");
   }
+}
+
+// ---------- Hindernisse in der Vorschau ziehen ----------
+function world(svg, e) {
+  const T = svg._T, m = svg.getScreenCTM().inverse(), pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(m);
+  return [T.x0 + (pt.x - T.ox) / T.s, T.y0 + (T.h - pt.y - T.oy) / T.s];
+}
+for (const svg of [$("#top"), $("#sideview")]) {
+  svg.setAttribute("tabindex", "0");
+  svg.addEventListener("pointerdown", e => {
+    const t = e.target.closest("[data-oi]");
+    if (!t) { if (sel !== null) { sel = null; refreshObstacles(); draw(); } return; }
+    const i = +t.dataset.oi;
+    if (sel !== i) { sel = i; refreshObstacles(); }
+    drag = { svg, i, h: t.dataset.h || null, st: JSON.parse(JSON.stringify(data.arm.obstacles[i])), w0: world(svg, e), moved: false };
+    svg.setPointerCapture(e.pointerId); e.preventDefault(); draw(true);
+  });
+  svg.addEventListener("pointermove", e => {
+    if (!drag || drag.svg !== svg) return;
+    const w = world(svg, e), d = [snap(w[0] - drag.w0[0]), snap(w[1] - drag.w0[1])];
+    const o = data.arm.obstacles[drag.i];
+    applyDrag(o, drag.st, svg._T.A, d, drag.h);
+    drag.moved = drag.moved || d[0] !== 0 || d[1] !== 0;
+    draw(true);
+  });
+  const end = () => { if (!drag || drag.svg !== svg) return; const m = drag.moved; drag = null; if (m) { refreshObstacles(); changed(); } else draw(); };
+  svg.addEventListener("pointerup", end); svg.addEventListener("pointercancel", end);
+  svg.addEventListener("keydown", e => {
+    if (sel === null || !data.arm.obstacles[sel] || !editShape(data.arm.obstacles[sel])) return;
+    if (e.key === "Delete") { data.arm.obstacles.splice(sel, 1); sel = null; refreshObstacles(); changed(); draw(); e.preventDefault(); return; }
+    const k = { ArrowLeft: [-SNAP, 0], ArrowRight: [SNAP, 0], ArrowUp: [0, SNAP], ArrowDown: [0, -SNAP] }[e.key];
+    if (!k) return;
+    const o = data.arm.obstacles[sel];
+    applyDrag(o, JSON.parse(JSON.stringify(o)), svg._T.A, k, null);
+    refreshObstacles(); changed(); draw(true); e.preventDefault();
+  });
 }
 
 // ---------- Dateien ----------

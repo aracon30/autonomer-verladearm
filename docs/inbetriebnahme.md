@@ -99,7 +99,11 @@ Danach weiter mit Schritt 7 (Kalibrierung).
    Zylinder in Armbasis-Koordinaten (Ursprung Achse J1, x vorne, y links, z oben; Meter).
    Großzügig umschließen. Tankwagen und offener Domdeckel werden bei jeder Messung erfasst und
    müssen hier nicht eingetragen werden.
-   `clearance` ist der zusätzliche Mindestabstand zur Rohrachse.
+   Im Konfigurator lassen sich Quader und senkrechte Zylinder auch in der Vorschau bearbeiten:
+   anklicken und ziehen = verschieben, gelbe Eckpunkte ziehen = Größe ändern (Raster 5 cm;
+   Draufsicht x/y, Seitenansicht x/Höhe), Pfeiltasten = 5 cm verschieben, Entf = löschen.
+   `clearance` ist der zusätzliche Mindestabstand zur Rohrachse (Standard 0,15 m; die
+   Fallleitung über J1 hat einen eigenen, festen Abstand).
 
 5. **Produkte** (`products`): Eintauchtiefe je `ProductId`, `default` für alle übrigen.
 

@@ -208,7 +208,9 @@ def _segment_distance(p, a, b):
     return np.linalg.norm(p - (a + t[:, None] * ab), axis=1)
 
 
-def obstacles_from_points(arm_pts: np.ndarray, geom, q, cfg: SceneConfig | None = None):
+def obstacles_from_points(arm_pts: np.ndarray, geom, q, cfg: SceneConfig | None = None,
+                          passage=None, known=(), exclude=None, interior=None,
+                          name: str = "Fahrzeug/Aufbau (Höhenkarte)"):
     """Hindernisse aus einer Aufnahme ohne Domerkennung: Höhenkarte von allem, was nicht Arm ist.
 
     Für die Rückfahrt, wenn keine passende Messung aus Job 1 vorliegt (Arm von Hand in einen Dom
@@ -216,6 +218,12 @@ def obstacles_from_points(arm_pts: np.ndarray, geom, q, cfg: SceneConfig | None 
     höchsten Stelle, die mindestens `map_min_points` Punkte erreichen – Tankwagen, offener Deckel,
     Treppe, Geländer. Punkte nahe der Rohrführung in Stellung `q` gehören zum Arm und entfallen.
     Senkrecht über dem Auslass bleibt ein Durchgang frei, damit der Arm herausfahren kann.
+
+    Auch für den **Scan bei jeder Fahrt** (Fremdkörper): `known` sind schon erfasste Hindernisse
+    (Tank, Domkragen, Deckel, feste Sperrbereiche) – ihre Punkte entfallen, übrig bleibt, was neu
+    im Weg steht (Leiter, Fass, Führerhaus, Geländer am Fahrzeug). `exclude` (x, y, Radius): Bereich
+    um den Dom, den `dome_structures` schon abdeckt. `passage` (x, y, Radius): freier Durchgang,
+    Standard über dem Auslassende.
     """
     cfg = cfg or SceneConfig()
     p = np.asarray(arm_pts, float)
@@ -226,6 +234,15 @@ def obstacles_from_points(arm_pts: np.ndarray, geom, q, cfg: SceneConfig | None 
         keep &= _segment_distance(p, a, b) > cfg.arm_exclude
     for a, b, r, _ in fixed_parts(geom):  # Fallleitung bzw. Säule am Haltepunkt
         keep &= _segment_distance(p, a, b) > r + 0.2
+    if exclude is not None:
+        keep &= np.hypot(p[:, 0] - exclude[0], p[:, 1] - exclude[1]) > exclude[2]
+    if interior is not None:  # Blick durch die Öffnung ins Tankinnere (x, y, Radius, Randhöhe)
+        x, y, r, z = interior
+        keep &= ~((np.hypot(p[:, 0] - x, p[:, 1] - y) < r) & (p[:, 2] < z + 0.03))
+    for o in known:  # schon als Hindernis erfasst (samt Sicherheitsabstand)
+        if keep.any():
+            c = o.clearance if o.clearance is not None else geom.clearance
+            keep[keep] &= ~o.contains(p[keep], c)
     p = p[keep]
     # vereinzelte Punkte (fliegende Pixel an Kanten, Regen, Insekten) verwerfen: Würfel mit 10 cm
     # Kantenlänge brauchen mehrere Punkte; echte Flächen liefern dort Dutzende
@@ -233,8 +250,9 @@ def obstacles_from_points(arm_pts: np.ndarray, geom, q, cfg: SceneConfig | None 
         vox = np.floor(p / 0.1).astype(int)
         _, vinv, vcount = np.unique(vox, axis=0, return_inverse=True, return_counts=True)
         p = p[vcount[vinv.ravel()] >= cfg.map_voxel_points]
-    t = tip(geom, q)
-    passage = (float(t[0]), float(t[1]), 0.05)
+    if passage is None:
+        t = tip(geom, q)
+        passage = (float(t[0]), float(t[1]), 0.05)
     info = {"punkte": int(len(p)), "zellen": 0, "quader": 0}
     if len(p) == 0:
         return [], info
@@ -263,9 +281,26 @@ def obstacles_from_points(arm_pts: np.ndarray, geom, q, cfg: SceneConfig | None 
                 continue
             x0, x1 = cells[start, 0] * g, (cells[prev, 0] + 1) * g
             obstacles.append(Obstacle(
-                "Fahrzeug/Aufbau (Höhenkarte)", [x0, iy * g, ground],
+                name, [x0, iy * g, ground],
                 [x1, (iy + 1) * g, float(levels[start])], passage, cfg.map_clearance))
             start = cur
     info["quader"] = len(obstacles)
     info["hoechster_punkt_m"] = round(float(heights.max()), 3) if len(heights) else None
     return obstacles, info
+
+
+FOREIGN_NAME = "Fremdkörper (Scan)"
+
+
+def foreign_obstacles(arm_pts: np.ndarray, geom, q, known, passage, dome_center=None,
+                      cfg: SceneConfig | None = None, opening=None):
+    """Scan bei jeder automatischen Fahrt: alles im Blickfeld, was weder Fahrbahn noch Arm noch
+    schon erfasstes Hindernis ist, wird Hindernis (Höhenkarte bis zum Boden). `opening`
+    (x, y, Radius, Randhöhe): Innenraum der Öffnung, der Blick hinein ist kein Hindernis."""
+    cfg = cfg or SceneConfig()
+    exclude = None
+    if dome_center is not None:
+        exclude = (float(dome_center[0]), float(dome_center[1]), cfg.dome_scan)
+    return obstacles_from_points(arm_pts, geom, q, cfg, passage=passage,
+                                 known=list(known) + list(geom.obstacles), exclude=exclude,
+                                 interior=opening, name=FOREIGN_NAME)

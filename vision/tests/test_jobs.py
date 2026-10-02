@@ -180,3 +180,49 @@ def test_referenzflansch_zu_tief(monkeypatch):
     s.source.domes = ["armatur"]  # kleine Füllöffnung
     r = s(Request(job=1, product_id=0, actual_deg=park(s), axes_homed=True))
     assert r.error_code == 30 and "Referenzflansch" in r.message
+
+
+def _hits_box(s, servo_waypoints, start_servo, lo, hi, margin=0.0):
+    from verladearm_vision.kinematics import Obstacle
+
+    box = s.geom.with_obstacles([Obstacle("Fremdkörper", list(lo), list(hi))])
+    box.obstacles = box.obstacles[-1:]
+    box.clearance = margin
+    return _path_collision(box, servo_waypoints, start_servo, s)
+
+
+@pytest.mark.parametrize("seed", range(6))
+def test_fremdkoerper_wird_bei_jeder_fahrt_umfahren(seed):
+    """Neben dem Tankwagen steht etwas (Leiter, Pfosten): Job 1 erkennt es im Scan; fährt der Arm,
+    dann nie hindurch – sonst ehrliche Absage (Fehler 31)."""
+    s = make_service(seed)
+    s.source.foreign = 1.0
+    r1 = s(Request(job=1, actual_deg=park(s), axes_homed=True))
+    (lo, hi), = s.source.objects
+    if not r1.ok:
+        assert r1.error_code == 31
+        return
+    assert s._info["szene"]["fremdkoerper"]["quader"] > 0
+    assert _hits_box(s, r1.waypoints, park(s), lo, hi) is None
+    r3 = s(Request(job=3, actual_deg=r1.waypoints[-1], axes_homed=True))
+    assert r3.ok
+    assert _hits_box(s, r3.waypoints, r1.waypoints[-1], lo, hi) is None
+
+
+def test_fremdkoerper_nach_job1_wird_bei_der_rueckfahrt_erkannt():
+    """Während der Beladung wird etwas in den Rückweg gestellt: Job 3 scannt neu und umfährt es."""
+    s = make_service(0)
+    r1 = s(Request(job=1, actual_deg=park(s), axes_homed=True))
+    assert r1.ok
+    # Pfosten genau auf den bisherigen Rückweg stellen: Mitte der Anfahrt
+    mid = model(s, r1.waypoints[max(0, r1.approach_index // 2 - 1)])
+    p = tip(s.geom, mid)
+    lo = [p[0] - 0.2, p[1] - 0.2, -s.geom.base_height]
+    hi = [p[0] + 0.2, p[1] + 0.2, p[2] + 0.4]
+    s.source.place_object(lo, hi)
+    r3 = s(Request(job=3, actual_deg=r1.waypoints[-1], axes_homed=True))
+    assert s._info["rueckfahrt_scan"]["quader"] > 0
+    if r3.ok:
+        assert _hits_box(s, r3.waypoints, r1.waypoints[-1], lo, hi) is None
+    else:
+        assert r3.error_code == 31

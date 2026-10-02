@@ -71,6 +71,14 @@ dass sich kein Punkt des Arms zwischen zwei Prüfstellungen mehr als 3 cm bewegt
 | jede Messung | **offener Domdeckel** bzw. Füllklappe | gedrehter Quader aus den Deckelpunkten |
 | jede Messung | **Aufbauten am Dom**: Domring, Armaturen, Laufstege | Höhenkarte (6-cm-Raster) im Umkreis `dome_scan`, alles höher als `dome_min_height` über dem Öffnungsrand |
 | Anlagendatei `arm.support: oben` | Fallleitung über J1 | senkrechter Zylinder |
+| **jede Fahrt** (Job 1 hin, Job 3 zurück) | **Fremdkörper**: alles im Blickfeld, was nicht Fahrbahn, Arm oder schon erfasst ist – Leiter, Fass, Führerhaus, Laufstege, Geländer am Fahrzeug | Höhenkarte (30-cm-Raster) bis zum Boden |
+
+**Scan bei jeder Fahrt:** Job 1 nimmt ohnehin auf; vor der Rückfahrt (Job 3) wird **neu
+gescannt**, damit auch erfasst wird, was während der Beladung in den Weg gestellt wurde. Fällt
+die Kamera vor der Rückfahrt aus, fährt der Arm mit den Hindernissen aus Job 1 zurück (Warnung im
+Protokoll, `rueckfahrt_scan.fehler`). Grenzen: nur was die Kamera sieht (Blickfeld ca. 4–6 m,
+Verdeckung); Personen in Bewegung erfasst nur die Sicherheitstechnik. Simulation mit
+Fremdkörpern: `source.foreign: 0.5` (Anteil Fahrzeuge mit Pfosten/Leiter daneben).
 
 Alle Fahrzeug-Hindernisse lassen über der Öffnung einen senkrechten **Durchgang** frei
 (Radius = Öffnung − Auslassrohr − `passage_margin`; Füllöffnung 250 mm, Rohr 114 mm → 38 mm).

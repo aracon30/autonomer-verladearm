@@ -51,7 +51,12 @@ from verladearm_vision.plc import (
     Request,
 )
 from verladearm_vision.recording import Recorder
-from verladearm_vision.scene import SceneConfig, build_obstacles, obstacles_from_points
+from verladearm_vision.scene import (
+    SceneConfig,
+    build_obstacles,
+    foreign_obstacles,
+    obstacles_from_points,
+)
 
 log = logging.getLogger("verladearm")
 
@@ -174,7 +179,12 @@ class VisionService:
             return [q_start] + vias, len(vias)
         return plan["q_move"], n
 
-    def _scene_geom(self, model_offset=None):
+    def _arm_points(self, points=None):
+        """Letzte Aufnahme in Armbasis-Koordinaten."""
+        p = self._points if points is None else points
+        return p @ self.transform.T[:3, :3].T + self.transform.T[:3, 3]
+
+    def _scene_geom(self, model_offset=None, extra=()):
         """Armgeometrie mit den Hindernissen des aktuellen Tankwagens (aus Job 1).
 
         `model_offset` (gemessen − Modell, aus Job 2): Die Fahrzeug-Hindernisse liegen in
@@ -184,7 +194,7 @@ class VisionService:
         last = self.last or {}
         if model_offset is None:
             model_offset = last.get("model_offset")
-        obstacles = last.get("obstacles") or []
+        obstacles = list(last.get("obstacles") or []) + list(extra)
         if model_offset is not None:
             d = -np.asarray(model_offset, float)
             obstacles = [shift_obstacle(o, d) for o in obstacles]
@@ -256,9 +266,19 @@ class VisionService:
         # Tankkörper, Domkragen und offener Deckel als Hindernisse für alle folgenden Bahnen
         obstacles, scene_info = build_obstacles(op, self.transform, self._points,
                                                 self.outlet_cfg, self.scene_cfg)
+        # Scan der ganzen Szene: was sonst noch im Weg steht (Leiter, Fass, Führerhaus …)
+        center = self.transform.point(op.center)
+        passage = (float(center[0]), float(center[1]), scene_info["durchgang_radius_m"])
+        opening = (float(center[0]), float(center[1]), op.diameter / 2 + self.scene_cfg.collar_wall,
+                   float(center[2]))
+        foreign, scene_info["fremdkoerper"] = foreign_obstacles(
+            self._arm_points(), self.geom, q_act, obstacles, passage, None, self.scene_cfg,
+            opening)  # wie bei der Rückfahrt: auch Laufstege neben dem Dom
+        obstacles = obstacles + foreign
         context = dict(target_mm=res.target_mm, normal=res.normal, depth=depth,
                        diameter_mm=res.diameter_mm, confidence=res.confidence,
-                       obstacles=obstacles, time=time.monotonic())
+                       obstacles=obstacles, passage=passage, opening=opening,
+                       time=time.monotonic())
         scene_geom = self.geom.with_obstacles(obstacles)
         plan = plan_motion(scene_geom, res.target_mm, res.normal, insertion_depth=depth,
                            q_start=q_act, time_limit=self.plan_time_limit)
@@ -327,7 +347,19 @@ class VisionService:
     def _job_retract(self, req: Request, q_act) -> MeasureResult:
         valid, why = self._context_for_retract(q_act)
         if valid:
-            scene = self._scene_geom()
+            # neuer Scan vor der Rückfahrt: Hat sich seit Job 1 etwas in den Weg gestellt?
+            foreign = []
+            try:
+                points = self._grab(req)
+                foreign, info = foreign_obstacles(
+                    self._arm_points(points), self.geom, q_act, self.last["obstacles"],
+                    self.last["passage"], None, self.scene_cfg,  # auch nah am Dom: neu ist neu
+                    self.last["opening"])
+                self._info["rueckfahrt_scan"] = info
+            except Exception as e:  # Kamera weg: mit den Hindernissen aus Job 1 zurück
+                log.warning("Rückfahrt ohne neuen Scan (%s), Hindernisse aus Job 1", e)
+                self._info["rueckfahrt_scan"] = {"fehler": str(e)}
+            scene = self._scene_geom(extra=foreign)
             lift = self.geom.approach_height + self.geom.approach_lift + self.last["depth"]
         else:
             # Ohne passende Messung nicht blind schwenken: Tankwagen, Deckel, Treppe neu aufnehmen

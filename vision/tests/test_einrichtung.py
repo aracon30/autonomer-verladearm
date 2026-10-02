@@ -102,3 +102,17 @@ def test_referenz_und_weitere_abschnitte_bleiben_erhalten(tmp_path):
     cfg = load_config(target)
     assert cfg["outlet"] == {"marker_radius": 0.11, "marker_offset": 0.823}
     assert cfg["drives"]["q3"] == {"ratio": 1457.6, "speed_limit": 6}
+
+
+def test_arbeitsraum_aus_fahrspur_und_domhoehen(tmp_path):
+    target = tmp_path / "a.yaml"
+    run(scripted([("Höhe Oberkante Schnittstellenflansch", "6"),
+                  ("Höhendifferenz", "0,5"),
+                  ("Abstand Mitte Fahrspur", "3,2"),
+                  ("Haltetoleranz quer", "0,4"),
+                  ("Haltetoleranz längs", "0,7"),
+                  ("niedrigstes Fahrzeug", "3,3"),
+                  ("höchstes Fahrzeug", "4,6")])[0], target)
+    c = load_config(target)["commissioning"]
+    assert c["workspace_min"] == [2.8, -0.7, -2.2]  # Rohrmitte J1 auf 5,5 m
+    assert c["workspace_max"] == [3.6, 0.7, -0.9]

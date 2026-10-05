@@ -176,3 +176,17 @@ def test_fallleitung_eigener_abstand_unabhaengig_von_clearance():
     pts = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, g.flange_offset - 0.01],  # Arm unter dem Flansch
                     [0.15, 0.0, 0.8], [0.0, 0.0, g.flange_offset + 1.0]])  # an der Fallleitung
     assert feed.contains(pts, g.clearance).tolist() == [False, False, True, True]
+
+
+def test_selbstkollision_aeusserer_gegen_inneren_ausleger():
+    from verladearm_vision.config import load_config
+    from verladearm_vision.kinematics import SELF_NAME, collision, first_collision, forward_many
+
+    g = ArmGeometry(**load_config("vision/config/anlagen/heta_prototyp.yaml")["arm"])
+    gefaltet = np.radians([-80, -170, 0])  # Parkstellung: neben dem inneren Ausleger, frei
+    ueber_kreuz = np.radians([-80, -180, 30])  # J3 angehoben: trifft den inneren Ausleger
+    assert collision(g, forward(g, gefaltet)) is None
+    assert collision(g, forward(g, ueber_kreuz)) == SELF_NAME
+    qs = gefaltet + np.linspace(0, 1, 20)[:, None] * (ueber_kreuz - gefaltet)
+    i, name = first_collision(g, forward_many(g, qs))
+    assert name == SELF_NAME and 0 < i < 19

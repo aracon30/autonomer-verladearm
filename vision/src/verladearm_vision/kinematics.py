@@ -194,6 +194,9 @@ class ArmGeometry:
     joints: dict = field(default_factory=_default_joints)
     obstacles: list = field(default_factory=list)
     clearance: float = 0.15  # Mindestabstand Rohrachse zu Hindernissen [m]
+    # Mindestspalt zwischen den Rohren des eigenen Arms (äußerer gegen inneren Ausleger, Säule/
+    # Anschluss an J1) – deckt auch Antriebsgehäuse grob ab [m]
+    self_clearance: float = 0.10
     approach_height: float = 0.3  # Anfahrpunkt über der Domöffnung [m]
     approach_lift: float = 0.5  # Vorpunkt so viel höher: von dort senkrecht absenken [m]
     insertion_depth: float = 0.4  # Eintauchtiefe, wenn für das Produkt nichts hinterlegt ist [m]
@@ -270,11 +273,51 @@ def product_insertion_depth(products: dict | None, product_id: int, fallback: fl
     return float((entry or {}).get("insertion_depth", fallback))
 
 
+SELF_NAME = "eigenem inneren Ausleger"
+_OUTER = (3, 4, 5)  # Strecken ab J3: äußerer Ausleger, Winkel links, Auslass
+
+
+def _seg_distance(p, a, b):
+    """Abstand der Punkte p (N, M, 3) zur Strecke a–b (N, 3) bzw. (3,)."""
+    a, b = np.broadcast_to(a, (len(p), 3)), np.broadcast_to(b, (len(p), 3))
+    ab = (b - a)[:, None]
+    t = np.clip(((p - a[:, None]) * ab).sum(-1) / np.maximum((ab * ab).sum(-1), 1e-12), 0, 1)
+    return np.linalg.norm(p - (a[:, None] + t[..., None] * ab), axis=-1)
+
+
+def self_collision(geom: ArmGeometry, pts_list, step: float = 0.05):
+    """Je Stellung (N, 7, 3): Name des eigenen Armteils, das der äußere Teil berührt, sonst None.
+
+    Geprüft wird alles ab J3 (äußerer Ausleger, Auslass) gegen den inneren Ausleger und die
+    festen Teile an J1 (Anschluss/Säule; die Fallleitung ist ein normales Hindernis)."""
+    pts = np.asarray(pts_list, float)
+    if pts.ndim != 3 or pts.shape[1] != 7:  # keine vollständige Armstellung (z. B. eine Linie)
+        return np.full(len(pts), None, dtype=object)
+    seg = []
+    for i in _OUTER:
+        n = max(2, int(np.ceil(np.linalg.norm(pts[0, i + 1] - pts[0, i]) / step)) + 1)
+        t = np.linspace(0, 1, n)[None, :, None]
+        seg.append(pts[:, i][:, None] + t * (pts[:, i + 1] - pts[:, i])[:, None])
+    outer = np.concatenate(seg, axis=1)
+    names = np.full(len(pts), None, dtype=object)
+    gap = geom.self_clearance
+    hit = _seg_distance(outer, pts[:, 0], pts[:, 1]).min(axis=1) < geom.pipe_diameter + gap
+    names[hit] = SELF_NAME
+    for a, b, r, kind in fixed_parts(geom):
+        if kind == "zulauf":
+            continue
+        h = _seg_distance(outer, a, b).min(axis=1) < r + geom.pipe_diameter / 2 + gap
+        names[h & (names == None)] = "eigener Säule" if kind == "saeule" else "Anschluss J1"  # noqa: E711
+    return names
+
+
 def collision(geom: ArmGeometry, pts, step: float = 0.05) -> str | None:
     """Name des ersten Hindernisses, dem die Rohrführung näher als `clearance` kommt."""
+    pts = np.asarray(pts)
+    if (own := self_collision(geom, pts[None], step)[0]) is not None:
+        return own
     if not geom.obstacles:
         return None
-    pts = np.asarray(pts)
     samples = [pts[:1]]
     for a, b in zip(pts[:-1], pts[1:], strict=True):
         n = max(2, int(np.ceil(np.linalg.norm(b - a) / step)) + 1)
@@ -291,8 +334,12 @@ def first_collision(geom: ArmGeometry, pts_list, step: float = 0.05):
 
     Liefert (Index der ersten kollidierenden Stellung, Hindernis) oder (None, None)."""
     pts = np.asarray(pts_list, float)
-    if not geom.obstacles or len(pts) == 0:
+    if len(pts) == 0:
         return None, None
+    own = self_collision(geom, pts, step)
+    if not geom.obstacles:
+        hit = own != None  # noqa: E711
+        return (int(np.argmax(hit)), own[int(np.argmax(hit))]) if hit.any() else (None, None)
     seg = []
     for i in range(pts.shape[1] - 1):
         a, b = pts[:, i], pts[:, i + 1]
@@ -301,8 +348,8 @@ def first_collision(geom: ArmGeometry, pts_list, step: float = 0.05):
         seg.append(a[:, None] + t * (b - a)[:, None])
     samples = np.concatenate(seg, axis=1)  # (N, M, 3)
     flat = samples.reshape(-1, 3)
-    hit_any = np.zeros(len(pts), bool)
-    names = np.full(len(pts), None, dtype=object)
+    names = own.copy()
+    hit_any = names != None  # noqa: E711
     for o in geom.obstacles:
         h = o.contains(flat, geom.clearance).reshape(samples.shape[:2]).any(axis=1)
         names[h & ~hit_any] = o.name

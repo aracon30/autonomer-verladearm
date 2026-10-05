@@ -71,6 +71,7 @@ dass sich kein Punkt des Arms zwischen zwei Prüfstellungen mehr als 3 cm bewegt
 | jede Messung | **offener Domdeckel** bzw. Füllklappe | gedrehter Quader aus den Deckelpunkten |
 | jede Messung | **Aufbauten am Dom**: Domring, Armaturen, Laufstege | Höhenkarte (6-cm-Raster) im Umkreis `dome_scan`, alles höher als `dome_min_height` über dem Öffnungsrand |
 | Anlagendatei `arm.support: oben` | Fallleitung über J1 | senkrechter Zylinder |
+| Armmodell (immer) | **eigener Arm**: äußerer Ausleger und Auslass gegen inneren Ausleger, Anschluss bzw. Säule an J1 (z. B. J2 ganz eingeklappt und J3 angehoben) | Rohrabstand, Mindestspalt `self_clearance` (Standard 0,10 m, deckt Antriebsgehäuse grob ab) |
 | **jede Fahrt** (Job 1 hin, Job 3 zurück) | **Fremdkörper**: alles im Blickfeld, was nicht Fahrbahn, Arm oder schon erfasst ist – Leiter, Fass, Führerhaus, Laufstege, Geländer am Fahrzeug | Höhenkarte (30-cm-Raster) bis zum Boden |
 
 **Scan bei jeder Fahrt:** Job 1 nimmt ohnehin auf; vor der Rückfahrt (Job 3) wird **neu

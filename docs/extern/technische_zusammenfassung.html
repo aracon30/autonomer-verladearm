@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Autonomer Verladearm – Technische Zusammenfassung</title>
+<style>
+  @page { size: A4; margin: 18mm 17mm 18mm 17mm; }
+  :root { --ink:#1C2430; --muted:#5A6573; --line:#D5DAE1; --signal:#E8A900; --steel:#4E6E8E; --soft:#F3F5F8; }
+  * { box-sizing: border-box; }
+  body { font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif; color: var(--ink); font-size: 10pt; line-height: 1.42; margin: 0; }
+  h1 { font-size: 22pt; margin: 0 0 4pt; letter-spacing: -0.3pt; }
+  h2 { font-size: 13.5pt; margin: 18pt 0 6pt; padding-bottom: 3pt; border-bottom: 2px solid var(--signal); break-after: avoid; }
+  h3 { font-size: 11pt; margin: 11pt 0 4pt; break-after: avoid; }
+  p { margin: 0 0 6pt; }
+  ul, ol { margin: 0 0 6pt; padding-left: 16pt; }
+  li { margin-bottom: 2pt; }
+  table { width: 100%; border-collapse: collapse; margin: 4pt 0 8pt; font-size: 9pt; break-inside: avoid; }
+  th, td { border: 1px solid var(--line); padding: 3.5pt 5pt; text-align: left; vertical-align: top; }
+  th { background: var(--soft); font-weight: 700; }
+  .stripe { height: 7px; background: repeating-linear-gradient(135deg, var(--ink) 0 10px, var(--signal) 10px 20px); margin-bottom: 14pt; }
+  .sub { font-size: 12pt; color: var(--muted); margin-bottom: 10pt; }
+  .meta { font-size: 9pt; color: var(--muted); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 5pt 0; margin: 10pt 0 12pt; display: flex; gap: 18pt; flex-wrap: wrap; }
+  .box { background: var(--soft); border-left: 3px solid var(--steel); padding: 7pt 9pt; margin: 6pt 0 9pt; break-inside: avoid; }
+  .note { font-size: 8.5pt; color: var(--muted); }
+  figure { margin: 6pt 0 10pt; break-inside: avoid; }
+  figure img { width: 100%; border: 1px solid var(--line); }
+  figcaption { font-size: 8.5pt; color: var(--muted); margin-top: 3pt; }
+  .page-break { break-before: page; }
+  .tag { display: inline-block; font-size: 7.5pt; padding: 0 4pt; border: 1px solid var(--steel); color: var(--steel); border-radius: 2px; }
+  .conf { font-size: 8pt; color: var(--muted); margin-top: 14pt; border-top: 1px solid var(--line); padding-top: 5pt; }
+  svg text { font-family: "Liberation Sans", Arial, sans-serif; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12pt; }
+</style>
+</head>
+<body>
+
+<div class="stripe"></div>
+<h1>Autonomer Verladearm</h1>
+<div class="sub">Kamerageführte Obenbefüllung von Tank- und Kesselwagen – technische Zusammenfassung</div>
+<div class="meta">
+  <span><b>HETA Verfahrenstechnik GmbH</b>, Lich</span>
+  <span>Stand: 07.10.2026</span>
+  <span>Status: Prototyp in Aufbau</span>
+</div>
+
+<div class="box">
+<b>Kurzfassung.</b> Ein bestehender Verladearm mit drei angetriebenen Gelenken wird automatisiert.
+Eine 3D-Kamera über der Verladestelle erkennt Domöffnung, Domdeckel und Aufbauten des Fahrzeugs.
+Ein Industrie-PC berechnet daraus eine kollisionsfreie Bahn und übergibt sie als Gelenkwinkel an
+die SPS, die den Arm mit Servoantrieben fährt, vor dem Eintauchen nachmisst und nach der Beladung
+wieder in die Parkstellung zurückbringt. Ablauf, Verriegelungen und Sicherheit liegen in der SPS;
+der PC macht nur geprüfte Vorschläge.
+</div>
+
+<h2>1. Ziel und Ausgangslage</h2>
+<ul>
+  <li><b>Heute:</b> Der Arm wird von Hand über den Dom geführt; der Bediener steht dabei auf der
+      Bühne bzw. dem Fahrzeug, nahe der offenen Öffnung (Dämpfe, Absturzgefahr).</li>
+  <li><b>Ziel:</b> Nach Produktwahl und Start am Bedienpanel findet der Arm den Dom selbst, taucht
+      produktabhängig tief ein und fährt nach „Beladung beendet“ selbsttätig zurück.</li>
+  <li><b>Anforderungen (Auszug):</b> Positioniergenauigkeit des Auslasses zur Domöffnung ±20 mm;
+      wechselnde Fahrzeuge (Lkw, Kesselwagen) und Dombauarten; Betrieb im Freien; keine Kollision
+      mit Fahrzeug, Deckel, Armaturen oder Anlagenteilen.</li>
+</ul>
+
+<h2>2. Gesamtkonzept</h2>
+<figure>
+<svg viewBox="0 0 700 215" width="100%" role="img" aria-label="Systemübersicht">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1C2430"/></marker></defs>
+  <g font-size="11">
+    <rect x="5" y="20" width="120" height="62" fill="#F3F5F8" stroke="#4E6E8E"/>
+    <text x="65" y="42" text-anchor="middle" font-weight="700">3D-Kamera</text>
+    <text x="65" y="58" text-anchor="middle">SICK Visionary-T</text>
+    <text x="65" y="72" text-anchor="middle">über der Station</text>
+
+    <rect x="175" y="10" width="160" height="82" fill="#F3F5F8" stroke="#4E6E8E"/>
+    <text x="255" y="30" text-anchor="middle" font-weight="700">Industrie-PC (Linux)</text>
+    <text x="255" y="46" text-anchor="middle">Dom-/Hinderniserkennung</text>
+    <text x="255" y="60" text-anchor="middle">Bahnplanung, Kollisionen</text>
+    <text x="255" y="74" text-anchor="middle">Nachmessen, Aufzeichnung</text>
+
+    <rect x="390" y="10" width="150" height="82" fill="#FFF6D6" stroke="#E8A900"/>
+    <text x="465" y="30" text-anchor="middle" font-weight="700">SPS</text>
+    <text x="465" y="46" text-anchor="middle">Ablauf, prüft Vorgaben</text>
+    <text x="465" y="60" text-anchor="middle">Synchronfahrt</text>
+    <text x="465" y="74" text-anchor="middle">Bedienpanel 11"</text>
+
+    <rect x="600" y="10" width="95" height="82" fill="#F3F5F8" stroke="#4E6E8E"/>
+    <text x="647" y="30" text-anchor="middle" font-weight="700">Umrichter</text>
+    <text x="647" y="46" text-anchor="middle">Lageregelung</text>
+    <text x="647" y="60" text-anchor="middle">J1 · J2 · J3</text>
+    <text x="647" y="74" text-anchor="middle">Geber, Bremsen</text>
+
+    <line x1="125" y1="51" x2="173" y2="51" stroke="#1C2430" marker-end="url(#a)"/>
+    <text x="149" y="44" text-anchor="middle" font-size="9">Ethernet</text>
+    <line x1="335" y1="51" x2="388" y2="51" stroke="#1C2430" marker-end="url(#a)"/>
+    <text x="361" y="44" text-anchor="middle" font-size="9">OPC UA</text>
+    <line x1="540" y1="51" x2="598" y2="51" stroke="#1C2430" marker-end="url(#a)"/>
+    <text x="569" y="44" text-anchor="middle" font-size="9">PROFINET</text>
+
+    <rect x="395" y="128" width="300" height="62" fill="#fff" stroke="#B5482A" stroke-dasharray="4 3"/>
+    <text x="545" y="148" text-anchor="middle" font-weight="700">Sicherheitstechnik (getrennt vom PC)</text>
+    <text x="545" y="164" text-anchor="middle">Not-Halt, STO, Bremsen, Klapptreppe eingefahren,</text>
+    <text x="545" y="178" text-anchor="middle">Lichtschranke Fahrzeug; Überfüllsicherung unabhängig</text>
+    <line x1="465" y1="92" x2="465" y2="126" stroke="#B5482A" stroke-dasharray="4 3"/>
+
+    <rect x="5" y="128" width="340" height="62" fill="#fff" stroke="#4E6E8E"/>
+    <text x="175" y="148" text-anchor="middle" font-weight="700">Anlagendatei je Arm (eine Quelle für alle Werkzeuge)</text>
+    <text x="175" y="164" text-anchor="middle">Maße, Achsgrenzen, Parkstellung, Hindernisse der Station,</text>
+    <text x="175" y="178" text-anchor="middle">Produkte (Eintauchtiefe), Kalibrierung der Kamera</text>
+    <line x1="255" y1="92" x2="255" y2="126" stroke="#4E6E8E"/>
+  </g>
+</svg>
+<figcaption>Bild 1: Aufgabenteilung. Der PC plant, die SPS prüft und fährt, die Sicherheitstechnik wirkt unabhängig vom PC.</figcaption>
+</figure>
+
+<h3>Ablauf einer Verladung</h3>
+<ol>
+  <li>Arm in Parkstellung, Fahrzeug fährt vor (Lichtschranke), Klapptreppe aus, Fahrer öffnet den Dom, Treppe zurück.</li>
+  <li>Bediener wählt das Produkt (bestimmt die Eintauchtiefe), bestätigt „Fahrzeug bereit“ und startet.</li>
+  <li><b>Job 1 – Messen und planen:</b> Kamera nimmt die Szene auf; der PC erkennt die Öffnung und alle
+      Hindernisse und liefert eine kollisionsfreie Bahn bis über den Dom und für das Eintauchen.</li>
+  <li><b>Job 2 – Nachmessen:</b> Über dem Dom misst die Kamera den Referenzflansch am Auslass und die
+      Öffnung im selben Bild; der PC korrigiert die Restbahn (Getriebespiel, Durchbiegung).</li>
+  <li>Senkrechtes Eintauchen, Beladung (Absperrklappe und Überfüllsicherung in der SPS bzw. unabhängig).</li>
+  <li><b>Job 3 – Rückfahrt:</b> nach „Beladung beendet“ neuer Scan, senkrecht heraus, kurze Abtropfpause
+      über der Öffnung (geplant), kollisionsfrei in die Parkstellung.</li>
+</ol>
+
+<h2>3. Mechanik und Kinematik</h2>
+<p>Der Arm (Prototyp HETA) wird von oben über eine Fallleitung versorgt, deren Achse zugleich die
+Drehachse J1 ist. Höhenbezug ist die Oberkante des Schnittstellenflansches am Eintritt J1
+(ca. 5,9 m über Fahrbahn).</p>
+<table>
+  <tr><th style="width:12%">Gelenk</th><th>Element</th><th style="width:22%">Maß (Prototyp)</th></tr>
+  <tr><td>J1</td><td>Drehgelenk am Haltepunkt, senkrechte Achse (Fallleitung)</td><td>Bereich ±120°</td></tr>
+  <tr><td></td><td>innerer Ausleger, fest 3° fallend</td><td>2,40 m</td></tr>
+  <tr><td></td><td>90°-Winkel nach unten (Fallrohr)</td><td>0,43 m</td></tr>
+  <tr><td>J2</td><td>Drehgelenk um die Achse des Fallrohrs</td><td>Bereich ±140°</td></tr>
+  <tr><td></td><td>90°-Winkel zur Seite</td><td>0,56 m</td></tr>
+  <tr><td>J3</td><td>Heben/Senken des äußeren Auslegers (Querachse)</td><td>±45°</td></tr>
+  <tr><td></td><td>äußerer Ausleger / Winkel zurück</td><td>2,70 m / 0,45 m</td></tr>
+  <tr><td>J4</td><td>frei drehendes Gelenk ohne Antrieb – der Auslass hängt durch Schwerkraft senkrecht</td><td>Auslass 1,41 m</td></tr>
+</table>
+<p>Daraus ergeben sich eine Reichweite von ca. 5,1 m um J1 und ein Arbeitsraum für Domoberkanten
+von ca. 3,2–5,0 m über Fahrbahn. Weil die Kinematik keine Standardform ist (Gefälle, Versätze,
+pendelnder Auslass), sind Vorwärts- und Rückwärtsrechnung eigens umgesetzt; alle Maße stehen in
+einer Anlagendatei je Arm.</p>
+
+<h2>4. Antriebe</h2>
+<table>
+  <tr><th style="width:16%"></th><th>J1 – Drehen am Haltepunkt</th><th>J2 – Drehen am Fallrohr</th><th>J3 – Heben/Senken</th></tr>
+  <tr><td>Motor</td><td colspan="2">SEW CM3C71S Synchron-Servomotor, 400 V, M0 6,5 Nm, Mpk 19,5 Nm</td><td>SEW DRN80M4 Drehstrommotor 0,75 kW (vorhanden)</td></tr>
+  <tr><td>Getriebe</td><td colspan="2">Planetengetriebe P5KG31 i = 4 + Ritzel z 48 / Zahnkranz z 127 (Modul 2) → i ≈ 10,6</td><td>Stirnradgetriebe RF47 i = 42,9 + Schwenkantrieb (Schnecke) i = 34</td></tr>
+  <tr><td>Geber</td><td colspan="3">Multiturn-Absolutwertgeber am Motor (keine Referenzfahrt nach dem Einschalten) – bei SEW angefragt</td></tr>
+  <tr><td>Bremse</td><td colspan="2">Haltebremse (Zahnradstufe nicht selbsthemmend, Windlast)</td><td>vorhanden (Selbsthemmung der Schnecke nicht zugesichert)</td></tr>
+  <tr><td>Dynamik</td><td colspan="3">max. ca. 6 °/s am Gelenk, weiche Rampen 1,5–4 s; Eintauchen und Herausfahren mit reduzierter Geschwindigkeit</td></tr>
+  <tr><td>Umrichter</td><td colspan="3">SEW mit Geberauswertung, Feldbus zur SPS, STO und Bremsenansteuerung – Typ in Klärung</td></tr>
+</table>
+<p><b>Synchronfahrt:</b> Die SPS skaliert je Stützpunkt die Geschwindigkeiten der drei Achsen so,
+dass alle mit demselben Bewegungsprofil gleichzeitig ankommen. Damit fährt der Arm genau die vom
+PC geprüfte Verbindung zwischen zwei Stützpunkten. Das Zahnspiel am Zahnkranz misst der Motorgeber
+nicht; es wird durch das Nachmessen vor dem Eintauchen ausgeglichen.</p>
+
+<h2>5. Sensorik</h2>
+<div class="two">
+<div>
+<table>
+  <tr><th colspan="2">SICK Visionary-T Mini CX (V3S105-1AAAAAD)</th></tr>
+  <tr><td>Prinzip</td><td>3D Time-of-Flight, 512 × 424 Bildpunkte</td></tr>
+  <tr><td>Blickfeld</td><td>70° × 60°</td></tr>
+  <tr><td>Genauigkeit</td><td>±3 mm @ 2 m, ±7 mm @ 4 m (90 % Remission)</td></tr>
+  <tr><td>Umgebung</td><td>IP65/67/69, −10 … +50 °C, Frontscheibe Glas</td></tr>
+  <tr><td>Fremdlicht</td><td>bis 50 klx → Sonnenschutzdach</td></tr>
+  <tr><td>Anschluss</td><td>Gigabit-Ethernet, 24 V</td></tr>
+</table>
+</div>
+<div>
+<p><b>Warum 3D-ToF:</b> liefert direkt Abstände je Bildpunkt (Höhe von Dom, Deckel, Armaturen),
+unabhängig von Farbe und Textur der Fahrzeuge, ohne eigene Beleuchtung; robust für den
+Außeneinsatz. Glas statt Kunststoff wegen Lösemitteldämpfen und Reinigung.</p>
+<p><b>Montage:</b> senkrecht nach unten, ca. 7,5 m über Fahrbahn und oberhalb des höchsten
+Armpunkts, etwa mittig über dem Domarbeitsraum, leicht seitlich versetzt, damit der Ausleger den
+Referenzflansch beim Nachmessen nicht verdeckt.</p>
+<p><b>Referenz am Auslass:</b> vorhandener Flansch Ø 220 mm am Auslassrohr, von oben sichtbar.</p>
+</div>
+</div>
+
+<h2>6. Steuerung und Schnittstelle</h2>
+<ul>
+  <li><b>SPS:</b> Siemens S7-1500 (F-CPU oder Sicherheitsrelais je nach Risikobeurteilung). Eine
+      Lösung mit Beckhoff-IPC und TwinCAT (IPC und SPS in einem Gerät) wird verglichen.</li>
+  <li><b>Kopplung PC–SPS:</b> OPC UA, ein Schnittstellen-Datenbaustein (DB_Vision). Handshake je
+      Auftrag, Lebenszeichen beider Seiten im 50-ms-Takt; Ausfall &gt; 1 s → Stopp.</li>
+  <li><b>Übergabe:</b> je Auftrag bis zu 16 Stützpunkte als Gelenkwinkel (Servo-Grad) plus
+      kartesisches Ziel, Richtung der Öffnung, Durchmesser, Konfidenz und Fehlercode.</li>
+  <li><b>Prüfung in der SPS:</b> Achsgrenzen und Plausibilität jeder Vorgabe; geplant zusätzlich
+      eine unabhängige Gegenprüfung mit der Vorwärtskinematik (feste Sperrzonen der Station,
+      Absenkkorridor um den Dom).</li>
+</ul>
+<table>
+  <tr><th style="width:12%">Job</th><th>PC</th><th>Stützpunkte</th></tr>
+  <tr><td>1</td><td>Dom, Deckel, Aufbauten und Fremdkörper messen; Bahn ab Istlage planen</td><td>Anfahrt (synchron, ggf. mit Umweg), senkrechtes Absenken, Eintauchen</td></tr>
+  <tr><td>2</td><td>Auslass über dem Dom nachmessen, Modellabweichung ausgleichen</td><td>korrigierter Anfahrpunkt, Eintauchen</td></tr>
+  <tr><td>3</td><td>erneut scannen, Rückfahrt ab Istlage planen</td><td>senkrecht heraus, in die Parkstellung</td></tr>
+</table>
+<p><b>Warum Gelenkwinkel statt kartesischer Koordinaten:</b> Zu einer Auslassposition gibt es meist
+mehrere Armstellungen. Der PC prüft genau eine davon auf Kollisionen – mit Gelenkwinkeln fährt die
+SPS eindeutig diese. Die Hindernisse stammen aus der Punktwolke und liegen nur auf dem PC vor.</p>
+
+<h2>7. Software</h2>
+<p>Eigenentwicklung in Python (NumPy/SciPy), lauffähig auf einem Linux-Industrie-PC als Systemdienst.
+Kamera-Anbindung über die offizielle SICK-Bibliothek, SPS-Anbindung über OPC UA.</p>
+
+<h3>7.1 Erkennung</h3>
+<ol>
+  <li><b>Aufnahme:</b> mehrere Bilder, pixelweiser Median gegen Rauschen; Umrechnung in Armkoordinaten
+      über die Kalibrierung.</li>
+  <li><b>Fahrzeug:</b> Fahrbahn und Tankoberfläche robust geschätzt (RANSAC); Tankform (Zylinder
+      bzw. ebenes Dach) und Lage.</li>
+  <li><b>Domöffnung:</b> tiefe Bereiche im Domkragen, innerster Rand je Winkelsektor, robuste
+      Kreisanpassung → Mitte, Durchmesser (0,18–0,70 m), Richtung und Konfidenz. Erkennt auch die
+      kleinere Füllöffnung in einem Domdeckel mit Armaturen.</li>
+  <li><b>Hindernisse:</b> offener Deckel (gedrehter Quader), Domkragen (Zylinder), Aufbauten am Dom
+      als Höhenkarte, Fremdkörper im gesamten Blickfeld (Leiter, Fass, Geländer) – bei jeder Fahrt
+      neu, auch vor der Rückfahrt.</li>
+</ol>
+
+<h3>7.2 Bahnplanung und Kollisionsprüfung</h3>
+<ul>
+  <li><b>Rückwärtsrechnung</b> (Newton-Verfahren) für Vorpunkt über dem Dom, Anfahrpunkt und Eintauchpunkt;
+      mehrere Lösungen werden verglichen.</li>
+  <li><b>Bahn:</b> synchrone Gelenkbewegung zum Vorpunkt, senkrechtes Absenken, senkrechtes Eintauchen.
+      Ist der direkte Weg blockiert, sucht ein RRT-Connect-Planer einen Umweg im Gelenkraum, der
+      anschließend geglättet und auf höchstens 16 Stützpunkte reduziert wird.</li>
+  <li><b>Kollisionsprüfung:</b> Rohrführung als Strecken mit Mindestabstand gegen alle Hindernisse
+      (Fahrzeug, Deckel, Aufbauten, Fremdkörper, Anlagenteile, Fallleitung) und gegen den eigenen
+      Arm (äußerer gegen inneren Ausleger). Geprüft werden auch die Zwischenstellungen zwischen den
+      Stützpunkten.</li>
+  <li><b>Genauigkeit:</b> In der Simulation mit Getriebespiel liegt der Auslass nach dem Nachmessen
+      unter 5 mm neben der Domachse (Anforderung ±20 mm).</li>
+</ul>
+
+<h3>7.3 Kalibrierung</h3>
+<p>Hand-Auge-Kalibrierung: Der Arm fährt im Handbetrieb 10–16 Stellungen im Arbeitsraum an; je
+Stellung liefert die SPS die Istwinkel, die Kamera misst den Referenzflansch. Aus den Punktpaaren
+folgt die Lage der Kamera zur Armbasis (Ausgleichsrechnung nach Kabsch/SVD), mit Restfehler je
+Stellung und Protokoll. Ziel: mittlerer Restfehler unter 5 mm.</p>
+
+<figure>
+  <img src="live_ansicht.png" alt="Live-Ansicht in der Simulation">
+  <figcaption>Bild 2: Live-Ansicht (Browser) mit simuliertem Tankwagen: Punktwolke, erkannte Domöffnung
+  (Ø 244 mm), offener Deckel, geplante Armbewegung und die an die SPS übergebenen Werte.</figcaption>
+</figure>
+
+<h3>7.4 Werkzeuge für Entwicklung und Inbetriebnahme</h3>
+<table>
+  <tr><th style="width:26%">Werkzeug</th><th>Zweck</th></tr>
+  <tr><td>Simulation</td><td>Simulierte Kamera (Lkw, Kesselwagen, verschiedene Dombauarten, Fremdkörper, Getriebespiel) und SPS-Simulator mit Bedienablauf und Verriegelungen; kompletter Ablauf ohne Hardware.</td></tr>
+  <tr><td>Konfigurator (Browser)</td><td>Anlagendatei je Arm bearbeiten: Maße, Achsen, Hindernisse (auch grafisch), Produkte, Arbeitsraum, Kamera; laufende Plausibilitätsprüfung.</td></tr>
+  <tr><td>Inbetriebnahmeprüfung</td><td>Reichweite, Kollisionen und Fahrzeiten über den gesamten Arbeitsraum als Bericht.</td></tr>
+  <tr><td>Live-Ansicht</td><td>3D-Darstellung im Browser, liest die SPS-Schnittstelle nur mit (z. B. Tablet an der Station).</td></tr>
+  <tr><td>Aufzeichnung</td><td>Jede Verladung mit Punktwolke und Ergebnis; Auswertung als Tabelle.</td></tr>
+  <tr><td>Automatische Tests</td><td>rund 130 Tests (Erkennung, Kinematik, Bahnplanung, Schnittstelle, Abläufe).</td></tr>
+</table>
+
+<h2>8. Sicherheitskonzept (Stand)</h2>
+<ul>
+  <li><b>Der PC kann den Arm nicht direkt bewegen.</b> Er liefert Vorschläge; die SPS prüft und fährt.
+      Fällt der PC aus, stoppt die SPS (Lebenszeichen), der Arm lässt sich im Servicebetrieb zurückfahren.</li>
+  <li><b>Sicherheitsfunktionen:</b> Not-Halt, STO der Umrichter, Haltebremsen, Rückmeldung
+      „Klapptreppe eingefahren“, Lichtschranke Fahrzeug, Achsgrenzen; Momenten- und
+      Schleppfehlerüberwachung der Antriebe begrenzt die Folgen eines Anstoßes.</li>
+  <li><b>Personenschutz</b> im Schwenkbereich über zugelassene Sicherheitssensorik (z. B. Schutzfeld),
+      nicht über die Kamera; Umfang nach Risikobeurteilung.</li>
+  <li><b>Überfüllsicherung und Erdung</b> bleiben eigenständige, zugelassene Einrichtungen.</li>
+  <li><b>Handbetrieb</b> nur für Service (Achsen tippen; Bremse J3 wird nie gelüftet); Bediener
+      haben im Normalbetrieb nur Automatik, Produktwahl und Parameter.</li>
+  <li><b>Offen:</b> Risikobeurteilung (EN ISO 12100, Sicherheitsfunktionen nach EN ISO 13849),
+      Ex-Zone an der Verladestelle und deren Auswirkung auf Kamera, Motoren und Geber.</li>
+</ul>
+
+<h2>9. Stand und nächste Schritte</h2>
+<table>
+  <tr><th style="width:30%">Bereich</th><th>Stand</th></tr>
+  <tr><td>Software</td><td>Erkennung, Bahnplanung, Schnittstelle, Kalibrierung und Werkzeuge vorhanden; in der Simulation mit wechselnden Fahrzeugen, Dombauarten und Fremdkörpern erprobt.</td></tr>
+  <tr><td>Hardware</td><td>Kamera, Industrie-PC und SPS vorhanden; J3-Antrieb im Handbetrieb erprobt; Geber, Bremsen und Umrichter angefragt; Schaltschrank und SPS-Programm in Angebotsphase.</td></tr>
+  <tr><td>Nächste Schritte</td><td>Kameratest an einem stehenden Tankwagen (reale Dome, Deckel, Sonnenlicht) · Antriebe und Schaltschrank · Inbetriebnahme Prototyp mit Kalibrierung · Probeverladungen · Risikobeurteilung. Ziel: einsatzbereit im April 2027.</td></tr>
+</table>
+
+<div style="break-inside: avoid">
+<h2>10. Mögliche Schwerpunkte einer Bachelorarbeit</h2>
+<p>Vorschläge zur Abstimmung – je nach Studienrichtung und Interesse:</p>
+<ul>
+  <li><b>Validierung der Domerkennung</b> an realen Aufnahmen: Katalog der Dombauarten, Erkennungsrate,
+      Einfluss von Sonnenlicht, Nässe und Verschmutzung.</li>
+  <li><b>Genauigkeitsnachweis</b> der Positionierung (Anforderung ±20 mm): Kalibrierung,
+      Getriebespiel, Durchbiegung, Nachmessen – Messkonzept und Auswertung am Prototyp.</li>
+  <li><b>Sicherheitskonzept und Risikobeurteilung</b> für die automatisierte Verladestelle,
+      einschließlich Ex-Schutz-Bewertung und Einbindung in die Werksvorgaben.</li>
+  <li><b>Bahnplanung und Taktzeit:</b> Vergleich von Planungsverfahren, Fahrzeitoptimierung,
+      Überschleifen von Stützpunkten.</li>
+  <li><b>Erweiterungen:</b> Füllstandsmessung mit Nachführen des Auslasses (Unterspiegelbefüllung),
+      automatische Prüfung „Dom wieder geschlossen“ vor der Ausfahrt.</li>
+</ul>
+
+</div>
+
+<p class="conf">Vertraulich – Informationen der HETA Verfahrenstechnik GmbH, ausschließlich zur Vorbereitung der
+Abschlussarbeit. Technischer Stand eines Prototyps; Angaben können sich ändern.</p>
+
+</body>
+</html>

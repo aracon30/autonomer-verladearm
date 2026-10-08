@@ -6,7 +6,7 @@ ergänzen.
 
 | | J1 – Drehen am Haltepunkt | J2 – Drehen am Fallrohr | J3 – Ausleger heben/senken |
 |---|---|---|---|
-| Motor | SEW **CM3C71S** Synchron-Servo, 400 V, M0 6,5 Nm, Mpk 19,5 Nm, I0 3,5 A, Imax 12,2 A, nN 2000 1/min, PK (PT1000), Stecker SM1 | wie J1 | SEW **DRN80M4** Drehstrom-Asynchronmotor (Bestand), 0,75 kW, 400 V Y, 1,75 A, 1440 1/min, IE3, TF |
+| Motor | SEW **CM3C71S** Synchron-Servo, 400 V, M0 6,5 Nm, Mpk 19,5 Nm, I0 3,5 A, Imax 12,2 A, nN 2000 1/min, nN 2000 1/min, Nennstrom 3,32 A, S9, PK (PT1000), Stecker SM1 SpeedTec (passende SEW-Kabel nötig) | wie J1 | SEW **DRN80M4** Drehstrom-Asynchronmotor (Bestand), 0,75 kW, 400 V Y, 1,75 A, 1440 1/min, IE3, TF |
 | Getriebe | Planetengetriebe **P5KG31 i = 4** (Verdrehspiel 5′) + Ritzel z 48 / Zahnkranz z 127, Modul 2 → **i = 10,58** | wie J1 | Stirnradgetriebe **RF47 i = 42,87** + Schwenkantrieb **IMO WD-E 0223/3**, Schnecke i = 34 → **i = 1457,6** |
 | Bremse | Haltebremse 24 V DC – **angefragt** | Haltebremse 24 V DC – **angefragt** | **BE05**, 230 V AC, 1,8 Nm, Gleichrichter BG1.5 (vorhanden) |
 | Geber | Multiturn-Absolutwertgeber am Motor – **angefragt** (statt Resolver RH1M) | wie J1 | Multiturn-Absolutwertgeber nachrüsten – **angefragt** |

@@ -248,6 +248,21 @@ eingetragen. Bei der Inbetriebnahme am Prototyp prüfen:
 | Axialkraft Spitze | 3510 N | **Umgebungstemperatur** | **−15 … +40 °C** |
 | Abtriebswelle | Ø 22 mm, Passfeder | Schutzart / Schmierung | IP65, synth. Öl, lebensdauergeschmiert |
 
+Ergänzend aus dem Angebot (Position .100):
+
+| Getriebe | Wert | Motor CM3C71S-20A-D/PK/RH1M/SM1 | Wert |
+|---|---|---|---|
+| Zähnezahl | 4/1, Abtriebsdrehzahl max. 1800 1/min | Bemessungsdrehzahl nN | 2000 1/min |
+| Bauform | M0 Universalbauform, Anschluss 270° ausrichtbar | M0 / Mpk | 6,5 / 19,5 Nm |
+| Öl | SEW GearOil Poly 220 E1 (CLP PG 220) | I0 / Nennstrom / Imax | 3,5 / 3,32 / 12,2 A |
+| Abtrieb | Welle 22 × 36 mit Passfeder, Zentrierung Ø 70, Lochkreis 85, 4 × Ø 6,6 | Betriebsart / max. Frequenz | S9 / 133 Hz |
+| Dichtungen | FKM (Abtrieb), Premium Sine Seal FKM (Antrieb) | Wärmeklasse / Schutzart | 155 (F) / IP65 |
+| Anstrich | RAL 9005 | Temperaturfühler | PK = 1 × PT1000 |
+| Eintrieb | MD071A für CM3.71 | Anschluss | SM1-Steckverbinder SpeedTec (1/8-Umdrehung) – **nicht kompatibel mit alten CMP-Kabeln ohne SpeedTec** |
+| | | Geber (Angebot) | RH1M Resolver 2-polig, Hohlwelle Ø 14, **ohne Absolutwert**, DC 7 V – Änderung auf Multiturn angefragt |
+| | | Bremse (Angebot) | **keine** – Haltebremse angefragt |
+| | | Rotorträgheit | **fehlt** – Motordatenblatt anfordern |
+
 **Bewertung (07.10.2026):**
 - **Moment:** Der Motor begrenzt, nicht das Getriebe: CM3C71S liefert am Getriebeabtrieb
   25 Nm dauernd / 76 Nm Spitze (Getriebe 81 / 132 Nm). Am Gelenk ca. **67 Nm dauernd /

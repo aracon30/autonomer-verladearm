@@ -234,6 +234,36 @@ eingetragen. Bei der Inbetriebnahme am Prototyp prüfen:
 - **Bremsen J1/J2:** Haltemoment gegen Wind in der Parkstellung prüfen, ggf. Arretierung.
 - **Drehbereich** innerhalb des verzahnten Bereichs (ca. 296°).
 
+### Getriebedatenblatt P5KG31-0004/N/S/0 MD071A (SEW, Angebotsposition .100)
+
+| Größe | Wert | Größe | Wert |
+|---|---|---|---|
+| Übersetzung | i = 4, 1-stufig | Verdrehspiel | ≤ 5′ |
+| Nenndrehmoment Ma_N | 81 Nm | Verdrehsteifigkeit | 11,07 Nm/′ |
+| Spitzendrehmoment Ma_pk | 132 Nm | Kippsteifigkeit | 45 Nm/′ |
+| **Not-Halt-Drehmoment Ma_es** | **185 Nm** | Massenträgheit | 0,883·10⁻⁴ kg·m² |
+| Nenndrehzahl / Spitzendrehzahl | 2900 / 7200 1/min | Wirkungsgrad | 0,97 |
+| Leerlaufdrehmoment | 1,4 Nm | Lebensdauer | ≥ 20 000 h, ED 60 % |
+| Radialkraft Nenn / Spitze | 3650 / 4410 N | Getriebetemperatur max. | 90 °C |
+| Axialkraft Spitze | 3510 N | **Umgebungstemperatur** | **−15 … +40 °C** |
+| Abtriebswelle | Ø 22 mm, Passfeder | Schutzart / Schmierung | IP65, synth. Öl, lebensdauergeschmiert |
+
+**Bewertung (07.10.2026):**
+- **Moment:** Der Motor begrenzt, nicht das Getriebe: CM3C71S liefert am Getriebeabtrieb
+  25 Nm dauernd / 76 Nm Spitze (Getriebe 81 / 132 Nm). Am Gelenk ca. **67 Nm dauernd /
+  200 Nm Spitze** – wie bisher angenommen.
+- **Not-Halt:** Beim Einfallen der Motorbremse darf am Getriebeabtrieb höchstens 185 Nm wirken →
+  Bremsmoment × 4 < 185 Nm, also **Motorbremse ≤ ca. 45 Nm** (bei der SEW-Bremsenwahl angeben).
+- **Ritzelkraft:** Zahnkraft am Ritzel Ø 96 bei 132 Nm ca. 2,9 kN (inkl. Radialanteil) < 3,65 kN
+  zulässig – Ritzel möglichst nah am Getriebeflansch setzen (Lastangriffspunkt laut Katalog).
+- **Spiel und Steifigkeit:** 5′ Getriebespiel ≙ 0,03° am Gelenk ≙ ca. 3 mm am Auslass; Verdrehung
+  bei Spitzenmoment ca. 4 mm. Das Flankenspiel Ritzel/Zahnkranz kommt dazu; Job 2 gleicht aus.
+- **Trägheit:** Lastträgheit am Motor J1 ca. 15 kg·m², J2 ca. 4,5 kg·m² – sehr groß gegenüber
+  Motor und Getriebe (Getriebe 0,9·10⁻⁴ kg·m²); Rotorträgheit CM3C71S aus dem Motordatenblatt
+  nachtragen, Regelbarkeit mit SEW klären (siehe Bewertung oben).
+- **Temperatur: −15 °C laut Datenblatt, Anlage −20 °C** → bei SEW nachfragen (Tieftemperaturöl,
+  Stillstandsheizung oder Einhausung).
+
 **Festlegung 30.09.2026 (Geber/Bremse):** J1 und J2 bekommen statt Resolver einen
 **Multiturn-Absolutwertgeber** (keine Referenzfahrt) und **beide eine Haltebremse**. J3 (Bestandsmotor mit Bremse BE05) bekommt ebenfalls einen
 Multiturn-Absolutwertgeber. Anfrage an SEW: `hardware/anfrage_sew_geber_bremse.md`.

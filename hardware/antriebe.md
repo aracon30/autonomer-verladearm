@@ -283,6 +283,34 @@ Ergänzend aus dem Angebot (Position .100):
 **Multiturn-Absolutwertgeber** (keine Referenzfahrt) und **beide eine Haltebremse**. J3 (Bestandsmotor mit Bremse BE05) bekommt ebenfalls einen
 Multiturn-Absolutwertgeber. Anfrage an SEW: `hardware/anfrage_sew_geber_bremse.md`.
 
+### SEW-Angebot 426368452B vom 12.10.2026 (Geber und Bremse geändert)
+
+| | Pos. 01 – J1 | Pos. 02 – J2 |
+|---|---|---|
+| Typ | P5KG31-0004/N/S/0 **HN14.01** CM3C71S-20A-N/BK/DI/PK/**AK0Z**/SD1 | P5KG31-0004/N/S/0 **MD071A** CM3C71S-20A-D/BK/DI/PK/**AZ2Z**/SD1 |
+| Geber | **AK0Z Multiturn-Sicherheitsgeber**, SIL 2 / PL d (inkrementelle Schnittstelle); absolut Singleturn 12 Bit + Multiturn 12 Bit; sichere Auswertung nur mit SEW-Sicherheitsoption CS..A | **AZ2Z Multiturngeber**, nicht sicherheitsgerichtet; absolut Singleturn 13 Bit + Multiturn 16 Bit |
+| Bremse | BK1 Permanentmagnetbremse 24 V DC, **16 Nm**, 0,72 A, BMV5 | wie J1 |
+| Anschluss | **Einkabeltechnik MOVILINK DDI**, SD1 M23 Hybridstecker gewinkelt (SpeedTec) | wie J1 |
+| Motoradapter | HN14.01 (Klemmring, Welle 24 mm, Flansch 120) | MD071A |
+| Verdrehspiel | 4′ | 5′ |
+| Gewicht / Lieferzeit | ca. 13 kg / 4–6 Wochen | ca. 11 kg / 4–6 Wochen |
+| Preis netto | 2.217,00 € | 2.101,34 € |
+
+**Bewertung:**
+- Absolutwertgeber und Haltebremse wie angefragt. Multiturnbereich reicht weit (J1/J2 brauchen
+  ca. 9 Motorumdrehungen); Auflösung am Gelenk < 0,005°.
+- **Bremse 16 Nm:** × 4 = 64 Nm am Getriebe < Not-Halt-Moment 185 Nm ✓. Haltemoment am Gelenk
+  ca. 164 Nm – entspricht Wind von nur ca. 8–9 m/s (Annahme 1 m², 3,7 m) → für Sturm
+  **mechanische Arretierung in der Parkstellung** vorsehen.
+- **J1 und J2 unterschiedlich** (Sicherheitsgeber und anderer Adapter nur an J1). Sicherheitsgeber
+  nützen nur mit sicherer Auswertung (CS..A im Umrichter, PROFIsafe zur F-CPU), z. B. für sichere
+  Geschwindigkeit/Position (SLS, SLP). Nach Risikobeurteilung entscheiden: beide gleich (AK0Z oder
+  AZ2Z). Maßblätter prüfen, ob Adapter HN14.01 mechanisch zum Ritzel/Anbau J1 passt.
+- **MOVILINK DDI** setzt SEW-Umrichter **MOVI-C** voraus; Hybridkabel von SEW (Kabelumfang Peter).
+- **Noch offen aus der Anfrage:** J3 (Geber am DRN80M4), Umrichter für drei Achsen, Empfehlung
+  Positionierung SPS/Umrichter, Temperatur −20 °C (Getriebe −15 °C), Ex-Schutz, Rotorträgheit
+  (Datenblatt), Geberdatenblätter.
+
 ### Zahnradpaar J1/J2 anpassen (Überschlag, Zahnfuß vereinfacht nach Lewis/ISO 6336, YFa·YSa)
 
 | Variante | Modul / Breite | Ritzel / Kranz | i_Z | Achsabstand | Gelenk dauernd / Spitze (P5KG31 81/132 Nm) | Zahnfuß Ritzel dauernd / Spitze |

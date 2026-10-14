@@ -15,6 +15,7 @@ In der Simulation hinterlegt: `vision/config/anlagen/heta_prototyp.yaml`, Abschn
 | | Wert |
 |---|---|
 | Getriebemotor | SEW-Eurodrive **RF47 DRN80M4/BE05/TF** (Stirnrad-Getriebemotor, Flanschausführung) |
+| Typenschild | Sach-/Seriennr. **01.8693812401.0001.26**, Baujahr 2026, IM M1, Inverter duty VPWM, IP55, −20 … +40 °C, CLP 220 Mineralöl 0,65 l, 230/400 V Δ/Y 3,05/1,75 A, cos φ 0,74 – Motor steht nicht mehr zur Verfügung, Ersatz mit Geber bei SEW angefragt |
 | Motor | Drehstrom-Asynchronmotor 4-polig, 0,75 kW, IE3, 230/400 V Δ/Y, 1,75 A (400 V), S1 |
 | Drehzahl | 1440 → **34 1/min** am Getriebeabtrieb, i = 42,87 |
 | Abtriebsmoment | 215 Nm (Ma max 300 Nm), Betriebsfaktor 1,40 |

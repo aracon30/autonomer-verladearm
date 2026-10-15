@@ -312,6 +312,22 @@ Multiturn-Absolutwertgeber. Anfrage an SEW: `hardware/anfrage_sew_geber_bremse.m
   Positionierung SPS/Umrichter, Temperatur −20 °C (Getriebe −15 °C), Ex-Schutz, Rotorträgheit
   (Datenblatt), Geberdatenblätter.
 
+**Getriebedatenblätter zu Angebot 426368452B (Pos. .100 J1 / .200 J2):**
+
+| | J1: P5KG31-0004/N/S/0 **HN14.01** | J2: P5KG31-0004/N/S/0 **MD071A** |
+|---|---|---|
+| Motoranbau | Klemmring-Adapter (HN), Adapterwelle Ø 24, max. Einstecktiefe 50, Flansch 120 □ / Zentrierung 110 / TK 130 / M8 | Direktanbau MD071A für CM3.71, Adapterwelle Ø 22 |
+| Motor | CM3C71S-20A-**N** (Welle für Adapter) | CM3C71S-20A-**D** (Direktanbau) |
+| Verdrehspiel | **≤ 4′** | ≤ 5′ |
+| Verdrehsteifigkeit | 10,94 Nm/′ | 11,07 Nm/′ |
+| Massenträgheit Getriebe | 1,775·10⁻⁴ kg·m² | 0,883·10⁻⁴ kg·m² |
+| Masse Getriebe / Antrieb gesamt | 4,59 kg / ca. 13 kg | 4,02 kg / ca. 11 kg |
+| gleich | Ma_N 81 Nm, Ma_pk 132 Nm, Not-Halt 185 Nm, η 0,97, −15 … +40 °C, IP65, Abtrieb Ø 22 × 36 | |
+
+Der andere Adapter an J1 hängt vermutlich am Sicherheitsgeber AK0Z (Motorvariante „N“ statt
+Direktanbau „D“) – bei SEW bestätigen lassen. Folge: J1-Antrieb ist länger und ca. 2 kg schwerer;
+Anbau und Freigängigkeit mit den Maßblättern (Links im Angebot) prüfen.
+
 ### Zahnradpaar J1/J2 anpassen (Überschlag, Zahnfuß vereinfacht nach Lewis/ISO 6336, YFa·YSa)
 
 | Variante | Modul / Breite | Ritzel / Kranz | i_Z | Achsabstand | Gelenk dauernd / Spitze (P5KG31 81/132 Nm) | Zahnfuß Ritzel dauernd / Spitze |

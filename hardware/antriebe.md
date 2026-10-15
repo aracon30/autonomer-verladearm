@@ -15,6 +15,7 @@ In der Simulation hinterlegt: `vision/config/anlagen/heta_prototyp.yaml`, Abschn
 | | Wert |
 |---|---|
 | Getriebemotor | SEW-Eurodrive **RF47 DRN80M4/BE05/TF** (Stirnrad-Getriebemotor, Flanschausführung) |
+| Typenschild | Sach-/Seriennr. **01.8693812401.0001.26**, Baujahr 2026, IM M1, Inverter duty VPWM, IP55, −20 … +40 °C, CLP 220 Mineralöl 0,65 l, 230/400 V Δ/Y 3,05/1,75 A, cos φ 0,74 – Motor steht nicht mehr zur Verfügung, Ersatz mit Geber bei SEW angefragt |
 | Motor | Drehstrom-Asynchronmotor 4-polig, 0,75 kW, IE3, 230/400 V Δ/Y, 1,75 A (400 V), S1 |
 | Drehzahl | 1440 → **34 1/min** am Getriebeabtrieb, i = 42,87 |
 | Abtriebsmoment | 215 Nm (Ma max 300 Nm), Betriebsfaktor 1,40 |
@@ -234,9 +235,82 @@ eingetragen. Bei der Inbetriebnahme am Prototyp prüfen:
 - **Bremsen J1/J2:** Haltemoment gegen Wind in der Parkstellung prüfen, ggf. Arretierung.
 - **Drehbereich** innerhalb des verzahnten Bereichs (ca. 296°).
 
+### Getriebedatenblatt P5KG31-0004/N/S/0 MD071A (SEW, Angebotsposition .100)
+
+| Größe | Wert | Größe | Wert |
+|---|---|---|---|
+| Übersetzung | i = 4, 1-stufig | Verdrehspiel | ≤ 5′ |
+| Nenndrehmoment Ma_N | 81 Nm | Verdrehsteifigkeit | 11,07 Nm/′ |
+| Spitzendrehmoment Ma_pk | 132 Nm | Kippsteifigkeit | 45 Nm/′ |
+| **Not-Halt-Drehmoment Ma_es** | **185 Nm** | Massenträgheit | 0,883·10⁻⁴ kg·m² |
+| Nenndrehzahl / Spitzendrehzahl | 2900 / 7200 1/min | Wirkungsgrad | 0,97 |
+| Leerlaufdrehmoment | 1,4 Nm | Lebensdauer | ≥ 20 000 h, ED 60 % |
+| Radialkraft Nenn / Spitze | 3650 / 4410 N | Getriebetemperatur max. | 90 °C |
+| Axialkraft Spitze | 3510 N | **Umgebungstemperatur** | **−15 … +40 °C** |
+| Abtriebswelle | Ø 22 mm, Passfeder | Schutzart / Schmierung | IP65, synth. Öl, lebensdauergeschmiert |
+
+Ergänzend aus dem Angebot (Position .100):
+
+| Getriebe | Wert | Motor CM3C71S-20A-D/PK/RH1M/SM1 | Wert |
+|---|---|---|---|
+| Zähnezahl | 4/1, Abtriebsdrehzahl max. 1800 1/min | Bemessungsdrehzahl nN | 2000 1/min |
+| Bauform | M0 Universalbauform, Anschluss 270° ausrichtbar | M0 / Mpk | 6,5 / 19,5 Nm |
+| Öl | SEW GearOil Poly 220 E1 (CLP PG 220) | I0 / Nennstrom / Imax | 3,5 / 3,32 / 12,2 A |
+| Abtrieb | Welle 22 × 36 mit Passfeder, Zentrierung Ø 70, Lochkreis 85, 4 × Ø 6,6 | Betriebsart / max. Frequenz | S9 / 133 Hz |
+| Dichtungen | FKM (Abtrieb), Premium Sine Seal FKM (Antrieb) | Wärmeklasse / Schutzart | 155 (F) / IP65 |
+| Anstrich | RAL 9005 | Temperaturfühler | PK = 1 × PT1000 |
+| Eintrieb | MD071A für CM3.71 | Anschluss | SM1-Steckverbinder SpeedTec (1/8-Umdrehung) – **nicht kompatibel mit alten CMP-Kabeln ohne SpeedTec** |
+| | | Geber (Angebot) | RH1M Resolver 2-polig, Hohlwelle Ø 14, **ohne Absolutwert**, DC 7 V – Änderung auf Multiturn angefragt |
+| | | Bremse (Angebot) | **keine** – Haltebremse angefragt |
+| | | Rotorträgheit | **fehlt** – Motordatenblatt anfordern |
+
+**Bewertung (07.10.2026):**
+- **Moment:** Der Motor begrenzt, nicht das Getriebe: CM3C71S liefert am Getriebeabtrieb
+  25 Nm dauernd / 76 Nm Spitze (Getriebe 81 / 132 Nm). Am Gelenk ca. **67 Nm dauernd /
+  200 Nm Spitze** – wie bisher angenommen.
+- **Not-Halt:** Beim Einfallen der Motorbremse darf am Getriebeabtrieb höchstens 185 Nm wirken →
+  Bremsmoment × 4 < 185 Nm, also **Motorbremse ≤ ca. 45 Nm** (bei der SEW-Bremsenwahl angeben).
+- **Ritzelkraft:** Zahnkraft am Ritzel Ø 96 bei 132 Nm ca. 2,9 kN (inkl. Radialanteil) < 3,65 kN
+  zulässig – Ritzel möglichst nah am Getriebeflansch setzen (Lastangriffspunkt laut Katalog).
+- **Spiel und Steifigkeit:** 5′ Getriebespiel ≙ 0,03° am Gelenk ≙ ca. 3 mm am Auslass; Verdrehung
+  bei Spitzenmoment ca. 4 mm. Das Flankenspiel Ritzel/Zahnkranz kommt dazu; Job 2 gleicht aus.
+- **Trägheit:** Lastträgheit am Motor J1 ca. 15 kg·m², J2 ca. 4,5 kg·m² – sehr groß gegenüber
+  Motor und Getriebe (Getriebe 0,9·10⁻⁴ kg·m²); Rotorträgheit CM3C71S aus dem Motordatenblatt
+  nachtragen, Regelbarkeit mit SEW klären (siehe Bewertung oben).
+- **Temperatur: −15 °C laut Datenblatt, Anlage −20 °C** → bei SEW nachfragen (Tieftemperaturöl,
+  Stillstandsheizung oder Einhausung).
+
 **Festlegung 30.09.2026 (Geber/Bremse):** J1 und J2 bekommen statt Resolver einen
 **Multiturn-Absolutwertgeber** (keine Referenzfahrt) und **beide eine Haltebremse**. J3 (Bestandsmotor mit Bremse BE05) bekommt ebenfalls einen
 Multiturn-Absolutwertgeber. Anfrage an SEW: `hardware/anfrage_sew_geber_bremse.md`.
+
+### SEW-Angebot 426368452B vom 12.10.2026 (Geber und Bremse geändert)
+
+| | Pos. 01 – J1 | Pos. 02 – J2 |
+|---|---|---|
+| Typ | P5KG31-0004/N/S/0 **HN14.01** CM3C71S-20A-N/BK/DI/PK/**AK0Z**/SD1 | P5KG31-0004/N/S/0 **MD071A** CM3C71S-20A-D/BK/DI/PK/**AZ2Z**/SD1 |
+| Geber | **AK0Z Multiturn-Sicherheitsgeber**, SIL 2 / PL d (inkrementelle Schnittstelle); absolut Singleturn 12 Bit + Multiturn 12 Bit; sichere Auswertung nur mit SEW-Sicherheitsoption CS..A | **AZ2Z Multiturngeber**, nicht sicherheitsgerichtet; absolut Singleturn 13 Bit + Multiturn 16 Bit |
+| Bremse | BK1 Permanentmagnetbremse 24 V DC, **16 Nm**, 0,72 A, BMV5 | wie J1 |
+| Anschluss | **Einkabeltechnik MOVILINK DDI**, SD1 M23 Hybridstecker gewinkelt (SpeedTec) | wie J1 |
+| Motoradapter | HN14.01 (Klemmring, Welle 24 mm, Flansch 120) | MD071A |
+| Verdrehspiel | 4′ | 5′ |
+| Gewicht / Lieferzeit | ca. 13 kg / 4–6 Wochen | ca. 11 kg / 4–6 Wochen |
+| Preis netto | 2.217,00 € | 2.101,34 € |
+
+**Bewertung:**
+- Absolutwertgeber und Haltebremse wie angefragt. Multiturnbereich reicht weit (J1/J2 brauchen
+  ca. 9 Motorumdrehungen); Auflösung am Gelenk < 0,005°.
+- **Bremse 16 Nm:** × 4 = 64 Nm am Getriebe < Not-Halt-Moment 185 Nm ✓. Haltemoment am Gelenk
+  ca. 164 Nm – entspricht Wind von nur ca. 8–9 m/s (Annahme 1 m², 3,7 m) → für Sturm
+  **mechanische Arretierung in der Parkstellung** vorsehen.
+- **J1 und J2 unterschiedlich** (Sicherheitsgeber und anderer Adapter nur an J1). Sicherheitsgeber
+  nützen nur mit sicherer Auswertung (CS..A im Umrichter, PROFIsafe zur F-CPU), z. B. für sichere
+  Geschwindigkeit/Position (SLS, SLP). Nach Risikobeurteilung entscheiden: beide gleich (AK0Z oder
+  AZ2Z). Maßblätter prüfen, ob Adapter HN14.01 mechanisch zum Ritzel/Anbau J1 passt.
+- **MOVILINK DDI** setzt SEW-Umrichter **MOVI-C** voraus; Hybridkabel von SEW (Kabelumfang Peter).
+- **Noch offen aus der Anfrage:** J3 (Geber am DRN80M4), Umrichter für drei Achsen, Empfehlung
+  Positionierung SPS/Umrichter, Temperatur −20 °C (Getriebe −15 °C), Ex-Schutz, Rotorträgheit
+  (Datenblatt), Geberdatenblätter.
 
 ### Zahnradpaar J1/J2 anpassen (Überschlag, Zahnfuß vereinfacht nach Lewis/ISO 6336, YFa·YSa)
 

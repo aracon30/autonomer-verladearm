@@ -3,6 +3,18 @@
 Stand 15.10.2026 – Entwurf zur Abstimmung mit dem Kunden (Anforderung BASF vom 15.10.2026).
 Hintergrund und erste Idee: `docs/ideenspeicher.md`.
 
+## Festlegungen (Stand 15.10.2026)
+
+| Thema | Lösung |
+|---|---|
+| **Nachziehen** | ja, gefordert. Messstab (SICK LFC bzw. LFP) fest an der Lanze misst, wie tief der Auslass im Produkt steckt; die SPS hält ihn z. B. 100–200 mm eingetaucht und zieht den Arm nach |
+| **Füllende** | Durchflusssensor mit Sollmenge (wie im ersten Termin mit BASF besprochen) |
+| **Füllstand aus der Armhöhe** | Spiegel unter Domrand = Eintauchtiefe des Auslasses (Kamera + Kinematik) − benetzte Länge am Messstab. Für Anzeige, Nachziehen und als Plausibilitätsprüfung gegen den Durchflusssensor |
+| **Überfüllsicherung** | wie heute **Liquiphant mit fester Länge ab Domrand** – künftig an der **aufliegenden Lanze** (Skizze `docs/skizzen/ueberfuell_lanze.png`): Auflage am Domrand, Lanze bleibt beim Nachziehen liegen, Schaltpunkt bleibt fest; wirkt direkt auf die Absperrklappe |
+
+Heute wird der Liquiphant von Hand am oberen Rand des Tankwagens befestigt. Die Lanze übernimmt
+genau diesen Bezug (Domrand + feste Länge) automatisch.
+
 ## Anforderung
 
 - **Unterspiegelbeladung:** Der Arm taucht möglichst tief in die Tankkammer ein.

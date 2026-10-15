@@ -58,6 +58,7 @@ Forschungsprojekte:
   3. Mitarbeiter legt sie vorher in den Dom; Kamera erkennt sie als Hindernis, Arm fährt vorbei
   4. Prüfen, ob eine genaue Füllstandsmessung die Sicherung ersetzen kann
 - Fotos, Maße und Unterschiede der Tankfahrzeuge folgen; Abstimmungstermin vorgeschlagen.
+- **Ausgearbeitet in `docs/fuellstand_ueberfuellsicherung.md`** (Varianten A–D, Empfehlung, offene Fragen).
 
 ## Zurückgestellt (vom Kunden jetzt gefordert): Füllstand messen und Arm nachziehen
 

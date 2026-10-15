@@ -46,7 +46,20 @@ Forschungsprojekte:
 - **KI-Erkennung** erst, wenn die geometrische Erkennung an vielen Dombauarten scheitert – dafür
   wären Hunderte beschriftete echte Aufnahmen nötig.
 
-## Zurückgestellt: Füllstand messen und Arm nachziehen
+## Kundenrückmeldung 15.10.2026 (Silas Kaestel, BASF)
+
+- Konzept positiv bewertet; intern Prüfung von Machbarkeit und **PLS-Anbindung**.
+- **Keine Ex-Zone** an der Verladestelle → keine Ex-Anforderungen an Kamera, Motoren, Geber.
+- **Füllstand und Überfüllsicherung gehören ins Konzept:** Unterspiegelbeladung (Arm möglichst
+  tief), die Füllstandssensorik soll das Fahren des Arms im Tank steuern (Nachziehen, siehe unten).
+- Überfüllsicherung – Optionen des Kunden:
+  1. Klapptreppe erneut ausfahren, Mitarbeiter legt die Sicherung nach dem Eintauchen auf
+  2. Sicherung direkt am Verladearm
+  3. Mitarbeiter legt sie vorher in den Dom; Kamera erkennt sie als Hindernis, Arm fährt vorbei
+  4. Prüfen, ob eine genaue Füllstandsmessung die Sicherung ersetzen kann
+- Fotos, Maße und Unterschiede der Tankfahrzeuge folgen; Abstimmungstermin vorgeschlagen.
+
+## Zurückgestellt (vom Kunden jetzt gefordert): Füllstand messen und Arm nachziehen
 
 Beschluss 01.10.2026: hinten angestellt. Idee: Auslass bleibt während der Befüllung knapp unter
 der Flüssigkeitsoberfläche (Unterspiegelbefüllung, weniger Schaum und Aufladung – wichtig für

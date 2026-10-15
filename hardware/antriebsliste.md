@@ -18,8 +18,8 @@ ergänzen.
 | Last (Schätzung) | Trägheit ca. 1 700 kg·m², Wind | ca. 500 kg·m² | Gewicht Ausleger; Spiel durch Schwerkraft vorgespannt |
 | Besonderheit | nicht selbsthemmend → Bremse gegen Wind | nicht selbsthemmend → Bremse | Selbsthemmung **nicht zugesichert** → Bremse nie im Handbetrieb lüften |
 
-**Umgebung:** im Freien, −20 … +40 °C, Motoren IP65 bzw. IP55 (J3). Explosionsschutz: Zone noch
-offen (Lastenheft N-06) – Auswirkung auf Motoren und Geber klären.
+**Umgebung:** im Freien, −20 … +40 °C, Motoren IP65 bzw. IP55 (J3). Explosionsschutz: laut Kunde (BASF,
+15.10.2026) **keine Ex-Zone** an der Verladestelle.
 
 **Weitere Antriebe / Aktoren im Schaltschrankumfang:**
 - Absperrklappe in der Fallleitung (DN 100) mit Antrieb und Stellungsrückmeldung – Typ offen

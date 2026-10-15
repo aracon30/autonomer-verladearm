@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" font-family="Liberation Sans, Arial, sans-serif" font-size="14">
+  <rect width="1000" height="700" fill="#fff"/>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1C2430"/></marker>
+    <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#8A97A6" stroke-width="2"/></pattern>
+  </defs>
+  <text x="500" y="32" text-anchor="middle" font-size="20" font-weight="700" fill="#1C2430">Überfüllsicherung an aufliegender Lanze – Skizze (Schnitt durch den Dom)</text>
+
+  <!-- ===== Panel A: Befüllen ===== -->
+  <g transform="translate(0,0)">
+    <text x="250" y="70" text-anchor="middle" font-size="16" font-weight="700" fill="#4A5D72">A) Befüllen / Nachziehen</text>
+    <!-- tank shell + dome collar -->
+    <path d="M40,300 L150,300 L150,250 L200,250 M300,250 L350,250 L350,300 L460,300" fill="none" stroke="#1C2430" stroke-width="5"/>
+    <rect x="40" y="300" width="420" height="330" fill="#F3F5F8" stroke="none"/>
+    <path d="M40,300 L150,300 L150,250 L200,250 M300,250 L350,250 L350,300 L460,300" fill="none" stroke="#1C2430" stroke-width="5"/>
+    <line x1="40" y1="630" x2="460" y2="630" stroke="#1C2430" stroke-width="5"/>
+    <text x="50" y="290" font-size="12" fill="#5A6573">Tankdach</text>
+    <text x="355" y="244" font-size="12" fill="#5A6573">Domrand</text>
+    <!-- liquid -->
+    <rect x="42" y="430" width="416" height="198" fill="#BFD4EA"/>
+    <path d="M42,430 q20,-5 40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t36,0" fill="none" stroke="#4E6E8E" stroke-width="2"/>
+    <text x="60" y="455" font-size="12" fill="#2F4A66">Spiegel steigt</text>
+    <!-- max fill line -->
+    <line x1="42" y1="400" x2="458" y2="400" stroke="#B5482A" stroke-dasharray="8 5" stroke-width="2"/>
+    <text x="45" y="394" font-size="12" fill="#B5482A">max. Füllhöhe (Schaltpunkt)</text>
+
+    <!-- outlet pipe (from arm, above) -->
+    <rect x="212" y="90" width="34" height="390" fill="#E8A900" stroke="#1C2430" stroke-width="2"/>
+    <path d="M212,480 L246,480 L240,500 L218,500 z" fill="#1C2430"/>
+    <text x="150" y="110" font-size="12" fill="#1C2430" text-anchor="end">Auslassrohr</text>
+    <line x1="152" y1="106" x2="210" y2="120" stroke="#1C2430" marker-end="url(#ar)"/>
+    <text x="150" y="128" font-size="12" fill="#5A6573" text-anchor="end">(fährt mit dem Arm)</text>
+    <!-- level probe LFC on outlet -->
+    <rect x="248" y="380" width="6" height="110" fill="#4E6E8E"/>
+    <text x="150" y="520" font-size="12" fill="#2F4A66" text-anchor="end">Messstab LFC/LFP</text>
+    <text x="150" y="535" font-size="12" fill="#2F4A66" text-anchor="end">(Nachziehen)</text>
+    <line x1="152" y1="522" x2="246" y2="470" stroke="#2F4A66" marker-end="url(#ar)"/>
+
+    <!-- guide sleeve clamped to outlet -->
+    <rect x="246" y="150" width="24" height="60" fill="#8A97A6" stroke="#1C2430" stroke-width="1.5"/>
+    <text x="330" y="150" font-size="12" fill="#1C2430">Führungshülse</text>
+    <text x="330" y="165" font-size="12" fill="#5A6573">am Auslassrohr</text>
+    <line x1="328" y1="160" x2="272" y2="175" stroke="#1C2430" marker-end="url(#ar)"/>
+    <!-- carrier stop on outlet (Mitnehmer) below sleeve, lance top collar above sleeve -->
+    <!-- lance -->
+    <rect x="254" y="110" width="8" height="300" fill="#B5482A"/>
+    <rect x="248" y="104" width="20" height="8" fill="#B5482A"/>
+    <text x="330" y="105" font-size="12" fill="#B5482A">Kopf / Anschlag oben</text>
+    <line x1="328" y1="102" x2="270" y2="107" stroke="#B5482A" marker-end="url(#ar)"/>
+    <!-- rest plate on dome rim -->
+    <rect x="262" y="238" width="62" height="10" fill="#B5482A" stroke="#1C2430"/>
+    <rect x="254" y="236" width="12" height="14" fill="#B5482A"/>
+    <text x="330" y="222" font-size="12" font-weight="700" fill="#B5482A">Auflage liegt auf Domrand</text>
+    <!-- sensor tip -->
+    <circle cx="258" cy="403" r="8" fill="#B5482A" stroke="#1C2430" stroke-width="2"/>
+    <text x="275" y="372" font-size="12" font-weight="700" fill="#B5482A">Grenzwertgeber</text>
+    <text x="275" y="387" font-size="12" fill="#B5482A">(Überfüllsicherung)</text>
+    <!-- dimension L -->
+    <line x1="430" y1="250" x2="430" y2="400" stroke="#1C2430" marker-end="url(#ar)" marker-start="url(#ar)"/>
+    <text x="438" y="330" font-size="14" font-weight="700" fill="#1C2430">L</text>
+    <text x="60" y="600" font-size="12" fill="#1C2430">Lanze bleibt liegen, Arm zieht nach oben nach –</text>
+    <text x="60" y="615" font-size="12" fill="#1C2430">Schaltpunkt bleibt fest bei „Domrand − L“</text>
+  </g>
+
+  <!-- ===== Panel B: Herausfahren ===== -->
+  <g transform="translate(500,0)">
+    <line x1="0" y1="60" x2="0" y2="660" stroke="#D5DAE1" stroke-width="2"/>
+    <text x="250" y="70" text-anchor="middle" font-size="16" font-weight="700" fill="#4A5D72">B) Herausfahren</text>
+    <rect x="40" y="300" width="420" height="330" fill="#F3F5F8"/>
+    <path d="M40,300 L150,300 L150,250 L200,250 M300,250 L350,250 L350,300 L460,300" fill="none" stroke="#1C2430" stroke-width="5"/>
+    <line x1="40" y1="630" x2="460" y2="630" stroke="#1C2430" stroke-width="5"/>
+    <rect x="42" y="402" width="416" height="226" fill="#BFD4EA"/>
+    <line x1="42" y1="400" x2="458" y2="400" stroke="#B5482A" stroke-dasharray="8 5" stroke-width="2"/>
+    <!-- outlet raised -->
+    <rect x="212" y="80" width="34" height="250" fill="#E8A900" stroke="#1C2430" stroke-width="2"/>
+    <path d="M212,330 L246,330 L240,350 L218,350 z" fill="#1C2430"/>
+    <rect x="248" y="230" width="6" height="110" fill="#4E6E8E"/>
+    <!-- sleeve raised -->
+    <rect x="246" y="90" width="24" height="60" fill="#8A97A6" stroke="#1C2430" stroke-width="1.5"/>
+    <!-- lance hanging on sleeve via top collar -->
+    <rect x="254" y="88" width="8" height="300" fill="#B5482A"/>
+    <rect x="248" y="82" width="20" height="8" fill="#B5482A"/>
+    <rect x="262" y="216" width="62" height="10" fill="#B5482A" stroke="#1C2430"/>
+    <rect x="254" y="214" width="12" height="14" fill="#B5482A"/>
+    <circle cx="258" cy="381" r="8" fill="#B5482A" stroke="#1C2430" stroke-width="2"/>
+    <text x="290" y="100" font-size="12" font-weight="700" fill="#1C2430">Kopf hängt in der Hülse:</text>
+    <text x="290" y="115" font-size="12" fill="#1C2430">Hülse nimmt die Lanze</text><text x="290" y="130" font-size="12" fill="#1C2430">mit nach oben</text>
+    <line x1="288" y1="96" x2="270" y2="86" stroke="#1C2430" marker-end="url(#ar)"/>
+    <text x="300" y="205" font-size="12" fill="#B5482A">Auflage hebt vom Domrand ab</text>
+    <!-- motion arrow -->
+    <line x1="120" y1="200" x2="120" y2="110" stroke="#1C2430" stroke-width="3" marker-end="url(#ar)"/>
+    <text x="60" y="230" font-size="12" fill="#1C2430">Arm fährt hoch</text>
+  </g>
+
+  <text x="40" y="680" font-size="12" fill="#5A6573">Prinzip: Lanze in einer Hülse am Auslassrohr senkrecht verschiebbar. Beim Absenken setzt die Auflage auf dem Domrand auf, die Lanze bleibt stehen, der Auslass fährt weiter ein.</text>
+  <text x="40" y="695" font-size="12" fill="#5A6573">Länge L = max. Füllhöhe unter Domrand (fest bzw. einstellbar). Sicherung wirkt direkt auf die Absperrklappe, unabhängig von SPS, PC und Kamera. Skizze, nicht maßstäblich.</text>
+</svg>

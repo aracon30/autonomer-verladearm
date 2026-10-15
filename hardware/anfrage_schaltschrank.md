@@ -44,6 +44,12 @@ Einschätzung zu Aufwand, Platzbedarf und Termin – für Schaltschrank, Verkabe
 | J2 Drehen am Fallrohr | SEW Servo CM3C71S, Steckverbinder SM1 | ja, 24 V | Multiturn absolut (angefragt) | PT1000 |
 | J3 Heben/Senken | SEW DRN80M4 (Drehstrom, vorhanden) | BE05 | Multiturn absolut (angefragt) | TF |
 
+> **Stand SEW-Angebot 426368452B (12.10.2026):** J1/J2 jetzt mit **Einkabeltechnik MOVILINK DDI**
+> (Hybridstecker SD1 M23 statt SM1, Motor + Geber + Bremse in einem SEW-Hybridkabel), Bremse BK1
+> 24 V DC 16 Nm, Geber J1 AK0Z (Sicherheitsgeber, sichere Auswertung CS..A), J2 AZ2Z. Umrichter
+> damit SEW **MOVI-C**. J3: neuer Getriebemotor mit Multiturngeber angefragt. Aktuelle Daten:
+> `hardware/antriebsliste.md`.
+
 - J3 hängt heute am MOVITRAC classic MCC91A-0032-5E3-4. Der wird durch den neuen Umrichter ersetzt.
 - J1 und J2 drehen je ca. 280°. Die Leitungen müssen die Drehung mitmachen
   (Leitungsführung, schleppkettentaugliche Motor- und Geberleitungen).

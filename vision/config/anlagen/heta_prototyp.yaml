@@ -43,7 +43,7 @@ outlet:
 # Antriebe je Achse, Werte am Gelenk (Details und Herleitung: hardware/antriebe.md)
 drives:
   q1:
-    motor: SEW CM3C71S (Servo, mit Bremse, Multiturn-Absolutgeber – angefragt)
+    motor: SEW CM3C71S (Servo, Bremse BK1 16 Nm, Multiturngeber AK0Z, MOVILINK DDI – Angebot 426368452B)
     gear: P5KG31 i=4 × Ritzel z48 / Zahnkranz z127 (Modul 2) – Konstruktion
     motor_speed: 2000
     ratio: 10.58          # 4 × 127/48
@@ -55,7 +55,7 @@ drives:
     brake: true
     encoder: Multiturn absolut (angefragt)
   q2:
-    motor: SEW CM3C71S (Servo, mit Bremse, Multiturn-Absolutgeber – angefragt)
+    motor: SEW CM3C71S (Servo, Bremse BK1 16 Nm, Multiturngeber AZ2Z, MOVILINK DDI – Angebot 426368452B)
     gear: P5KG31 i=4 × Ritzel z48 / Zahnkranz z127 (Modul 2) – Konstruktion
     motor_speed: 2000
     ratio: 10.58
@@ -67,7 +67,7 @@ drives:
     brake: true
     encoder: Multiturn absolut (angefragt)
   q3:
-    motor: SEW RF47 DRN80M4/BE05/TF (Asynchron, Bremse 1,8 Nm, Geber angefragt)
+    motor: SEW RF47 DRN80M4/BE05/TF (Asynchron, Bremse 1,8 Nm; Neuer Motor mit Multiturngeber angefragt)
     gear: RF47 i=42,87 × IMO WD-E 0223/3 i=34 (Schnecke)
     motor_speed: 1440
     ratio: 1457.6         # 42,87 × 34

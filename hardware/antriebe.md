@@ -324,6 +324,8 @@ Multiturn-Absolutwertgeber. Anfrage an SEW: `hardware/anfrage_sew_geber_bremse.m
 | Masse Getriebe / Antrieb gesamt | 4,59 kg / ca. 13 kg | 4,02 kg / ca. 11 kg |
 | gleich | Ma_N 81 Nm, Ma_pk 132 Nm, Not-Halt 185 Nm, η 0,97, −15 … +40 °C, IP65, Abtrieb Ø 22 × 36 | |
 
+**Entscheidung 15.10.2026: kein Sicherheitsgeber.** J1 wird wie J2 ausgeführt (AZ2Z, MD071A) – bei SEW angefragt.
+
 Der andere Adapter an J1 hängt vermutlich am Sicherheitsgeber AK0Z (Motorvariante „N“ statt
 Direktanbau „D“) – bei SEW bestätigen lassen. Folge: J1-Antrieb ist länger und ca. 2 kg schwerer;
 Anbau und Freigängigkeit mit den Maßblättern (Links im Angebot) prüfen.

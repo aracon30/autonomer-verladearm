@@ -12,6 +12,13 @@ Hintergrund und erste Idee: `docs/ideenspeicher.md`.
 | **Füllstand aus der Armhöhe** | Spiegel unter Domrand = Eintauchtiefe des Auslasses (Kamera + Kinematik) − benetzte Länge am Messstab. Für Anzeige, Nachziehen und als Plausibilitätsprüfung gegen den Durchflusssensor |
 | **Überfüllsicherung** | wie heute **Liquiphant mit fester Länge ab Domrand** – künftig an der **aufliegenden Lanze** (Skizze `docs/skizzen/ueberfuell_lanze.png`): Auflage am Domrand, Lanze bleibt beim Nachziehen liegen, Schaltpunkt bleibt fest; wirkt direkt auf die Absperrklappe |
 
+**Gerätewahl (Vorschlag HETA, 15.10.2026):**
+- Überfüllsicherung: **SICK LFV 200** (Schwinggabel) mit **Rohrverlängerung** – die Verlängerung bildet
+  die Lanze (Länge L). Voraussetzung: Ausführung mit Zulassung als Überfüllsicherung (WHG/SIL nach
+  Vorgabe BASF) und Freigabe durch BASF; sonst Liquiphant wie heute.
+- Messstab Nachziehen: geführte Mikrowelle, günstig **SICK LFP Cubic** oder **ifm LR** (IO-Link);
+  Abstand zum Auslassrohr bzw. Koaxrohr beachten (Fehlechos, Anhaftung bei Kleber).
+
 Heute wird der Liquiphant von Hand am oberen Rand des Tankwagens befestigt. Die Lanze übernimmt
 genau diesen Bezug (Domrand + feste Länge) automatisch.
 

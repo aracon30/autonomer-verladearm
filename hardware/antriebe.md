@@ -412,7 +412,8 @@ Kabel (Längen fehlen), Bremswiderstände (Schaltschrankbauer), IMO-Schwenkantri
   Motor nur ca. 11 1/min. Regelbarkeit mit den Lastträgheiten (J1 ca. 1 700, J2 ca. 500 kg·m²)
   von SEW schriftlich bestätigen lassen oder größere Übersetzung (i_P 20–50, je nach Zahnradpaar).
   Das Getriebe ist Teil der Servo-Position und lässt sich nach der Bestellung nicht mehr ändern.
-- **Temperatur:** Getriebe −15 °C, Anlage −20 °C.
+- Temperatur (Getriebe −15 °C, Anlage −20 °C): vorerst zurückgestellt (16.10.2026).
+- Bremswiderstände und Kabellängen klärt HETA mit dem Schaltschrankbauer.
 - **J3-Motor nur einmal bestellen** (auch bei IMO angefragt).
 
  (alles in einem Angebot)

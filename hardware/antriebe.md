@@ -366,8 +366,10 @@ SEW-Hinweis: „bitte Zubehör und Funktionalität der Umrichter prüfen“.
   Der **Bremswiderstand (BW…) fehlt** im Angebot und muss mitbestellt werden; die Größe legt SEW fest.
 - **CSO = nur STO** (PL d). SBC/sichere Bremse gibt es erst mit CSL/CSS (nicht nötig).
 - **Bremse BE05 an J3:** Der Umrichter kann Bremsen ansteuern (Anschlussbilder BG/BGE/BMK).
-  Welche Variante zu BE05 230 V AC + BG1.5 und zum Motor mit DDI passt, steht nicht in den Auszügen
-  → SEW bestätigen lassen.
+  Laut Angebotsdetails (S. 4–5): neuer Motor mit Gleichrichter **BMKB1.5** im Klemmenkasten, DDI-Code
+  DI0E00 = Bremsansteuerung motorextern oder umrichterintegriert, Bremsleitungen im Hybridstecker KD1.
+  → Ansteuerung über den Bremsausgang des Umrichters (DB00) möglich, Anschluss nach SEW-Schaltbild
+  (Inbetriebnahme/Schaltschrankbauer).
 - **Strom J1/J2:** Die eigene Rechnung bleibt gültig (Umrichter 6 A gegenüber Motor 12,2 A).
 
 **Auswertung Handbuch „MOVIKIT Positioning Drive, Velocity Drive“ (33350930/DE, 11/2025):**
@@ -383,7 +385,7 @@ SEW-Hinweis: „bitte Zubehör und Funktionalität der Umrichter prüfen“.
   v/a/Verzögerung je Achse und gleiche Ruckzeit (siehe `docs/schnittstelle.md`). Das passt zum
   bisherigen Konzept; statt Technologieobjekt „Positionierachse“ steuert die S7 die Umrichter über
   Prozessdaten.
-- **Entscheidung:** 3 × Positioning Drive (Level 1) bei SEW nachfordern. Offen bei SEW: Ansteuerung BE05 230 V AC (DB00 + Gleichrichter/Relais), Bremswiderstände,
+- **Entscheidung:** 3 × Positioning Drive (Level 1) bei SEW nachfordern. Offen bei SEW: nur noch Level 1. Bremswiderstände legt der Schaltschrankbauer aus,
   Anwendereinheiten/Übersetzung in MOVISUITE (Inbetriebnahme).
 - **Absolutlage nach Netz-Aus:** Die Multiturngeber zählen die Umdrehungen ohne Batterie, die Lage
   bleibt erhalten. Bereich 16 Bit MT = 65 536 Motorumdrehungen. Bedarf: J1 ±3,5 (±120° · 10,58),

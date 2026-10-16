@@ -52,3 +52,30 @@ def test_heta_prototyp_antriebe_in_simulation():
     assert all(d.speed_max <= 6.0 for d in drives.axes.values())  # IMO: max. 1 1/min
     src = build_source(cfg["source"], cfg)
     assert src.backlash.half == pytest.approx(drives.backlash() / 2)
+
+
+def test_synchronfahrt_wie_positioning_drive():
+    """Vorgaben proportional zum Weg, Grenzen je Achse eingehalten, gleiches Profil."""
+    drives = Drives.from_config({"q1": {"speed_limit": 6, "accel_time": 4, "jerk_time": 0.3},
+                                 "q2": {"speed_limit": 6, "accel_time": 2, "jerk_time": 0.3},
+                                 "q3": {"speed_limit": 6, "accel_time": 1.5, "jerk_time": 0.3}})
+    start, target = np.array([0.0, 0.0, 0.0]), np.array([60.0, -30.0, 10.0])
+    m = drives.sync(start, target)
+    d = np.abs(target - start)
+    assert m.speed / d == pytest.approx(np.full(3, m.speed[0] / d[0]))  # proportional
+    assert m.accel / d == pytest.approx(np.full(3, m.accel[0] / d[0]))
+    for k, v, a in zip(("q1", "q2", "q3"), m.speed, m.accel, strict=True):
+        assert v <= drives.axes[k].speed_max + 1e-9 and a <= drives.axes[k].accel + 1e-9
+    assert m.duration == pytest.approx(60 / 6 + 4 + 0.3)  # J1 bestimmt, Ruckzeit kommt dazu
+    assert m.fraction(0) == 0 and m.fraction(m.duration) == pytest.approx(1)
+    u = [m.fraction(t) for t in np.linspace(0, m.duration, 50)]
+    assert np.all(np.diff(u) >= -1e-12)  # stetig vorwärts
+    assert m.fraction(m.duration / 2) == pytest.approx(0.5, abs=0.01)  # symmetrisch
+
+
+def test_synchronfahrt_kurzer_weg_dreieck():
+    drives = Drives.from_config({k: {"speed_limit": 6, "accel_time": 2} for k in ("q1", "q2",
+                                                                                 "q3")})
+    m = drives.sync([0, 0, 0], [3, 1, 0])  # v max wird nicht erreicht
+    assert m.duration == pytest.approx(2 * np.sqrt(3 / 3))
+    assert m.speed[0] < 6

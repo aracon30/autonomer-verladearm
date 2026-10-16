@@ -37,7 +37,8 @@ BACKUP = ANLAGEN.parents[2] / "data" / "sicherung_anlagen"
 TEMPLATES_FALLBACK = {"beispiel", "heta_prototyp", "simulation"}
 SOURCE_FIELDS = ("type", "ip", "frames", "retry_s", "path", "pattern")
 DRIVE_FIELDS = ("motor", "gear", "motor_speed", "ratio", "speed_limit", "accel_time", "backlash",
-                "gravity_preload", "torque", "torque_peak", "brake", "encoder")
+                "gravity_preload", "torque", "torque_peak", "brake", "encoder", "inverter",
+                "jerk_time")
 
 
 def list_files(folder: Path = ANLAGEN) -> list[str]:

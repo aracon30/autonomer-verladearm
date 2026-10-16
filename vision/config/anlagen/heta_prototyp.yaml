@@ -43,42 +43,48 @@ outlet:
 # Antriebe je Achse, Werte am Gelenk (Details und Herleitung: hardware/antriebe.md)
 drives:
   q1:
-    motor: SEW CM3C71S (Servo, Bremse BK1 16 Nm, Multiturngeber AZ2Z, MOVILINK DDI – Angebot 426368452B)
-    gear: P5KG31 i=4 × Ritzel z48 / Zahnkranz z127 (Modul 2) – Konstruktion
+    motor: SEW CM3C71S (Servo, Bremse BK1 16 Nm, MOVILINK DDI)
+    gear: P5KG31 i=4 MD071A × Ritzel z48 / Zahnkranz z127 (Modul 2) – Konstruktion
     motor_speed: 2000
     ratio: 10.58          # 4 × 127/48
     speed_limit: 6        # °/s am Gelenk (Anwendung)
     accel_time: 4         # s, großer Arm-Trägheit wegen sanft
+    jerk_time: 0.3        # s Ruckzeit (Annahme, auf allen Achsen gleich)
     backlash: 0.1         # ° Annahme (Planetengetriebe 5′/2,65 + Zahnflankenspiel m 2)
     torque: 63            # 6,5 Nm × 10,58 × 0,92
-    torque_peak: 190      # 19,5 Nm × 10,58 × 0,92
+    torque_peak: 110      # Umrichter max. 6 A ≈ 11 Nm am Motor (Motor könnte 19,5 Nm ≈ 190 Nm)
     brake: true
-    encoder: Multiturn absolut (angefragt)
+    encoder: AZ2Z Multiturn absolut (MOVILINK DDI)
+    inverter: MOVITRAC advanced MCX91A-0040, MOVIKIT Positioning Drive (Level 1)
   q2:
-    motor: SEW CM3C71S (Servo, Bremse BK1 16 Nm, Multiturngeber AZ2Z, MOVILINK DDI – Angebot 426368452B)
-    gear: P5KG31 i=4 × Ritzel z48 / Zahnkranz z127 (Modul 2) – Konstruktion
+    motor: SEW CM3C71S (Servo, Bremse BK1 16 Nm, MOVILINK DDI)
+    gear: P5KG31 i=4 MD071A × Ritzel z48 / Zahnkranz z127 (Modul 2) – Konstruktion
     motor_speed: 2000
     ratio: 10.58
     speed_limit: 6
     accel_time: 2
+    jerk_time: 0.3
     backlash: 0.1
     torque: 63
-    torque_peak: 190
+    torque_peak: 110
     brake: true
-    encoder: Multiturn absolut (angefragt)
+    encoder: AZ2Z Multiturn absolut (MOVILINK DDI)
+    inverter: MOVITRAC advanced MCX91A-0040, MOVIKIT Positioning Drive (Level 1)
   q3:
-    motor: SEW RF47 DRN80M4/BE05/TF (Asynchron, Bremse 1,8 Nm; Neuer Motor mit Multiturngeber angefragt)
+    motor: SEW RF47 DRN80M4/BE05/DI/KD1/TF/AK8Z (Asynchron, Bremse BE05 1,8 Nm, MOVILINK DDI)
     gear: RF47 i=42,87 × IMO WD-E 0223/3 i=34 (Schnecke)
     motor_speed: 1440
     ratio: 1457.6         # 42,87 × 34
     speed_limit: 6        # IMO: max. 1 1/min am Abtrieb
     accel_time: 1.5
+    jerk_time: 0.3
     backlash: 0.1         # ° Annahme, Verzahnungsspiel bei IMO offen
     gravity_preload: true # Gewicht drückt das Spiel immer auf eine Seite
     torque: 3300          # 215 Nm × 34 × ~0,45
     torque_peak: 4500
     brake: true
-    encoder: Multiturn absolut (angefragt)
+    encoder: AK8Z Multiturn absolut (MOVILINK DDI)
+    inverter: MOVITRAC advanced MCX91A-0025, MOVIKIT Positioning Drive (Level 1)
 
 commissioning:
   workspace_min: [2.6, -0.6, -2.3]

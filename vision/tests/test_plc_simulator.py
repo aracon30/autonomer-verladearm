@@ -92,3 +92,47 @@ def test_bewegung_stoppt_bei_verriegelung():
             await sim.move_to(sim.park, auto=False)
 
     run(scenario())
+
+
+def make_filling_sim(**fill):
+    """Arm steht eingetaucht im Dom; Nachzieh-Tabelle senkrecht über dem Eintauchpunkt."""
+    from verladearm_vision.kinematics import plan_motion
+
+    cfg = load_config(ROOT / "vision" / "config" / "anlagen" / "simulation.yaml")
+    geom = ArmGeometry(**cfg["arm"])
+    var = {n: FakeNode() for n in sim_mod.VARIABLES}
+    rim = -1.6
+    plan = plan_motion(geom, [3100, 0, rim * 1000], [0, 0, 1], insertion_depth=1.1)
+    assert plan["ok"]
+    wps = [geom.to_servo(np.array(q)) for q in plan["q_insert"]]
+    sim = sim_mod.PlcSim(None, var, geom, 25.0, 0.0, time_scale=0.0,
+                         fill={**cfg["filling"], **fill})
+    sim.light_barrier = True
+    sim.rim_z = rim
+    sim.actual = np.array(wps[-1], float)
+    sim.set_table(wps)
+    return sim
+
+
+def test_befuellen_mit_nachziehen_bis_sollmenge(capsys):
+    sim = make_filling_sim()
+    z0 = sim.tip_z()
+    run(sim.fill_tank(interactive=False))
+    out = capsys.readouterr().out
+    assert "Sollmenge" in out and "Nachziehen um" in out and not sim.valve_open
+    f = sim.fill
+    spiegel = sim.rim_z - f["depth_below_rim"] + f["start_level"] + sim.volume / f["chamber_area"]
+    eingetaucht = spiegel - sim.tip_z()
+    assert sim.tip_z() > z0 + 0.3  # Arm wurde nachgezogen
+    assert f["immersion"][0] - 0.02 <= eingetaucht <= f["immersion"][1]  # knapp unter Spiegel
+
+
+def test_ueberfuellsicherung_bei_ausgefallenem_durchflusssensor():
+    sim = make_filling_sim()
+    sim.flow_ok = False
+    with pytest.raises(sim_mod.Abort, match="Überfüllsicherung"):
+        run(sim.fill_tank(interactive=False))
+    assert not sim.valve_open
+    f = sim.fill
+    spiegel = sim.rim_z - f["depth_below_rim"] + f["start_level"] + sim.volume / f["chamber_area"]
+    assert spiegel >= sim.rim_z - f["overfill_below_rim"]

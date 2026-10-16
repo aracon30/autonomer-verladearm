@@ -45,6 +45,18 @@ Rampen, Getriebespiel; Fahrten im Zeitraffer, `ZEITRAFFER=1` für Echtzeit). Liv
 Logs unter `data/logs/`, Beenden mit Strg+C. Eine im Konfigurator angelegte Anlage simulieren:
 `tools/simulation.sh --netz --anlage <name>` (Datei `vision/config/anlagen/<name>.yaml`).
 
+Die Simulation bildet den aktuellen Stand ab (`hardware/antriebe.md`,
+`docs/fuellstand_ueberfuellsicherung.md`):
+- **Antriebe wie MOVIKIT Positioning Drive:** Die SPS gibt jeder Achse Ziel, Geschwindigkeit und
+  Beschleunigung im Verhältnis zu ihrem Weg vor (gleiche Ruckzeit), alle kommen gleichzeitig an.
+  `PROZESSDATEN=1 tools/simulation.sh` schreibt die Vorgaben je Fahrt ins SPS-Log.
+- **Befüllen mit Nachziehen:** Absperrklappe auf, Durchflusssensor zählt die Menge, der Spiegel
+  steigt; der Messstab meldet die Eintauchtiefe, ab 0,20 m zieht die SPS den Arm auf 0,10 m nach.
+  Sollmenge erreicht → Klappe zu, Abtropfen, Rückfahrt. Produkt 1/2 = Unterspiegelbeladung
+  (Annahmen im Abschnitt `filling` von `simulation.yaml`).
+- **Überfüllsicherung:** Schaltpunkt mit fester Länge unter dem Domrand (aufliegende Lanze),
+  schließt die Klappe unabhängig von der Mengenmessung (Test: Befehl `u`).
+
 Selbst bedienen wie an der Anlage statt Dauertest: `tools/simulation.sh --netz --bedienen`.
 Befehle im Terminal (`?` zeigt alle):
 
@@ -52,7 +64,8 @@ Befehle im Terminal (`?` zeigt alle):
 |---|---|
 | `n` | neues Fahrzeug: fährt vor (Lichtschranke belegt), Klapptreppe aus, Dom öffnen, Treppe zurück |
 | `p 1`, `f`, `s` | Produkt wählen, „Fahrzeug bereit“ bestätigen, „Automatisch beladen“ starten |
-| `e` | „Beladung beendet“ → Rückfahrt in die Parkstellung |
+| `e` | Beladung vorzeitig beenden (Klappe zu) → Rückfahrt in die Parkstellung; sonst endet sie bei Sollmenge |
+| `u` | Durchflusssensor fällt aus → Spiegel steigt bis zur Überfüllsicherung (Klappe zu, Störung) |
 | `l`, `t` | Lichtschranke / Klapptreppe umschalten (Verriegelungen testen) |
 | `x` | Stopp |
 | `h` | Handbetrieb: `j 3 +5` tippen, `b 2 -20` Bremse lüften und von Hand schieben (nur J1/J2, J3 gesperrt), `d` Arm wie von Hand in einen Dom führen |

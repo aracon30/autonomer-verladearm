@@ -383,9 +383,13 @@ SEW-Hinweis: „bitte Zubehör und Funktionalität der Umrichter prüfen“.
   v/a/Verzögerung je Achse und gleiche Ruckzeit (siehe `docs/schnittstelle.md`). Das passt zum
   bisherigen Konzept; statt Technologieobjekt „Positionierachse“ steuert die S7 die Umrichter über
   Prozessdaten.
-- **Entscheidung:** 3 × Positioning Drive (Level 1) bei SEW nachfordern. Offen bei SEW: Absolutlage
-  AZ2Z/AK8Z nach Netz-Aus, Ansteuerung BE05 230 V AC (DB00 + Gleichrichter/Relais), Bremswiderstände,
+- **Entscheidung:** 3 × Positioning Drive (Level 1) bei SEW nachfordern. Offen bei SEW: Ansteuerung BE05 230 V AC (DB00 + Gleichrichter/Relais), Bremswiderstände,
   Anwendereinheiten/Übersetzung in MOVISUITE (Inbetriebnahme).
+- **Absolutlage nach Netz-Aus:** Die Multiturngeber zählen die Umdrehungen ohne Batterie, die Lage
+  bleibt erhalten. Bereich 16 Bit MT = 65 536 Motorumdrehungen. Bedarf: J1 ±3,5 (±120° · 10,58),
+  J2 ±4,1, J3 ±182 Umdrehungen (±45° · 1 457,6) → **kein Überlauf**. Nullpunkt bei der Inbetriebnahme
+  einmal per Offset setzen (Betriebsart 301 bzw. Parameter), neu nur nach Motor- oder Geberwechsel
+  oder einem Eingriff an Ritzel/Kupplung.
 
 ### Zahnradpaar J1/J2 anpassen (Überschlag, Zahnfuß vereinfacht nach Lewis/ISO 6336, YFa·YSa)
 

@@ -357,6 +357,19 @@ SEW-Hinweis: „bitte Zubehör und Funktionalität der Umrichter prüfen“.
   230-V-AC-Bremse BE05 an J3, Hybridkabel MOVILINK DDI (SEW-spezifisch) als Option, J1-Servo
   noch mit Sicherheitsgeber angeboten (Änderung auf AZ2Z angefragt).
 
+**Eigene Recherche (16.10.2026, SEW-Dokumentation, nur Suchauszüge):**
+- **Velocity Drive (Level 0)** liefert per PROFINET 5 Prozessdaten: Status, Drehzahl, Fehler,
+  Moment, Eingänge – **keinen Lageistwert**. Für die Positionierachse in der S7-1500 reicht das nicht.
+  **MOVIKIT Positioning Drive** braucht **Applikationslevel 1** und liefert 8 PD mit Istposition.
+  → Bei SEW Level 1 / Positioning Drive (oder PROFIdrive mit Geberistwert) nachfordern.
+- **Bremschopper ist eingebaut** (Typschlüssel „-4-“ = 4-Quadranten mit Bremschopper).
+  Der **Bremswiderstand (BW…) fehlt** im Angebot und muss mitbestellt werden; die Größe legt SEW fest.
+- **CSO = nur STO** (PL d). SBC/sichere Bremse gibt es erst mit CSL/CSS (nicht nötig).
+- **Bremse BE05 an J3:** Der Umrichter kann Bremsen ansteuern (Anschlussbilder BG/BGE/BMK).
+  Welche Variante zu BE05 230 V AC + BG1.5 und zum Motor mit DDI passt, steht nicht in den Auszügen
+  → SEW bestätigen lassen.
+- **Strom J1/J2:** Die eigene Rechnung bleibt gültig (Umrichter 6 A gegenüber Motor 12,2 A).
+
 ### Zahnradpaar J1/J2 anpassen (Überschlag, Zahnfuß vereinfacht nach Lewis/ISO 6336, YFa·YSa)
 
 | Variante | Modul / Breite | Ritzel / Kranz | i_Z | Achsabstand | Gelenk dauernd / Spitze (P5KG31 81/132 Nm) | Zahnfuß Ritzel dauernd / Spitze |

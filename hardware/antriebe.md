@@ -312,6 +312,87 @@ Multiturn-Absolutwertgeber. Anfrage an SEW: `hardware/anfrage_sew_geber_bremse.m
   Positionierung SPS/Umrichter, Temperatur −20 °C (Getriebe −15 °C), Ex-Schutz, Rotorträgheit
   (Datenblatt), Geberdatenblätter.
 
+**Getriebedatenblätter zu Angebot 426368452B (Pos. .100 J1 / .200 J2):**
+
+| | J1: P5KG31-0004/N/S/0 **HN14.01** | J2: P5KG31-0004/N/S/0 **MD071A** |
+|---|---|---|
+| Motoranbau | Klemmring-Adapter (HN), Adapterwelle Ø 24, max. Einstecktiefe 50, Flansch 120 □ / Zentrierung 110 / TK 130 / M8 | Direktanbau MD071A für CM3.71, Adapterwelle Ø 22 |
+| Motor | CM3C71S-20A-**N** (Welle für Adapter) | CM3C71S-20A-**D** (Direktanbau) |
+| Verdrehspiel | **≤ 4′** | ≤ 5′ |
+| Verdrehsteifigkeit | 10,94 Nm/′ | 11,07 Nm/′ |
+| Massenträgheit Getriebe | 1,775·10⁻⁴ kg·m² | 0,883·10⁻⁴ kg·m² |
+| Masse Getriebe / Antrieb gesamt | 4,59 kg / ca. 13 kg | 4,02 kg / ca. 11 kg |
+| gleich | Ma_N 81 Nm, Ma_pk 132 Nm, Not-Halt 185 Nm, η 0,97, −15 … +40 °C, IP65, Abtrieb Ø 22 × 36 | |
+
+**Entscheidung 15.10.2026: kein Sicherheitsgeber.** J1 wird wie J2 ausgeführt (AZ2Z, MD071A) – bei SEW angefragt.
+
+Der andere Adapter an J1 hängt vermutlich am Sicherheitsgeber AK0Z (Motorvariante „N“ statt
+Direktanbau „D“) – bei SEW bestätigen lassen. Folge: J1-Antrieb ist länger und ca. 2 kg schwerer;
+Anbau und Freigängigkeit mit den Maßblättern (Links im Angebot) prüfen.
+
+### SEW-Angebot 426533683 vom 16.10.2026 (J3-Getriebemotor und Umrichter)
+
+| Pos. | Typ | Preis netto | Lieferzeit |
+|---|---|---|---|
+| 01 J3 | **RF47 DRN80M4/BE05/DI/KD1/TF/AK8Z** – wie Referenzmotor (i 42,87, 215 Nm, IM M1, Flansch 140, Welle 30 × 60, BE05 230 V AC, TF, IP55), neu: **Multiturngeber AK8Z** (16 Bit ST + 16 Bit MT) über MOVILINK DDI, Stecker KD1 M23 (Hybrid), Korrosionsschutz OS2, RAL 7031 | 1.754,14 € | 2–3 Wochen |
+| 02 J3 | **MOVITRAC advanced MCX91A-0025-5E3-4-T00/001/DI/CSO/CFN/CMM** – 2,5 A / 0,75 kW, max. 3,75 A | 652,29 € | 1–2 Wochen |
+| 03 J1+J2 | 2 × **MCX91A-0040-5E3-4-T00/001/DI/CSO/CFN/CMM** – 4 A / 1,5 kW, max. 6 A | 2 × 766,44 € | 1–2 Wochen |
+
+Alle Umrichter: PROFINET (CFN), MOVILINK DDI, STO (CSO), Speichermodul CMM11A, EMV-Filter C2,
+24-V-Netzteil integriert, IP20, −10 … +40 °C, **Applikationslevel 0 mit MOVIKIT „Velocity Drive“**.
+SEW-Hinweis: „bitte Zubehör und Funktionalität der Umrichter prüfen“.
+
+**Bewertung:**
+- **J3-Motor passt**: gleiche Bauform und Abtrieb wie bisher → passt an die IMO-Adaption 07975 020.
+  Damit ist der J3-Motor doppelt angefragt (SEW direkt und IMO) – nur einmal bestellen.
+- **Funktion „Velocity Drive“ = Drehzahlregelung.** Die Positionierung muss dann die S7-1500 machen
+  (Positionierachse mit Lageistwert vom Umrichter). Zu klären: Liefert der Umrichter mit diesem
+  MOVIKIT den Absolutwert des Gebers per PROFINET (PROFIdrive-Telegramm mit Geberistwert), oder ist
+  ein höheres Applikationslevel / MOVIKIT (z. B. Positionierung bzw. PROFIdrive) nötig?
+- **Strom J1/J2:** Umrichter max. 6 A, Motor bis 12,2 A (Mpk 19,5 Nm). Spitzenmoment damit grob
+  halbiert (ca. 11 Nm Motor ≈ 110 Nm am Gelenk statt 200 Nm). Für die Beschleunigung reicht das
+  (ca. 45 Nm am Gelenk), die Reserve gegen Wind wird kleiner → größere Leistungsklasse anfragen
+  oder bewusst akzeptieren.
+- **Offen:** Bremswiderstand (J3 senkt, J1 bremst große Trägheit ab), Ansteuerung der
+  230-V-AC-Bremse BE05 an J3, Hybridkabel MOVILINK DDI (SEW-spezifisch) als Option, J1-Servo
+  noch mit Sicherheitsgeber angeboten (Änderung auf AZ2Z angefragt).
+
+**Eigene Recherche (16.10.2026, SEW-Dokumentation, nur Suchauszüge):**
+- **Velocity Drive (Level 0)** liefert per PROFINET 5 Prozessdaten: Status, Drehzahl, Fehler,
+  Moment, Eingänge – **keinen Lageistwert**. Für die Positionierachse in der S7-1500 reicht das nicht.
+  **MOVIKIT Positioning Drive** braucht **Applikationslevel 1** und liefert 8 PD mit Istposition.
+  → Bei SEW Level 1 / Positioning Drive (oder PROFIdrive mit Geberistwert) nachfordern.
+- **Bremschopper ist eingebaut** (Typschlüssel „-4-“ = 4-Quadranten mit Bremschopper).
+  Der **Bremswiderstand (BW…) fehlt** im Angebot und muss mitbestellt werden; die Größe legt SEW fest.
+- **CSO = nur STO** (PL d). SBC/sichere Bremse gibt es erst mit CSL/CSS (nicht nötig).
+- **Bremse BE05 an J3:** Der Umrichter kann Bremsen ansteuern (Anschlussbilder BG/BGE/BMK).
+  Laut Angebotsdetails (S. 4–5): neuer Motor mit Gleichrichter **BMKB1.5** im Klemmenkasten, DDI-Code
+  DI0E00 = Bremsansteuerung motorextern oder umrichterintegriert, Bremsleitungen im Hybridstecker KD1.
+  → Ansteuerung über den Bremsausgang des Umrichters (DB00) möglich, Anschluss nach SEW-Schaltbild
+  (Inbetriebnahme/Schaltschrankbauer).
+- **Strom J1/J2:** Die eigene Rechnung bleibt gültig (Umrichter 6 A gegenüber Motor 12,2 A).
+
+**Auswertung Handbuch „MOVIKIT Positioning Drive, Velocity Drive“ (33350930/DE, 11/2025):**
+- Velocity Drive: 5 PD, nur Drehzahlregelung (Betriebsart 200), **keine Istposition** (Kap. 4.3, 8.2).
+- **Positioning Drive: Applikationslevel 1** (Kap. 3.4), 8 PD: PA Steuerwort, v, a, Verzögerung,
+  Ausgänge, Modus, Zielposition (32 Bit); PE Status, v, Fehler, Moment, Eingänge, Modus,
+  Istposition (32 Bit) in Anwendereinheiten (Kap. 8). Ruckzeit als Zusatz-PD (ms, nur im Stillstand
+  ändern, Kap. 7.2.1).
+- Betriebsart 400 absolut (Ziel auch während der Fahrt änderbar), 402–404 Modulo, 300/301 Referenz mit
+  Offset per Parameter bzw. Feldbus, Software-Endschalter (Fehler E19.02), Bremsausgang DB00,
+  Bremsentest FCB 21, TIA-Beispielprojekt im SEW-Online-Support (Suchbegriff „Movikit“).
+- Keine Mehrachskoordination im Umrichter → **Synchronfahrt macht die SPS** durch Skalieren von
+  v/a/Verzögerung je Achse und gleiche Ruckzeit (siehe `docs/schnittstelle.md`). Das passt zum
+  bisherigen Konzept; statt Technologieobjekt „Positionierachse“ steuert die S7 die Umrichter über
+  Prozessdaten.
+- **Entscheidung:** 3 × Positioning Drive (Level 1) bei SEW nachfordern. Offen bei SEW: nur noch Level 1. Bremswiderstände legt der Schaltschrankbauer aus,
+  Anwendereinheiten/Übersetzung in MOVISUITE (Inbetriebnahme).
+- **Absolutlage nach Netz-Aus:** Die Multiturngeber zählen die Umdrehungen ohne Batterie, die Lage
+  bleibt erhalten. Bereich 16 Bit MT = 65 536 Motorumdrehungen. Bedarf: J1 ±3,5 (±120° · 10,58),
+  J2 ±4,1, J3 ±182 Umdrehungen (±45° · 1 457,6) → **kein Überlauf**. Nullpunkt bei der Inbetriebnahme
+  einmal per Offset setzen (Betriebsart 301 bzw. Parameter), neu nur nach Motor- oder Geberwechsel
+  oder einem Eingriff an Ritzel/Kupplung.
+
 ### Zahnradpaar J1/J2 anpassen (Überschlag, Zahnfuß vereinfacht nach Lewis/ISO 6336, YFa·YSa)
 
 | Variante | Modul / Breite | Ritzel / Kranz | i_Z | Achsabstand | Gelenk dauernd / Spitze (P5KG31 81/132 Nm) | Zahnfuß Ritzel dauernd / Spitze |

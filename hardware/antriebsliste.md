@@ -7,11 +7,11 @@ ergänzen.
 | | J1 – Drehen am Haltepunkt | J2 – Drehen am Fallrohr | J3 – Ausleger heben/senken |
 |---|---|---|---|
 | Motor | SEW **CM3C71S** Synchron-Servo, 400 V, M0 6,5 Nm, Mpk 19,5 Nm, I0 3,5 A, Imax 12,2 A, nN 2000 1/min, Nennstrom 3,32 A, S9, PK (PT1000), Einkabeltechnik MOVILINK DDI, Hybridstecker SD1 M23 (SEW-Hybridkabel) | wie J1 | SEW **DRN80M4** Drehstrom-Asynchronmotor (Bestand), 0,75 kW, 400 V Y, 1,75 A, 1440 1/min, IE3, TF |
-| Getriebe | Planetengetriebe **P5KG31 i = 4** (Verdrehspiel 5′) + Ritzel z 48 / Zahnkranz z 127, Modul 2 → **i = 10,58** | wie J1 | Stirnradgetriebe **RF47 i = 42,87** + Schwenkantrieb **IMO WD-E 0223/3**, Schnecke i = 34 → **i = 1457,6** |
-| Bremse | BK1 24 V DC, 16 Nm, 0,72 A (Angebot 426368452B) | wie J1 | **BE05**, 230 V AC, 1,8 Nm, Gleichrichter BG1.5 (vorhanden) |
-| Geber | **AK0Z** Multiturn-Sicherheitsgeber (SIL 2/PL d, sichere Auswertung CS..A) über MOVILINK DDI | **AZ2Z** Multiturngeber über MOVILINK DDI (nicht sicherheitsgerichtet) | Multiturn-Absolutwertgeber nachrüsten – **angefragt** |
-| Umrichter | SEW **MOVI-C** (wegen MOVILINK DDI) mit Geberauswertung, **PROFINET** (bzw. EtherCAT bei Beckhoff), **STO**, Bremsenansteuerung – **angefragt** | wie J1 | wie J1; bisher MOVITRAC classic MCC91A-0032-5E3-4 (ohne Geberauswertung, entfällt bzw. Ersatz) |
-| Ansteuerung | Positionierachse (Technologieobjekt), synchron mit J2/J3 | wie J1 | wie J1 |
+| Getriebe | Planetengetriebe **P5KG31 i = 4**, Direktanbau MD071A (Verdrehspiel 5′) + Ritzel z 48 / Zahnkranz z 127, Modul 2 → **i = 10,58** | wie J1 | Stirnradgetriebe **RF47 i = 42,87** + Schwenkantrieb **IMO WD-E 0223/3**, Schnecke i = 34 → **i = 1457,6** |
+| Bremse | BK1 24 V DC, 16 Nm, 0,72 A (Angebot 426368452B) | wie J1 | **BE05**, 230 V AC, 1,8 Nm, Gleichrichter **BMKB1.5** (neuer Motor), Bremsleitungen im Hybridstecker KD1 (M23, Intercontec 723), Ansteuerung über Umrichter (DB00) |
+| Geber | **AZ2Z** Multiturngeber über MOVILINK DDI (wie J2, kein Sicherheitsgeber – Entscheidung 15.10.2026) | **AZ2Z** Multiturngeber über MOVILINK DDI | **AK8Z** Multiturngeber über MOVILINK DDI (neuer Motor RF47 DRN80M4/BE05/DI/KD1/TF/AK8Z, Angebot 426533683) |
+| Umrichter | SEW **MOVITRAC advanced MCX91A-0040** (4 A, max. 6 A), PROFINET, STO, MOVILINK DDI, Angebot 426533683; **MOVIKIT Positioning Drive (Applikationslevel 1) nötig** – nachgefordert. Ansteuerung über 8 PD (Zielposition, v, a, Istposition), Synchronfahrt koordiniert die SPS, Bremswiderstand BW extra | wie J1 | **MCX91A-0025** (2,5 A), sonst wie J1; ersetzt MOVITRAC classic |
+| Ansteuerung | Positionierung im Umrichter (MOVIKIT Positioning Drive), SPS gibt Ziel und skalierte v/a vor, synchron mit J2/J3 | wie J1 | wie J1 |
 | Drehbereich am Gelenk | −120 … +120° (verzahnt ca. 296°) | −140 … +140° | −45 … +45° |
 | Geschwindigkeit am Gelenk | max. 6 °/s, Rampe ca. 4 s | max. 6 °/s, Rampe ca. 2 s | max. 6 °/s (IMO: 1 1/min), Rampe ca. 1,5 s |
 | Moment am Gelenk | ca. 67 Nm dauernd / 200 Nm Spitze (Motor begrenzt, Getriebe 81/132 Nm, Not-Halt 185 Nm am Getriebe) | wie J1 | ca. 3,3 kNm dauernd (IMO Md max 9,5 kNm) |
@@ -20,6 +20,15 @@ ergänzen.
 
 **Umgebung:** im Freien, −20 … +40 °C, Motoren IP65 bzw. IP55 (J3). Explosionsschutz: laut Kunde (BASF,
 15.10.2026) **keine Ex-Zone** an der Verladestelle.
+
+**Bremswiderstände (Auslegung Schaltschrankbauer):** Bremschopper ist im MOVITRAC advanced eingebaut,
+Widerstände BW… sind nicht im SEW-Angebot. Überschlag HETA zur Bremsenergie:
+- J1: ½ · 1 700 kg·m² · (0,105 rad/s)² ≈ **10 J** je Bremsung; J2 ≈ **3 J**. Das ist sehr wenig, aber bei
+  Not-Halt und Wind kommt mehr zusammen → kleiner Widerstand je Achse.
+- J3: Beim Absenken bremst der Motor die Last **dauerhaft**: ca. 3,3 kNm · 0,105 rad/s ≈ 350 W am
+  Gelenk, nach Verlusten in Schnecke und Getriebe deutlich weniger (Größenordnung 100–200 W).
+  Absenkzeit ca. 15 s → Widerstand nötig.
+- Mindestwiderstand je Umrichtergröße laut SEW-Betriebsanleitung beachten.
 
 **Weitere Antriebe / Aktoren im Schaltschrankumfang:**
 - Absperrklappe in der Fallleitung (DN 100) mit Antrieb und Stellungsrückmeldung – Typ offen

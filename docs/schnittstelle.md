@@ -63,6 +63,15 @@ Begründung: [ADR 0002](adr/0002-gelenkwinkel-vom-pc.md).
 Die Anfahrt zwischen zwei Stützpunkten ist als **synchrone Gelenkbewegung** geplant: Alle Achsen
 starten und erreichen den Stützpunkt gleichzeitig. Nur so stimmt die gefahrene Bahn mit der
 kollisionsgeprüften Bahn überein. Stützpunkte nach `ApproachIndex` mit reduzierter Dynamik fahren.
+
+**Umsetzung mit SEW MOVIKIT Positioning Drive** (Umrichter positioniert, SPS koordiniert): Die SPS
+rechnet je Stützpunkt die Fahrzeit T der langsamsten Achse und gibt jeder Achse Geschwindigkeit,
+Beschleunigung und Verzögerung **proportional zu ihrem Weg** vor (PA 2–4), dazu die Zielposition
+(PA 7/8, Betriebsart 400), und startet alle drei Achsen im selben SPS-Zyklus. Die Ruckzeit ist in ms
+angegeben und für alle Achsen **gleich** (nur im Stillstand änderbar) – dann haben alle Achsen
+dasselbe normierte Profil und die Bewegung ist eine Gerade im Gelenkraum. Am Stützpunkt kurz
+anhalten bzw. auf „Position erreicht“ aller Achsen warten; Zielwechsel während der Fahrt verlässt
+die geprüfte Gerade. Restabweichung durch Startversatz (ein Buszyklus) deckt der Mindestabstand ab.
 Tankkörper, Domkragen und offener Deckel werden in Job 1 gemessen und gelten für alle Bahnen bis
 zur Rückfahrt (Details: `docs/kinematik.md`). Umwege brauchen mehr Stützpunkte (höchstens 16).
 

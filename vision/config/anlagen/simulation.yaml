@@ -9,3 +9,23 @@ source:
 
 plc:
   url: opc.tcp://127.0.0.1:4840/       # tools/plc_simulator.py
+
+# Befüllung mit Nachziehen und Überfüllsicherung (docs/fuellstand_ueberfuellsicherung.md).
+# Annahmen für den SPS-Simulator; an der Anlage liegen diese Werte in der SPS bzw. kommen vom PLS.
+filling:
+  flow: 60                # m³/h Durchfluss (Durchflusssensor)
+  chamber_area: 5.0       # m² mittlere Spiegelfläche der Tankkammer (Annahme)
+  depth_below_rim: 2.3    # m Tankboden unter Domrand
+  start_level: 0.05       # m Restmenge über dem Boden
+  target_volume: 8.5      # m³ Sollmenge -> Absperrklappe zu
+  immersion: [0.10, 0.20] # m Auslass unter dem Spiegel: ab 0,20 auf 0,10 nachziehen
+  overfill_below_rim: 0.40  # m Schaltpunkt Überfüllsicherung (Länge L der aufliegenden Lanze)
+  speedup: 10             # Simulation: Befüllung zusätzlich zum Zeitraffer schneller zeigen
+
+products:
+  # Eintauchtiefe unter Domrand je ProductId; Unterspiegelbeladung = tief eintauchen (Annahme,
+  # Vorgabe BASF offen). Grenze heute: Referenzflansch 0,82 m über dem Auslassende passt nicht
+  # durch kleine Öffnungen (Ø < ca. 300 mm) – tiefer nur bei großen Domen (Produkt 1)
+  default: {insertion_depth: 0.4}
+  1: {name: Unterspiegel tief, insertion_depth: 1.1}
+  2: {name: Unterspiegel, insertion_depth: 0.75}

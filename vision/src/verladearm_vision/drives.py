@@ -2,8 +2,13 @@
 
 Aus der Anlagendatei (Abschnitt `drives`, Werte am Gelenk, siehe hardware/antriebe.md). Genutzt
 von SPS-Simulator (Fahrzeiten, synchrones Fahren), simuliertem Sensor (Getriebespiel) und
-Inbetriebnahmeprüfung (Übersicht, Fahrzeiten). Die echte Achsregelung liegt in SPS/Umrichter;
-diese Werte sind dort als Grenzen der Technologieobjekte einzustellen.
+Inbetriebnahmeprüfung (Übersicht, Fahrzeiten). Die echte Achsregelung liegt in SPS/Umrichter.
+
+Synchronfahrt wie mit SEW MOVIKIT Positioning Drive (docs/schnittstelle.md): Jeder Umrichter
+positioniert seine Achse selbst (Trapezprofil, Ruckzeit); die SPS gibt je Stützpunkt Zielposition,
+Geschwindigkeit und Beschleunigung **im Verhältnis zum Weg der Achse** vor und startet alle Achsen
+gleichzeitig. Mit gleicher Ruckzeit auf allen Achsen haben alle dasselbe normierte Profil – die
+Bewegung ist eine Gerade im Gelenkraum, wie sie der PC auf Kollision geprüft hat.
 """
 
 from dataclasses import dataclass, field
@@ -27,6 +32,8 @@ class Drive:
     torque_peak: float | None = None  # Spitzenmoment am Gelenk [Nm] (nur Anzeige)
     brake: bool = False
     encoder: str = ""
+    inverter: str = ""  # Umrichter und MOVIKIT (nur Anzeige)
+    jerk_time: float = 0.0  # Ruckzeit des Umrichters [s], auf allen Achsen gleich einstellen
 
     @property
     def speed_max(self) -> float:
@@ -46,8 +53,37 @@ class Drive:
         if d == 0:
             return 0.0
         if d <= v * v / a:  # Höchstgeschwindigkeit wird nicht erreicht
-            return 2.0 * np.sqrt(d / a)
-        return d / v + v / a
+            return 2.0 * np.sqrt(d / a) + self.jerk_time
+        return d / v + v / a + self.jerk_time
+
+
+@dataclass
+class Motion:
+    """Synchrone Fahrt zu einem Stützpunkt: Vorgaben je Achse an die Umrichter und Profil."""
+
+    duration: float  # Fahrzeit [s] samt Ruckzeit
+    ramp: float  # Rampenzeit [s] (Beschleunigen bzw. Bremsen, ohne Ruck)
+    jerk_time: float  # Ruckzeit [s]
+    target: np.ndarray  # Zielposition je Achse [°]
+    speed: np.ndarray  # Sollgeschwindigkeit je Achse [°/s]
+    accel: np.ndarray  # Sollbeschleunigung = Sollverzögerung je Achse [°/s²]
+
+    def fraction(self, t: float) -> float:
+        """Zurückgelegter Anteil des Wegs 0…1 nach t Sekunden (für alle Achsen gleich)."""
+        if self.duration <= 0:
+            return 1.0
+        if not hasattr(self, "_grid"):
+            t0 = self.duration - self.jerk_time  # Trapez ohne Ruck
+            n = 800
+            ts = np.linspace(0, self.duration, n)
+            ramp = max(self.ramp, 1e-6)
+            v = np.clip(np.minimum(ts, t0 - ts) / ramp, 0, 1)  # Trapez, normiert
+            if self.jerk_time > 0:  # Ruckbegrenzung: Geschwindigkeit über die Ruckzeit geglättet
+                w = max(int(self.jerk_time / self.duration * n), 1)
+                v = np.convolve(v, np.ones(w) / w)[:n]
+            s = np.cumsum(v)
+            self._grid = (ts, s / s[-1] if s[-1] > 0 else ts / self.duration)
+        return float(np.interp(t, *self._grid))
 
 
 @dataclass
@@ -64,12 +100,31 @@ class Drives:
     def configured(self) -> bool:
         return any(d.motor_speed or d.speed_limit for d in self.axes.values())
 
+    def sync(self, start_deg, target_deg, speed_factor: float = 1.0) -> Motion:
+        """Synchrone Fahrt: kürzeste gemeinsame Fahrzeit, in der jede Achse ihre Grenzen
+        einhält. Alle Achsen bekommen dieselbe Rampenzeit; Geschwindigkeit und Beschleunigung
+        sind proportional zum Weg (Vorgaben PA 2–4 an MOVIKIT Positioning Drive)."""
+        start, target = np.asarray(start_deg, float), np.asarray(target_deg, float)
+        d = np.abs(target - start)
+        ax = [self.axes[k] for k in JOINTS]
+        vmax = np.array([a.speed_max * speed_factor for a in ax])
+        amax = np.array([a.accel for a in ax])
+        jerk = max(a.jerk_time for a in ax)
+        cruise = float(np.max(d / vmax))  # Zeit ohne Rampen, langsamste Achse
+        push = float(np.max(d / amax))  # Weg/Beschleunigung, langsamste Achse
+        if push == 0:
+            return Motion(0.0, 0.0, 0.0, target, np.zeros(3), np.zeros(3))
+        if np.sqrt(push) >= cruise:  # Dreieck: Höchstgeschwindigkeit wird nicht erreicht
+            cruise = ramp = float(np.sqrt(push))
+        else:
+            ramp = push / cruise
+        speed = d / cruise
+        return Motion(cruise + ramp + jerk, ramp, jerk, target, speed, speed / ramp)
+
     def sync_time(self, start_deg, target_deg, speed_factor: float = 1.0) -> float:
         """Gemeinsame Fahrzeit: die langsamste Achse bestimmt, die anderen werden angepasst,
         damit alle gleichzeitig ankommen (so fährt die SPS die Stützpunkte)."""
-        delta = np.asarray(target_deg, float) - np.asarray(start_deg, float)
-        return max(self.axes[k].move_time(d, speed_factor) for k, d in zip(JOINTS, delta,
-                                                                          strict=True))
+        return self.sync(start_deg, target_deg, speed_factor).duration
 
     def backlash(self) -> np.ndarray:
         return np.array([self.axes[k].backlash for k in JOINTS])

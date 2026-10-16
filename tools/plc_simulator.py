@@ -2,10 +2,19 @@
 
 Ablauf je Verladung wie im echten SPS-Programm vorgesehen (docs/schnittstelle.md):
 Job 1 (messen, planen) -> Fahrt bis über den Dom -> Job 2 (nachmessen, korrigieren) ->
-Eintauchen -> Beladung -> Job 3 (Rückfahrt planen) -> Park.
-Achsen fahren synchron mit weichem Anfahren und Bremsen; die Istwinkel gehen an den PC zurück.
-Mit Abschnitt `drives` in der Anlagendatei gelten die Geschwindigkeiten und Rampen der echten
-Antriebe (Motor, Übersetzung, Grenzen); die langsamste Achse bestimmt die Fahrzeit je Stützpunkt.
+Eintauchen -> Befüllen mit Nachziehen -> Job 3 (Rückfahrt planen) -> Park.
+Achsen fahren synchron; die Istwinkel gehen an den PC zurück.
+Mit Abschnitt `drives` in der Anlagendatei fährt jede Achse wie mit SEW MOVIKIT Positioning
+Drive: Die SPS gibt je Stützpunkt Zielposition, Geschwindigkeit und Beschleunigung im Verhältnis
+zum Weg vor (gleiche Ruckzeit), die langsamste Achse bestimmt die Fahrzeit (`--prozessdaten`
+zeigt die Vorgaben je Achse).
+
+Befüllen (Abschnitt `filling`, docs/fuellstand_ueberfuellsicherung.md): Absperrklappe auf, der
+Durchflusssensor zählt die Menge, der Spiegel steigt. Der Messstab an der Lanze meldet, wie tief
+der Auslass eingetaucht ist; ab der oberen Grenze zieht die SPS den Arm senkrecht nach (entlang
+der Eintauch-Stützpunkte aus Job 2). Sollmenge erreicht -> Klappe zu, Abtropfen, Rückfahrt.
+Die Überfüllsicherung an der aufliegenden Lanze (feste Länge unter dem Domrand) schließt die
+Klappe unabhängig davon (Test: Befehl `u`, Durchflusssensor fällt aus).
 
 Zwei Betriebsarten des Simulators:
 - Dauertest (Standard): Verladung auf Verladung ohne Bediener.
@@ -28,13 +37,18 @@ from asyncua import Server, ua
 
 from verladearm_vision.config import load_config
 from verladearm_vision.drives import Drives, profile
-from verladearm_vision.kinematics import JOINTS, ArmGeometry, pick, plan_motion
+from verladearm_vision.kinematics import JOINTS, ArmGeometry, pick, plan_motion, tip
 from verladearm_vision.plc import VARIABLES
 
 NS_URI = "http://www.siemens.com/simatic-s7-opcua"
 STATUS_NODE = '"Simulator"."Bedienstatus"'  # nur im Simulator: Anzeige im Live-Viewer
 JOG_FACTOR = 0.2  # Tippen im Handbetrieb mit reduzierter Geschwindigkeit
 HAND_SPEED = 2.0  # °/s, Arm von Hand geschoben (Bremse gelüftet)
+FILL_STEP = 2.0  # s Befüllzeit je Rechenschritt
+# Befüllung, falls die Anlagendatei keinen Abschnitt `filling` hat (Werte siehe simulation.yaml)
+FILL_DEFAULTS = dict(flow=60.0, chamber_area=5.0, depth_below_rim=2.3, start_level=0.05,
+                     target_volume=8.5, immersion=(0.10, 0.20), overfill_below_rim=0.40,
+                     speedup=10.0)
 
 HELP = """Befehle (Eingabe + Enter):
   n              neues Fahrzeug: fährt vor, Klapptreppe aus, Dom öffnen, Treppe zurück
@@ -43,7 +57,8 @@ HELP = """Befehle (Eingabe + Enter):
   p <nr>         Produkt wählen (Eintauchtiefe), z. B. p 1
   f              „Fahrzeug bereit“ bestätigen
   s              Start „Automatisch beladen“
-  e              „Beladung beendet“ -> Arm fährt in die Parkstellung
+  e              Beladung vorzeitig beenden (Klappe zu) -> Arm fährt in die Parkstellung
+  u              Durchflusssensor fällt aus (Test Überfüllsicherung)
   x              Stopp (Bewegung anhalten)
   h              Betriebsart Hand / Automatik umschalten
   j <achse> <°>  Hand: Achse tippen, z. B. j 3 +5
@@ -64,12 +79,20 @@ def default_value(vtype, length):
 
 class PlcSim:
     def __init__(self, server, var, geom: ArmGeometry, speed: float, interval: float,
-                 drives: Drives | None = None, time_scale: float = 1.0):
+                 drives: Drives | None = None, time_scale: float = 1.0, fill: dict | None = None,
+                 show_pd: bool = False):
         self.server, self.var, self.geom = server, var, geom
         self.speed, self.interval = speed, interval
         self.drives = drives if drives and drives.configured else None
         self.time_scale = time_scale  # < 1: schneller als Echtzeit (nur Anzeige)
         self.moved = 0.0  # Fahrzeit der laufenden Verladung [s, Echtzeit der Antriebe]
+        self.show_pd = show_pd  # Vorgaben an die Umrichter je Fahrt ausgeben
+        self.fill = {**FILL_DEFAULTS, **(fill or {})}
+        self.flow_ok = True  # Durchflusssensor in Ordnung
+        self.valve_open = False  # Absperrklappe
+        self.volume = 0.0  # Menge laut Durchflusssensor [m³]
+        self.rim_z = None  # Domrand aus Job 1 [m, Armbasis]
+        self.table = None  # Eintauch-Stützpunkte aus Job 2 (Servo-Grad) und Höhe des Auslasses
         self.park = np.array([geom.joints[k].park for k in JOINTS], dtype=float)
         self.actual = self.park.copy()
         self.product = 0
@@ -128,10 +151,14 @@ class PlcSim:
         target = np.clip(target, lo, hi)  # Software-Endlagen
         start = self.actual.copy()
         factor = factor or (0.3 if slow else 1.0)  # Eintauchen und Herausfahren langsam
+        motion = None
         if hand_speed:
             duration = max(np.abs(target - start).max() / hand_speed, 0.2)
-        elif self.drives:  # echte Antriebe: langsamste Achse bestimmt, alle kommen gleichzeitig an
-            duration = max(self.drives.sync_time(start, target, factor), 0.2)
+        elif self.drives:  # wie Positioning Drive: alle Achsen kommen gleichzeitig an
+            motion = self.drives.sync(start, target, factor)
+            duration = max(motion.duration, 0.2)
+            if self.show_pd:
+                self.print_pd(motion)
         else:
             duration = max(np.abs(target - start).max() / (self.speed * factor) * 1.5, 0.2)
         self.moved += duration
@@ -141,9 +168,91 @@ class PlcSim:
             if reason := self.interlock(auto):
                 await self.publish_actual()
                 raise Abort(reason)
-            self.actual = start + (target - start) * profile(i / steps)
+            u = motion.fraction(duration * i / steps) if motion else profile(i / steps)
+            self.actual = start + (target - start) * u
             await self.publish_actual()
             await asyncio.sleep(shown / steps)
+        return duration
+
+    def print_pd(self, motion):
+        """Vorgaben an die Umrichter (MOVIKIT Positioning Drive, PA 2–4 und 7/8)."""
+        parts = []
+        for k, label, t, v, a in zip(JOINTS, ("J1", "J2", "J3"), motion.target, motion.speed,
+                                     motion.accel, strict=True):
+            n = v * self.drives.axes[k].ratio / 6.0  # Motordrehzahl [1/min]
+            parts.append(f"{label} Ziel {t:7.2f}° v {v:5.2f} °/s ({n:5.0f} 1/min) a {a:5.2f} °/s²")
+        print(f"  PD {motion.duration:5.1f} s, Ruck {motion.jerk_time * 1000:.0f} ms | "
+              + " | ".join(parts))
+
+    # --- Befüllen ------------------------------------------------------------------------------
+    def tip_z(self) -> float:
+        """Höhe des Auslassendes [m] aus den Istwinkeln (Vorwärtsrechnung)."""
+        q = [self.geom.joints[k].to_model(v) for k, v in zip(JOINTS, self.actual, strict=True)]
+        return float(tip(self.geom, np.array(q))[2])
+
+    def set_table(self, wps):
+        """Nachzieh-Tabelle: Eintauch-Stützpunkte aus Job 2 mit Höhe des Auslassendes."""
+        z = []
+        for wp in wps:
+            q = [self.geom.joints[k].to_model(v) for k, v in zip(JOINTS, wp, strict=True)]
+            z.append(float(tip(self.geom, np.array(q))[2]))
+        order = np.argsort(z)
+        self.table = (np.asarray(wps, float)[order], np.asarray(z)[order])
+
+    def table_at(self, z: float):
+        """Servowinkel, mit denen der Auslass senkrecht über dem Eintauchpunkt auf Höhe z steht
+        (zwischen den Stützpunkten linear im Gelenkraum); None über dem Anfahrpunkt."""
+        wps, heights = self.table
+        if z > heights[-1] + 1e-3:
+            return None
+        return np.array([np.interp(z, heights, wps[:, j]) for j in range(3)])
+
+    async def fill_tank(self, interactive: bool):
+        """Befüllen mit Nachziehen; Ende über Sollmenge, Überfüllsicherung unabhängig davon."""
+        f = self.fill
+        rim = self.rim_z
+        base = rim - f["depth_below_rim"] + f["start_level"]  # Spiegel zu Beginn
+        lo, hi = f["immersion"]
+        switch = rim - f["overfill_below_rim"]  # Schaltpunkt der Überfüllsicherung
+        self.volume, self.valve_open = 0.0, True
+        print("  Absperrklappe AUF")
+
+        def level():
+            return base + self.volume / f["chamber_area"]
+
+        try:
+            while True:
+                if self.stop:
+                    raise Abort("Stopp gedrückt")
+                if interactive and self.loading_done.is_set():
+                    print("  Beladung von Hand beendet")
+                    break
+                self.volume += f["flow"] / 3600 * FILL_STEP
+                spiegel = level()
+                immersion = max(spiegel - self.tip_z(), 0.0)  # Messstab: benetzte Länge
+                if spiegel >= switch:
+                    raise Abort(f"Überfüllsicherung ausgelöst ({rim - spiegel:.2f} m unter "
+                                "Domrand) – Klappe zu")
+                if self.flow_ok and self.volume >= f["target_volume"]:
+                    print(f"  Sollmenge {f['target_volume']:g} m³ erreicht")
+                    break
+                if immersion > hi:  # nachziehen, Auslass bleibt knapp unter dem Spiegel
+                    target = self.table_at(spiegel - lo)
+                    if target is None:
+                        raise Abort("Nachziehen am Anfahrpunkt angekommen – Klappe zu")
+                    z0 = self.tip_z()
+                    t = await self.move_to(target, slow=True)
+                    self.volume += f["flow"] / 3600 * t  # Klappe bleibt beim Nachziehen auf
+                    print(f"  Nachziehen um {(self.tip_z() - z0) * 1000:.0f} mm "
+                          f"(Spiegel {rim - level():.2f} m unter Domrand)")
+                self.phase = (f"Beladung läuft: {self.volume:.1f} / {f['target_volume']:g} m³, "
+                              f"Spiegel {rim - spiegel:.2f} m unter Domrand, Auslass "
+                              f"{immersion * 1000:.0f} mm eingetaucht"
+                              + ("" if self.flow_ok else " – DURCHFLUSSSENSOR AUSGEFALLEN"))
+                await asyncio.sleep(FILL_STEP * self.time_scale / f["speedup"])
+        finally:
+            self.valve_open = False
+            print(f"  Absperrklappe ZU ({self.volume:.2f} m³)")
 
     async def job(self, job: int):
         """Auftrag an den Vision-PC, Handshake nach docs/schnittstelle.md."""
@@ -215,6 +324,7 @@ class PlcSim:
                 return await self.fault(f"Job 1: {err}")
             wps, out = res
             a = out["ApproachIndex"]
+            self.rim_z = out["TargetZ"] / 1000.0
             print(f"  Dom bei {out['TargetX']:.0f} / {out['TargetY']:.0f} / "
                   f"{out['TargetZ']:.0f} mm, {len(wps)} Stützpunkte, über Dom = Nr. {a}")
             await self.write("ArmState", 1)
@@ -235,14 +345,14 @@ class PlcSim:
                 await self.move_to(wps[0])
                 for wp in wps[1:]:
                     await self.move_to(wp, slow=True)
+                self.set_table(wps)
                 await self.write("ArmState", 3)
-                if interactive:
-                    self.loading_done.clear()
-                    self.set_phase("Beladung läuft – nach Ende: e")
-                    await self.loading_done.wait()
-                else:
-                    self.set_phase("Beladung (simuliert) ...")
-                    await asyncio.sleep(2.0)
+                self.loading_done.clear()
+                self.set_phase("Beladung läuft" + (" – vorzeitig beenden: e" if interactive
+                                                   else ""))
+                await self.fill_tank(interactive)
+                self.set_phase("Abtropfen")
+                await asyncio.sleep(2.0 * self.time_scale)
             await self.park_auto()
         except Abort as e:
             await self.fault(str(e))
@@ -338,6 +448,10 @@ class PlcSim:
                 self.loading_done.set()
             else:
                 print("Keine Beladung aktiv")
+        elif cmd == "u":
+            self.flow_ok = not self.flow_ok
+            print("Durchflusssensor " + ("in Ordnung" if self.flow_ok else
+                                         "AUSGEFALLEN – Sollmenge wird nicht erkannt"))
         elif cmd == "l":
             self.light_barrier = not self.light_barrier
             print(f"Lichtschranke {'belegt' if self.light_barrier else 'frei'}")
@@ -469,7 +583,8 @@ async def main(args):
                                         ua.Variant("", ua.VariantType.String))
     async with server:
         print(f"SPS-Simulator läuft auf opc.tcp://127.0.0.1:{args.port}/ (Strg+C beendet)")
-        sim = PlcSim(server, var, geom, args.speed, args.interval, drives, args.zeitraffer)
+        sim = PlcSim(server, var, geom, args.speed, args.interval, drives, args.zeitraffer,
+                     fill=cfg.get("filling"), show_pd=args.prozessdaten)
         sim.status_node = status
         await sim.run(interactive=args.bedienen)
 
@@ -483,6 +598,8 @@ if __name__ == "__main__":
     p.add_argument("--zeitraffer", type=float, default=1.0,
                    help="Fahrten schneller zeigen, z. B. 0.25 = vierfach (Fahrzeit bleibt echt)")
     p.add_argument("--port", type=int, default=4840)
+    p.add_argument("--prozessdaten", action="store_true",
+                   help="Vorgaben an die Umrichter (Ziel, v, a) je Fahrt ausgeben")
     p.add_argument("--bedienen", action="store_true",
                    help="Bedienung über Befehle im Terminal statt Dauertest (? = Hilfe)")
     logging.basicConfig(level=logging.ERROR)

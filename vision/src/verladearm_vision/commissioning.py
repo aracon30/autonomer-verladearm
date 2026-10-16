@@ -123,6 +123,13 @@ def drive_report(cfg: dict, geom: ArmGeometry, depth: float, w):
         torque = f"{d.torque:g} / {d.torque_peak:g}" if d.torque and d.torque_peak else "–"
         w(f"| {label} | {d.motor or '–'} | {d.gear or '–'} | {d.ratio:g} | {d.speed_max:.1f} "
           f"| {d.accel_time:g} | {d.backlash:g} | {torque} | {'ja' if d.brake else '**nein**'} |\n")
+    inverters = {k: d.inverter for k, d in drives.axes.items() if d.inverter}
+    if inverters:
+        w("\n" + "".join(f"- Umrichter {k.replace('q', 'J')}: {v}\n" for k, v in inverters.items()))
+    jerk = {d.jerk_time for d in drives.axes.values()}
+    if len(jerk) > 1:
+        w(f"- ⚠️ Ruckzeit nicht auf allen Achsen gleich ({sorted(jerk)} s) – synchrone Fahrt "
+          "weicht von der geprüften Bahn ab\n")
     c = cfg.get("commissioning", {})
     center = (np.asarray(c["workspace_min"], float) + np.asarray(c["workspace_max"], float)) / 2
     plan = plan_motion(geom, center * 1000, [0, 0, 1], insertion_depth=depth)

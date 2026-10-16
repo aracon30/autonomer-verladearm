@@ -11,6 +11,12 @@
 #                                       statt Dauertest (Verladung auf Verladung)
 #   PORT=8080 tools/simulation.sh       anderer Port für die Live-Ansicht
 #   ZEITRAFFER=1 tools/simulation.sh    Achsen in Echtzeit (Standard 0.25 = vierfach schneller)
+#   PROZESSDATEN=1 tools/simulation.sh  Vorgaben an die Umrichter je Fahrt im SPS-Log
+#                                       (Ziel, Geschwindigkeit, Beschleunigung wie MOVIKIT
+#                                       Positioning Drive)
+#
+# Befüllen mit Nachziehen, Durchflussmenge und Überfüllsicherung: Abschnitt `filling` in
+# vision/config/anlagen/simulation.yaml (Produkt 1/2 = Unterspiegelbeladung).
 #
 # Der HETA-Prototyp fährt mit den Geschwindigkeiten und Rampen seiner Antriebe
 # (vision/config/anlagen/heta_prototyp.yaml, Abschnitt drives).
@@ -76,6 +82,7 @@ cleanup() { trap - EXIT INT TERM; echo; echo "Stoppe Simulation ..."; kill "${pi
 trap cleanup EXIT INT TERM
 
 SPS_ARGS=(tools/plc_simulator.py --config "$CONFIG" --zeitraffer "$ZEITRAFFER")
+[[ "${PROZESSDATEN:-0}" == 1 ]] && SPS_ARGS+=(--prozessdaten)
 if [[ $BEDIENEN == 0 ]]; then
   $PY "${SPS_ARGS[@]}" > data/logs/sps.log 2>&1 & pids+=($!)
   sleep 2

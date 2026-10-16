@@ -443,7 +443,9 @@ function buildForm() {
       numField({ id: `dr-${k}-b`, label: "Spiel am Gelenk", unit: "°", min: 0, max: 5, get: () => d.backlash, set: v => d.backlash = v }),
       numField({ id: `dr-${k}-t`, label: "Moment dauernd am Gelenk", unit: "Nm", min: 0, get: () => d.torque, set: v => d.torque = v }),
       numField({ id: `dr-${k}-tp`, label: "Moment Spitze am Gelenk", unit: "Nm", min: 0, get: () => d.torque_peak, set: v => d.torque_peak = v }),
-      textField({ label: "Geber", id: `dr-${k}-e`, get: () => d.encoder, set: v => d.encoder = v }));
+      textField({ label: "Geber", id: `dr-${k}-e`, get: () => d.encoder, set: v => d.encoder = v }),
+      textField({ label: "Umrichter / MOVIKIT", id: `dr-${k}-u`, wide: true, get: () => d.inverter, set: v => d.inverter = v }),
+      numField({ id: `dr-${k}-j`, label: "Ruckzeit (alle Achsen gleich)", unit: "s", min: 0, max: 2, get: () => d.jerk_time, set: v => d.jerk_time = v }));
     const chk = (label, key) => { const c = el("input", { type: "checkbox" }); c.checked = !!d[key]; c.addEventListener("change", () => { d[key] = c.checked; changed(); });
       return el("label", { class: "bar", style: "gap:6px" }, c, label); };
     const sum = el("span", { class: "sum" });

@@ -9,7 +9,7 @@
 | Ebene | Aufgabe |
 |---|---|
 | **Vision-PC** (nicht sicherheitsgerichtet) | Dom messen, **offenen Deckel erkennen**, Kinematik, Rückwärtsrechnung, Kollisionsprüfung gegen Sperrbereiche, Tankkörper, Domkragen und Deckel, Bahn als **Stützpunkte in Servo-Grad**, Nachmessen Auslass ↔ Dom |
-| **SPS** | Ablauf, **Plausibilitätsprüfung jeder Vorgabe**, Referenzfahrt, Positionieren je Achse mit Technologieobjekten (Geschwindigkeit, Beschleunigung, Verzögerung, **Ruck** → sanftes Anfahren und Bremsen), synchrones Anfahren der Stützpunkte, Bremsen, Bedienung (Produkt, Start, „Beladung beendet“), Verriegelung Klapptreppe/Fahrzeug, PLS |
+| **SPS** | Ablauf, **Plausibilitätsprüfung jeder Vorgabe**, Referenzfahrt, Positionieren je Achse mit Technologieobjekten (Geschwindigkeit, Beschleunigung, Verzögerung, **Ruck** → sanftes Anfahren und Bremsen), synchrones Anfahren der Stützpunkte, Bremsen, Bedienung (Produkt, Start, „Beladung beendet“), Befüllen mit Nachziehen, Verriegelung Klapptreppe/Fahrzeug, PLS |
 | **Servoregler** | Strom-, Drehzahl- und Lageregelung (PROFINET, deterministisch) |
 | **Sicherheits-SPS** | Not-Halt, Schutzbereich, sicheres Abschalten (STO/SS1) |
 
@@ -89,8 +89,12 @@ Klapptreppe fährt auf das Fahrzeug, der Fahrer öffnet den Dom, die Klapptreppe
 4. Beruhigungszeit, der Auslass pendelt frei (J4).
 5. **Job 2** → Korrektur prüfen (Betrag < Grenzwert, sonst Job 2 wiederholen oder Abbruch) →
    Stützpunkt 1 anfahren → restliche Stützpunkte langsam = Eintauchen.
-6. **Beladung läuft** (nicht Teil dieser Steuerung, **ohne PC**). Arm bleibt eingetaucht.
-7. **Bediener meldet „Beladung beendet“.**
+6. **Befüllen** (SPS, **ohne PC**, `docs/fuellstand_ueberfuellsicherung.md`): Absperrklappe auf,
+   Durchflusssensor zählt die Menge. Der Messstab an der Lanze meldet die Eintauchtiefe; ab der
+   oberen Grenze zieht die SPS den Arm senkrecht nach, entlang der Eintauch-Stützpunkte aus Job 2
+   (Höhe je Stützpunkt aus der Vorwärtsrechnung, dazwischen linear im Gelenkraum). Die
+   Überfüllsicherung schließt die Klappe unabhängig davon.
+7. **Sollmenge erreicht** (oder Bediener beendet die Beladung) → Klappe zu, Abtropfpause.
 8. **Job 3** → Stützpunkte fahren → Parkstellung. Danach Klapptreppe/Fahrzeug frei.
 
 Während der Automatik: Klapptreppe verriegelt (darf nicht ausfahren). Fällt die Lichtschranke ab

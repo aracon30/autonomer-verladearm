@@ -10,8 +10,8 @@ ergänzen.
 | Getriebe | Planetengetriebe **P5KG31 i = 4**, Direktanbau MD071A (Verdrehspiel 5′) + Ritzel z 48 / Zahnkranz z 127, Modul 2 → **i = 10,58** | wie J1 | Stirnradgetriebe **RF47 i = 42,87** + Schwenkantrieb **IMO WD-E 0223/3**, Schnecke i = 34 → **i = 1457,6** |
 | Bremse | BK1 24 V DC, 16 Nm, 0,72 A (Angebot 426368452B) | wie J1 | **BE05**, 230 V AC, 1,8 Nm, Gleichrichter BG1.5 (vorhanden) |
 | Geber | **AZ2Z** Multiturngeber über MOVILINK DDI (wie J2, kein Sicherheitsgeber – Entscheidung 15.10.2026) | **AZ2Z** Multiturngeber über MOVILINK DDI | **AK8Z** Multiturngeber über MOVILINK DDI (neuer Motor RF47 DRN80M4/BE05/DI/KD1/TF/AK8Z, Angebot 426533683) |
-| Umrichter | SEW **MOVITRAC advanced MCX91A-0040** (4 A, max. 6 A), PROFINET, STO, MOVILINK DDI, MOVIKIT Velocity Drive – Angebot 426533683, Funktion Positionierung klären | wie J1 | **MCX91A-0025** (2,5 A), sonst wie J1; ersetzt MOVITRAC classic |
-| Ansteuerung | Positionierachse (Technologieobjekt), synchron mit J2/J3 | wie J1 | wie J1 |
+| Umrichter | SEW **MOVITRAC advanced MCX91A-0040** (4 A, max. 6 A), PROFINET, STO, MOVILINK DDI, Angebot 426533683; **MOVIKIT Positioning Drive (Applikationslevel 1) nötig** – nachgefordert. Ansteuerung über 8 PD (Zielposition, v, a, Istposition), Synchronfahrt koordiniert die SPS, Bremswiderstand BW extra | wie J1 | **MCX91A-0025** (2,5 A), sonst wie J1; ersetzt MOVITRAC classic |
+| Ansteuerung | Positionierung im Umrichter (MOVIKIT Positioning Drive), SPS gibt Ziel und skalierte v/a vor, synchron mit J2/J3 | wie J1 | wie J1 |
 | Drehbereich am Gelenk | −120 … +120° (verzahnt ca. 296°) | −140 … +140° | −45 … +45° |
 | Geschwindigkeit am Gelenk | max. 6 °/s, Rampe ca. 4 s | max. 6 °/s, Rampe ca. 2 s | max. 6 °/s (IMO: 1 1/min), Rampe ca. 1,5 s |
 | Moment am Gelenk | ca. 67 Nm dauernd / 200 Nm Spitze (Motor begrenzt, Getriebe 81/132 Nm, Not-Halt 185 Nm am Getriebe) | wie J1 | ca. 3,3 kNm dauernd (IMO Md max 9,5 kNm) |

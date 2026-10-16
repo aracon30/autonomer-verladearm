@@ -370,6 +370,23 @@ SEW-Hinweis: „bitte Zubehör und Funktionalität der Umrichter prüfen“.
   → SEW bestätigen lassen.
 - **Strom J1/J2:** Die eigene Rechnung bleibt gültig (Umrichter 6 A gegenüber Motor 12,2 A).
 
+**Auswertung Handbuch „MOVIKIT Positioning Drive, Velocity Drive“ (33350930/DE, 11/2025):**
+- Velocity Drive: 5 PD, nur Drehzahlregelung (Betriebsart 200), **keine Istposition** (Kap. 4.3, 8.2).
+- **Positioning Drive: Applikationslevel 1** (Kap. 3.4), 8 PD: PA Steuerwort, v, a, Verzögerung,
+  Ausgänge, Modus, Zielposition (32 Bit); PE Status, v, Fehler, Moment, Eingänge, Modus,
+  Istposition (32 Bit) in Anwendereinheiten (Kap. 8). Ruckzeit als Zusatz-PD (ms, nur im Stillstand
+  ändern, Kap. 7.2.1).
+- Betriebsart 400 absolut (Ziel auch während der Fahrt änderbar), 402–404 Modulo, 300/301 Referenz mit
+  Offset per Parameter bzw. Feldbus, Software-Endschalter (Fehler E19.02), Bremsausgang DB00,
+  Bremsentest FCB 21, TIA-Beispielprojekt im SEW-Online-Support (Suchbegriff „Movikit“).
+- Keine Mehrachskoordination im Umrichter → **Synchronfahrt macht die SPS** durch Skalieren von
+  v/a/Verzögerung je Achse und gleiche Ruckzeit (siehe `docs/schnittstelle.md`). Das passt zum
+  bisherigen Konzept; statt Technologieobjekt „Positionierachse“ steuert die S7 die Umrichter über
+  Prozessdaten.
+- **Entscheidung:** 3 × Positioning Drive (Level 1) bei SEW nachfordern. Offen bei SEW: Absolutlage
+  AZ2Z/AK8Z nach Netz-Aus, Ansteuerung BE05 230 V AC (DB00 + Gleichrichter/Relais), Bremswiderstände,
+  Anwendereinheiten/Übersetzung in MOVISUITE (Inbetriebnahme).
+
 ### Zahnradpaar J1/J2 anpassen (Überschlag, Zahnfuß vereinfacht nach Lewis/ISO 6336, YFa·YSa)
 
 | Variante | Modul / Breite | Ritzel / Kranz | i_Z | Achsabstand | Gelenk dauernd / Spitze (P5KG31 81/132 Nm) | Zahnfuß Ritzel dauernd / Spitze |

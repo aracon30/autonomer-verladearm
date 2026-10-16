@@ -22,6 +22,7 @@ verlinkten Dokumenten.
 | Lieferant | Gegenstand | Stand |
 |---|---|---|
 | **SEW** (Herr Lay, Drive Office Rhein-Main) | J1/J2 Servo mit Geber und Bremse | Angebot **426368452B** vom 12.10.: J1 AK0Z (Sicherheitsgeber, Adapter HN14.01), J2 AZ2Z (MD071A), Bremse BK1 16 Nm, Einkabeltechnik MOVILINK DDI |
+| SEW | **Angebot 426368452D (16.10.)**: J1/J2 AZ2Z + MD071A, J3 AK8Z, 3 Umrichter mit Positioning Drive – **8.380,64 €**, entspricht der Anfrage | aktuell; vor Bestellung Übersetzung J1/J2 (Regelbarkeit) und −20 °C klären |
 | SEW | **Angebot 426368452C (16.10.)**: alles in einem Angebot, Umrichter mit Positioning Drive (Level 1), 7.650,31 € – Korrektur nötig: J1 noch mit Sicherheitsgeber, nur 1 Umrichter für J1+J2 (`hardware/antriebe.md`) | erhalten, Rückfrage |
 | SEW | **Angebot 426533683 (16.10.)**: J3-Motor RF47 DRN80M4/BE05/DI/KD1/TF/AK8Z + 3 Umrichter MOVITRAC advanced (PROFINET, STO, DDI), nur Velocity Drive (Level 0) | erhalten; Level 1/Positioning Drive, Bremswiderstände, BE05-Ansteuerung nachgefordert |
 | SEW | J3: **neuer Getriebemotor** gleichwertig RF47 DRN80M4/BE05/TF (Referenz-Seriennr. 01.8693812401.0001.26), Geber passend zu J1/J2 | angefragt (alter Motor steht nicht mehr zur Verfügung) |

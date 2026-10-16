@@ -393,7 +393,29 @@ SEW-Hinweis: „bitte Zubehör und Funktionalität der Umrichter prüfen“.
   einmal per Offset setzen (Betriebsart 301 bzw. Parameter), neu nur nach Motor- oder Geberwechsel
   oder einem Eingriff an Ritzel/Kupplung.
 
-### SEW-Angebot 426368452C vom 16.10.2026 (alles in einem Angebot)
+### SEW-Angebot 426368452D vom 16.10.2026 (aktuell, bestellfähig bis auf offene Punkte)
+
+| Pos. | Typ | Preis netto |
+|---|---|---|
+| 01 J1 | P5KG31-0004 MD071A CM3C71S-20A-D/BK/DI/PK/**AZ2Z**/SD1 | 2.101,34 € |
+| 02 J2 | wie J1 | 2.101,34 € |
+| 03 J3 | RF47 DRN80M4/BE05/DI/KD1/TF/AK8Z | 1.754,14 € |
+| 04 J3 | MCX91A-0025-5E3-4-T01/001/DI/CSO/CFN/CMM, Positioning Drive (Level 1) | 731,84 € |
+| 05 J1+J2 | 2 × MCX91A-0040-5E3-4-T01/001/DI/CSO/CFN/CMM, Positioning Drive (Level 1) | 1.691,98 € |
+| | **Summe** | **8.380,64 €** |
+
+Entspricht der Anfrage (Herr Lay bestätigt Positioning Drive mit Level 1). Nicht enthalten:
+Kabel (Längen fehlen), Bremswiderstände (Schaltschrankbauer), IMO-Schwenkantrieb und Adaption J3.
+
+**Vor der Bestellung klären:**
+- **Übersetzung J1/J2 (i = 4 × 2,65 = 10,6):** siehe Bewertung oben – Trägheitsverhältnis sehr groß,
+  Motor nur ca. 11 1/min. Regelbarkeit mit den Lastträgheiten (J1 ca. 1 700, J2 ca. 500 kg·m²)
+  von SEW schriftlich bestätigen lassen oder größere Übersetzung (i_P 20–50, je nach Zahnradpaar).
+  Das Getriebe ist Teil der Servo-Position und lässt sich nach der Bestellung nicht mehr ändern.
+- **Temperatur:** Getriebe −15 °C, Anlage −20 °C.
+- **J3-Motor nur einmal bestellen** (auch bei IMO angefragt).
+
+ (alles in einem Angebot)
 
 | Pos. | Typ | Preis netto |
 |---|---|---|

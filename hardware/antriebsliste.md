@@ -21,6 +21,15 @@ ergänzen.
 **Umgebung:** im Freien, −20 … +40 °C, Motoren IP65 bzw. IP55 (J3). Explosionsschutz: laut Kunde (BASF,
 15.10.2026) **keine Ex-Zone** an der Verladestelle.
 
+**Bremswiderstände (Auslegung Schaltschrankbauer):** Bremschopper ist im MOVITRAC advanced eingebaut,
+Widerstände BW… sind nicht im SEW-Angebot. Überschlag HETA zur Bremsenergie:
+- J1: ½ · 1 700 kg·m² · (0,105 rad/s)² ≈ **10 J** je Bremsung; J2 ≈ **3 J**. Das ist sehr wenig, aber bei
+  Not-Halt und Wind kommt mehr zusammen → kleiner Widerstand je Achse.
+- J3: Beim Absenken bremst der Motor die Last **dauerhaft**: ca. 3,3 kNm · 0,105 rad/s ≈ 350 W am
+  Gelenk, nach Verlusten in Schnecke und Getriebe deutlich weniger (Größenordnung 100–200 W).
+  Absenkzeit ca. 15 s → Widerstand nötig.
+- Mindestwiderstand je Umrichtergröße laut SEW-Betriebsanleitung beachten.
+
 **Weitere Antriebe / Aktoren im Schaltschrankumfang:**
 - Absperrklappe in der Fallleitung (DN 100) mit Antrieb und Stellungsrückmeldung – Typ offen
 - Klapptreppe: vorhandene Steuerung; Rückmeldung „eingefahren“ als Sicherheitssignal

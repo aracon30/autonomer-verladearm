@@ -9,8 +9,8 @@ ergänzen.
 | Motor | SEW **CM3C71S** Synchron-Servo, 400 V, M0 6,5 Nm, Mpk 19,5 Nm, I0 3,5 A, Imax 12,2 A, nN 2000 1/min, Nennstrom 3,32 A, S9, PK (PT1000), Einkabeltechnik MOVILINK DDI, Hybridstecker SD1 M23 (SEW-Hybridkabel) | wie J1 | SEW **DRN80M4** Drehstrom-Asynchronmotor (Bestand), 0,75 kW, 400 V Y, 1,75 A, 1440 1/min, IE3, TF |
 | Getriebe | Planetengetriebe **P5KG31 i = 4**, Direktanbau MD071A (Verdrehspiel 5′) + Ritzel z 48 / Zahnkranz z 127, Modul 2 → **i = 10,58** | wie J1 | Stirnradgetriebe **RF47 i = 42,87** + Schwenkantrieb **IMO WD-E 0223/3**, Schnecke i = 34 → **i = 1457,6** |
 | Bremse | BK1 24 V DC, 16 Nm, 0,72 A (Angebot 426368452B) | wie J1 | **BE05**, 230 V AC, 1,8 Nm, Gleichrichter BG1.5 (vorhanden) |
-| Geber | **AZ2Z** Multiturngeber über MOVILINK DDI (wie J2, kein Sicherheitsgeber – Entscheidung 15.10.2026) | **AZ2Z** Multiturngeber über MOVILINK DDI | Multiturn-Absolutwertgeber nachrüsten – **angefragt** |
-| Umrichter | SEW **MOVI-C** (wegen MOVILINK DDI) mit Geberauswertung, **PROFINET** (bzw. EtherCAT bei Beckhoff), **STO**, Bremsenansteuerung – **angefragt** | wie J1 | wie J1; bisher MOVITRAC classic MCC91A-0032-5E3-4 (ohne Geberauswertung, entfällt bzw. Ersatz) |
+| Geber | **AZ2Z** Multiturngeber über MOVILINK DDI (wie J2, kein Sicherheitsgeber – Entscheidung 15.10.2026) | **AZ2Z** Multiturngeber über MOVILINK DDI | **AK8Z** Multiturngeber über MOVILINK DDI (neuer Motor RF47 DRN80M4/BE05/DI/KD1/TF/AK8Z, Angebot 426533683) |
+| Umrichter | SEW **MOVITRAC advanced MCX91A-0040** (4 A, max. 6 A), PROFINET, STO, MOVILINK DDI, MOVIKIT Velocity Drive – Angebot 426533683, Funktion Positionierung klären | wie J1 | **MCX91A-0025** (2,5 A), sonst wie J1; ersetzt MOVITRAC classic |
 | Ansteuerung | Positionierachse (Technologieobjekt), synchron mit J2/J3 | wie J1 | wie J1 |
 | Drehbereich am Gelenk | −120 … +120° (verzahnt ca. 296°) | −140 … +140° | −45 … +45° |
 | Geschwindigkeit am Gelenk | max. 6 °/s, Rampe ca. 4 s | max. 6 °/s, Rampe ca. 2 s | max. 6 °/s (IMO: 1 1/min), Rampe ca. 1,5 s |

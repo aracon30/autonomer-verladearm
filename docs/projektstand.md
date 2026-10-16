@@ -21,6 +21,7 @@ verlinkten Dokumenten.
 | Lieferant | Gegenstand | Stand |
 |---|---|---|
 | **SEW** (Herr Lay, Drive Office Rhein-Main) | J1/J2 Servo mit Geber und Bremse | Angebot **426368452B** vom 12.10.: J1 AK0Z (Sicherheitsgeber, Adapter HN14.01), J2 AZ2Z (MD071A), Bremse BK1 16 Nm, Einkabeltechnik MOVILINK DDI |
+| SEW | **Angebot 426533683 (16.10.)**: J3-Motor RF47 DRN80M4/BE05/DI/KD1/TF/AK8Z + 3 Umrichter MOVITRAC advanced (PROFINET, STO, DDI) – Funktion/Zubehör klären (`hardware/antriebe.md`) | erhalten |
 | SEW | J3: **neuer Getriebemotor** gleichwertig RF47 DRN80M4/BE05/TF (Referenz-Seriennr. 01.8693812401.0001.26), Geber passend zu J1/J2 | angefragt (alter Motor steht nicht mehr zur Verfügung) |
 | SEW | Umrichter MOVI-C für J1–J3 (PROFINET, STO, Bremse) | angefragt |
 | SEW | offen: J1/J2 gleiche Geberausführung, Getriebe nur bis −15 °C (Anlage −20 °C), Motordatenblatt mit Rotorträgheit | nachfragen |

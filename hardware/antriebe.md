@@ -330,6 +330,33 @@ Der andere Adapter an J1 hängt vermutlich am Sicherheitsgeber AK0Z (Motorvarian
 Direktanbau „D“) – bei SEW bestätigen lassen. Folge: J1-Antrieb ist länger und ca. 2 kg schwerer;
 Anbau und Freigängigkeit mit den Maßblättern (Links im Angebot) prüfen.
 
+### SEW-Angebot 426533683 vom 16.10.2026 (J3-Getriebemotor und Umrichter)
+
+| Pos. | Typ | Preis netto | Lieferzeit |
+|---|---|---|---|
+| 01 J3 | **RF47 DRN80M4/BE05/DI/KD1/TF/AK8Z** – wie Referenzmotor (i 42,87, 215 Nm, IM M1, Flansch 140, Welle 30 × 60, BE05 230 V AC, TF, IP55), neu: **Multiturngeber AK8Z** (16 Bit ST + 16 Bit MT) über MOVILINK DDI, Stecker KD1 M23 (Hybrid), Korrosionsschutz OS2, RAL 7031 | 1.754,14 € | 2–3 Wochen |
+| 02 J3 | **MOVITRAC advanced MCX91A-0025-5E3-4-T00/001/DI/CSO/CFN/CMM** – 2,5 A / 0,75 kW, max. 3,75 A | 652,29 € | 1–2 Wochen |
+| 03 J1+J2 | 2 × **MCX91A-0040-5E3-4-T00/001/DI/CSO/CFN/CMM** – 4 A / 1,5 kW, max. 6 A | 2 × 766,44 € | 1–2 Wochen |
+
+Alle Umrichter: PROFINET (CFN), MOVILINK DDI, STO (CSO), Speichermodul CMM11A, EMV-Filter C2,
+24-V-Netzteil integriert, IP20, −10 … +40 °C, **Applikationslevel 0 mit MOVIKIT „Velocity Drive“**.
+SEW-Hinweis: „bitte Zubehör und Funktionalität der Umrichter prüfen“.
+
+**Bewertung:**
+- **J3-Motor passt**: gleiche Bauform und Abtrieb wie bisher → passt an die IMO-Adaption 07975 020.
+  Damit ist der J3-Motor doppelt angefragt (SEW direkt und IMO) – nur einmal bestellen.
+- **Funktion „Velocity Drive“ = Drehzahlregelung.** Die Positionierung muss dann die S7-1500 machen
+  (Positionierachse mit Lageistwert vom Umrichter). Zu klären: Liefert der Umrichter mit diesem
+  MOVIKIT den Absolutwert des Gebers per PROFINET (PROFIdrive-Telegramm mit Geberistwert), oder ist
+  ein höheres Applikationslevel / MOVIKIT (z. B. Positionierung bzw. PROFIdrive) nötig?
+- **Strom J1/J2:** Umrichter max. 6 A, Motor bis 12,2 A (Mpk 19,5 Nm). Spitzenmoment damit grob
+  halbiert (ca. 11 Nm Motor ≈ 110 Nm am Gelenk statt 200 Nm). Für die Beschleunigung reicht das
+  (ca. 45 Nm am Gelenk), die Reserve gegen Wind wird kleiner → größere Leistungsklasse anfragen
+  oder bewusst akzeptieren.
+- **Offen:** Bremswiderstand (J3 senkt, J1 bremst große Trägheit ab), Ansteuerung der
+  230-V-AC-Bremse BE05 an J3, Hybridkabel MOVILINK DDI (SEW-spezifisch) als Option, J1-Servo
+  noch mit Sicherheitsgeber angeboten (Änderung auf AZ2Z angefragt).
+
 ### Zahnradpaar J1/J2 anpassen (Überschlag, Zahnfuß vereinfacht nach Lewis/ISO 6336, YFa·YSa)
 
 | Variante | Modul / Breite | Ritzel / Kranz | i_Z | Achsabstand | Gelenk dauernd / Spitze (P5KG31 81/132 Nm) | Zahnfuß Ritzel dauernd / Spitze |

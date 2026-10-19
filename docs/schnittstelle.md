@@ -80,9 +80,11 @@ zur Rückfahrt (Details: `docs/kinematik.md`). Umwege brauchen mehr Stützpunkte
 Vorher (ohne Automatik): Arm steht in der Parkstellung. LKW/Kesselwagen fährt vor, die
 Klapptreppe fährt auf das Fahrzeug, der Fahrer öffnet den Dom, die Klapptreppe fährt zurück.
 
-1. **Bediener** wählt an der SPS das **Produkt** (→ `ProductId`, bestimmt die Eintauchtiefe) und
-   bestätigt „Fahrzeug bereit“.
-2. **Bediener startet „Automatisch beladen“.** Startbedingungen: Arm in Parkstellung,
+1. **Leitstelle** (PLS) gibt den Auftrag frei und wählt das **Produkt** (→ `ProductId`, bestimmt
+   die Eintauchtiefe und Sollmenge). Am Schaltschrank gibt es **kein Display** (Festlegung
+   19.10.2026), nur Taster und Leuchtmelder.
+2. **Bediener drückt „Beladen starten“** (Leuchttaster am Schaltschrank, einziger Bedientaster im
+   Automatikbetrieb). Startbedingungen: Arm in Parkstellung,
    **Klapptreppe in Ruhelage** (Endschalter), ggf. Lichtschranke Stellplatz belegt, Freigabe PLS,
    Sicherheitsbedingungen erfüllt, `AxesHomed = TRUE`, `Ready = TRUE`.
 3. **Job 1** → Stützpunkte prüfen (Achsgrenzen, Sprünge) → bis `ApproachIndex` fahren.
@@ -103,8 +105,12 @@ Bei Fehler, fehlendem Ergebnis oder Heartbeat-Ausfall: Bewegung stoppen, sichere
 
 ## Handbetrieb (SPS, ohne PC)
 
-- **Tippen am Panel:** J1/J2/J3 einzeln, nur solange gedrückt, reduzierte Geschwindigkeit,
-  Endlagen aktiv (Mobile Panel mit Zustimmtaster empfohlen).
+- **Nur vor Ort, nie aus der Leitstelle:** Wer den Arm von Hand fährt, muss ihn sehen.
+  Betriebsart über **Schlüsselschalter Automatik/Hand** am Schaltschrank.
+- **Handbediengerät ohne Display** (steckbar, z. B. Euchner/Pilz/Siemens): 3-stufiger
+  **Zustimmtaster**, **Not-Halt**, Achswahl J1/J2/J3, Tasten **+ / −**.
+- **Tippen:** J1/J2/J3 einzeln, nur solange Zustimmtaster und +/− gedrückt, reduzierte
+  Geschwindigkeit (ca. 20 %), Software-Endlagen aktiv.
 - **Von Hand führen (J1/J2):** „Bremse lüften“ nur im Handbetrieb, Antrieb in STO, Bremse offen
   nur solange gedrückt. **J3 nie Bremse lüften:** die Last hängt an der Schnecke, deren
   Selbsthemmung nicht zugesichert ist (2-gängig) – der Arm könnte absacken. J3 wird nur getippt.

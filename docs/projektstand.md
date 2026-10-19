@@ -13,6 +13,7 @@ verlinkten Dokumenten.
 | 12.10. | Selbstkollision | Bahnplanung prüft den Arm gegen sich selbst (Mindestspalt 0,10 m) | `docs/kinematik.md` |
 | 15.10. | Geber J1/J2 | **kein Sicherheitsgeber**: J1 wie J2 mit AZ2Z und Direktanbau MD071A (Änderung bei SEW angefragt) | `hardware/antriebe.md` |
 | 16.10. | Umrichter | MOVITRAC advanced mit **MOVIKIT Positioning Drive (Level 1)**; Synchronfahrt koordiniert die SPS (v/a je Achse skaliert, gleiche Ruckzeit) | `hardware/antriebe.md`, `docs/schnittstelle.md` |
+| 19.10. | Bedienung | Schaltschrank **ohne Display**: Leuchttaster „Beladen starten“, Not-Halt, Quittieren, Schlüsselschalter Automatik/Hand, Leuchtmelder; Produkt, Freigabe und Kalibrierung aus der **Leitstelle**; **Handbetrieb nur vor Ort** mit Handbediengerät (Zustimmtaster) | `docs/schnittstelle.md` |
 | 15.10. | Ex-Schutz | BASF: **keine Ex-Zone** an der Verladestelle | `docs/ideenspeicher.md` |
 | 15.10. | Füllstand | Nachziehen gefordert; Messstab (geführte Mikrowelle) an der Lanze; Füllende über Durchflusssensor; Füllstand zusätzlich aus Armhöhe + Messstab | `docs/fuellstand_ueberfuellsicherung.md` |
 | 15.10. | Überfüllsicherung | Grenzschalter mit fester Länge ab Domrand an **aufliegender Lanze** (wie heute der Liquiphant, nur automatisch); Vorschlag **SICK LFV 200** mit Rohrverlängerung | `docs/fuellstand_ueberfuellsicherung.md`, `docs/skizzen/ueberfuell_lanze.png` |

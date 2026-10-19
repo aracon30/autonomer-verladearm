@@ -393,7 +393,53 @@ SEW-Hinweis: „bitte Zubehör und Funktionalität der Umrichter prüfen“.
   einmal per Offset setzen (Betriebsart 301 bzw. Parameter), neu nur nach Motor- oder Geberwechsel
   oder einem Eingriff an Ritzel/Kupplung.
 
-### Zahnradpaar J1/J2 anpassen (Überschlag, Zahnfuß vereinfacht nach Lewis/ISO 6336, YFa·YSa)
+### SEW-Angebot 426368452D vom 16.10.2026 (aktuell, bestellfähig bis auf offene Punkte)
+
+| Pos. | Typ | Preis netto |
+|---|---|---|
+| 01 J1 | P5KG31-0004 MD071A CM3C71S-20A-D/BK/DI/PK/**AZ2Z**/SD1 | 2.101,34 € |
+| 02 J2 | wie J1 | 2.101,34 € |
+| 03 J3 | RF47 DRN80M4/BE05/DI/KD1/TF/AK8Z | 1.754,14 € |
+| 04 J3 | MCX91A-0025-5E3-4-T01/001/DI/CSO/CFN/CMM, Positioning Drive (Level 1) | 731,84 € |
+| 05 J1+J2 | 2 × MCX91A-0040-5E3-4-T01/001/DI/CSO/CFN/CMM, Positioning Drive (Level 1) | 1.691,98 € |
+| | **Summe** | **8.380,64 €** |
+
+Entspricht der Anfrage (Herr Lay bestätigt Positioning Drive mit Level 1). Nicht enthalten:
+Kabel (Längen fehlen), Bremswiderstände (Schaltschrankbauer), IMO-Schwenkantrieb und Adaption J3.
+
+**Vor der Bestellung klären:**
+- **Übersetzung J1/J2 (i = 4 × 2,65 = 10,6):** siehe Bewertung oben – Trägheitsverhältnis sehr groß,
+  Motor nur ca. 11 1/min. Regelbarkeit mit den Lastträgheiten (J1 ca. 1 700, J2 ca. 500 kg·m²)
+  von SEW schriftlich bestätigen lassen oder größere Übersetzung (i_P 20–50, je nach Zahnradpaar).
+  Das Getriebe ist Teil der Servo-Position und lässt sich nach der Bestellung nicht mehr ändern.
+- Temperatur (Getriebe −15 °C, Anlage −20 °C): vorerst zurückgestellt (16.10.2026).
+- Bremswiderstände und Kabellängen klärt HETA mit dem Schaltschrankbauer.
+- **J3-Motor nur einmal bestellen** (auch bei IMO angefragt).
+
+ (alles in einem Angebot)
+
+| Pos. | Typ | Preis netto |
+|---|---|---|
+| 01 J1 | P5KG31-0004 **HN14.01** CM3C71S-20A-N/BK/DI/PK/**AK0Z**/SD1 (Sicherheitsgeber, Verdrehspiel 4′) | 2.217,00 € |
+| 02 J2 | P5KG31-0004 **MD071A** CM3C71S-20A-D/BK/DI/PK/**AZ2Z**/SD1 (Verdrehspiel 5′) | 2.101,34 € |
+| 03 J3 | RF47 DRN80M4/BE05/DI/KD1/TF/AK8Z | 1.754,14 € |
+| 04 J3 | MCX91A-0025-5E3-4-**T01**/001/DI/CSO/CFN/CMM mit **Applikationslevel 1** (Positioning Drive) | 731,84 € |
+| 05 J1+J2 | MCX91A-0040-5E3-4-T01/001/DI/CSO/CFN/CMM mit Applikationslevel 1 – **nur 1 Stück** | 845,99 € |
+| | **Summe** | **7.650,31 €** |
+
+Lieferzeit Servos 4–6 Wochen, J3 2–3 Wochen, Umrichter 1–2 Wochen. Bremsen J1/J2 mit Gleichrichter
+BMV5, J3 BMKB1.5. Kabel bietet SEW an, sobald die Längen bekannt sind.
+
+**Prüfung:**
+- **Pos. 05: nur 1 Umrichter** für J1 und J2 – es werden **2** gebraucht (je Achse einer).
+- **J1 noch mit Sicherheitsgeber AK0Z und Adapter HN14.01.** Herr Lay schreibt, AZ2Z gebe es nicht als
+  Sicherheitsgeber und DDI mit MD071A sei nicht realisierbar – Missverständnis: Wir wollen J1
+  **ohne** Sicherheitsgeber, also genau wie Pos. 02 (die mit MD071A, DDI und AZ2Z angeboten ist).
+- Positioning Drive: Applikationslevel 1 ist enthalten, im Datenfeld steht weiterhin „MOVIKIT 001 –
+  Velocity Drive 5PD“ → bestätigen lassen, dass Positioning Drive freigeschaltet ist.
+- Mit beiden Korrekturen: 2 × 2.101,34 + 1.754,14 + 731,84 + 2 × 845,99 ≈ **8.380,64 €** netto.
+
+ (Überschlag, Zahnfuß vereinfacht nach Lewis/ISO 6336, YFa·YSa)
 
 | Variante | Modul / Breite | Ritzel / Kranz | i_Z | Achsabstand | Gelenk dauernd / Spitze (P5KG31 81/132 Nm) | Zahnfuß Ritzel dauernd / Spitze |
 |---|---|---|---|---|---|---|

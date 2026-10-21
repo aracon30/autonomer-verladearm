@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>Antriebsliste Verladearm</title>
+<style>
+body{font-family:'Liberation Sans',Arial,sans-serif;font-size:9.5pt;color:#222;margin:0}
+h1{font-size:15pt;margin:0 0 2mm}
+.sub{color:#555;margin:0 0 5mm}
+h2{font-size:11pt;margin:6mm 0 2mm;color:#1F4E79}
+table{border-collapse:collapse;width:100%;margin-bottom:3mm}
+th,td{border:1px solid #9aa5b1;padding:1.6mm 2mm;vertical-align:top;text-align:left}
+th{background:#D9D9D9}
+td:first-child{font-weight:bold;width:24mm;background:#f4f6f8}
+ul{margin:1mm 0 0 5mm;padding:0}
+li{margin-bottom:1mm}
+.note{border-left:4px solid #1F4E79;background:#EAF1F8;padding:2mm 3mm;margin:3mm 0}
+tr{page-break-inside:avoid}
+</style></head><body>
+<h1>Antriebsliste autonomer Verladearm</h1>
+<p class="sub">Auftrag K-04793/26 · Stand 21.10.2026 · für die Planung von Schaltschrank und SPS-Programm</p>
+
+<h2>Antriebe</h2>
+<table>
+<tr><th></th><th>J1 – Drehen am Haltepunkt</th><th>J2 – Drehen am Fallrohr</th><th>J3 – Ausleger heben / senken</th></tr>
+<tr><td>Motor</td><td>SEW CM3C71S Synchron-Servomotor, 400 V, M0 6,5 Nm, Mpk 19,5 Nm, I0 3,5 A, Nennstrom 3,32 A, Imax 12,2 A, nN 2000 1/min, S9, PT1000</td><td>wie J1</td><td>SEW DRN80M4 Drehstrom-Asynchronmotor, 0,75 kW, 400 V Y, 1,75 A, 1440 1/min, IE3, TF (PTC), IP55</td></tr>
+<tr><td>Typ komplett</td><td>P5KG31-0004/N/S/0 MD071A CM3C71S-20A-D/BK/DI/PK/AZ2Z/SD1</td><td>wie J1</td><td>RF47 DRN80M4/BE05/DI/KD1/TF/AK8Z</td></tr>
+<tr><td>Getriebe</td><td>Planetengetriebe P5KG31 i = 4 (Verdrehspiel 5′) + Ritzel z 48 / Zahnkranz z 127 → gesamt i = 10,58</td><td>wie J1</td><td>Stirnradgetriebe RF47 i = 42,87 + Schwenkantrieb IMO WD-E 0223/3 i = 34 → gesamt i = 1 457,6</td></tr>
+<tr><td>Bremse</td><td>BK1, 24 V DC, 16 Nm, Haltestrom 0,72 A, Gleichrichter BMV5</td><td>wie J1</td><td>BE05, 230 V AC, 1,8 Nm, Gleichrichter BMKB1.5 im Klemmenkasten</td></tr>
+<tr><td>Geber</td><td>AZ2Z Multiturn-Absolutwertgeber, Singleturn 13 Bit + Multiturn 16 Bit, über MOVILINK DDI</td><td>wie J1</td><td>AK8Z Multiturn-Absolutwertgeber, Singleturn 16 Bit + Multiturn 16 Bit, über MOVILINK DDI</td></tr>
+<tr><td>Anschluss</td><td>Einkabeltechnik MOVILINK DDI, Hybridstecker SD1 M23, gewinkelt, SpeedTec</td><td>wie J1</td><td>Einkabeltechnik MOVILINK DDI, Stecker KD1 M23, gerade, Intercontec Serie 723 Code 21</td></tr>
+<tr><td>Brems­ansteuerung</td><td colspan="3">über den Umrichter (DDI-Code DI0E00), Bremsleitungen im Hybridkabel</td></tr>
+<tr><td>Umrichter</td><td>SEW MOVITRAC advanced MCX91A-0040-5E3-4-T01/001/DI/CSO/CFN/CMM</td><td>wie J1</td><td>SEW MOVITRAC advanced MCX91A-0025-5E3-4-T01/001/DI/CSO/CFN/CMM</td></tr>
+<tr><td>Ansteuerung</td><td colspan="3">MOVIKIT Positioning Drive: SPS gibt je Stützpunkt Zielposition, Geschwindigkeit und Beschleunigung vor (im Verhältnis zum Weg, gleiche Ruckzeit auf allen Achsen), alle Achsen starten gleichzeitig</td></tr>
+<tr><td>Drehbereich</td><td>−120 … +120° (verzahnt ca. 296°)</td><td>−140 … +140°</td><td>−45 … +45°</td></tr>
+<tr><td>Geschwindigkeit</td><td>max. 6 °/s, Rampe ca. 4 s</td><td>max. 6 °/s, Rampe ca. 2 s</td><td>max. 6 °/s, Rampe ca. 1,5 s</td></tr>
+<tr><td>Moment am Gelenk</td><td>ca. 63 Nm dauernd, ca. 110 Nm Spitze (Umrichter max. 6 A); Getriebe 81 / 132 Nm, Not-Halt max. 185 Nm am Getriebe</td><td>wie J1</td><td>ca. 3,3 kNm dauernd (Schwenkantrieb max. 9,5 kNm)</td></tr>
+<tr><td>Last (Schätzung)</td><td>Trägheit ca. 1 700 kg·m², Wind</td><td>Trägheit ca. 500 kg·m²</td><td>Gewicht Ausleger, Spiel durch Schwerkraft vorgespannt</td></tr>
+<tr><td>Besonderheit</td><td>nicht selbsthemmend → Bremse hält gegen Wind</td><td>nicht selbsthemmend</td><td>Selbsthemmung nicht zugesichert → Bremse J3 nie lüften</td></tr>
+</table>
+
+<h2>Umrichter</h2>
+<table>
+<tr><th></th><th>MCX91A-0040 (J1, J2 – 2 Stück)</th><th>MCX91A-0025 (J3 – 1 Stück)</th></tr>
+<tr><td>Leistung</td><td>4 A / 1,5 kW, max. 6 A (150 %)</td><td>2,5 A / 0,75 kW, max. 3,75 A (150 %)</td></tr>
+<tr><td>Netz</td><td>3 × AC 380–500 V, 50–60 Hz, Netznennstrom 3,6 A</td><td>3 × AC 380–500 V, 50–60 Hz, Netznennstrom 2,3 A</td></tr>
+<tr><td>Ausgang</td><td>2,8 kVA, 0–599 Hz</td><td>1,7 kVA, 0–599 Hz</td></tr>
+<tr><td>Verluste</td><td>2,6 % (90 % / 100 %)</td><td>3,2 % (90 % / 100 %)</td></tr>
+<tr><td>Gewicht</td><td>ca. 1,9 kg</td><td>ca. 1,8 kg</td></tr>
+<tr><td>Gleich für alle</td><td colspan="2">Baugröße 0S, IP20, −10 … +40 °C · EMV-Filter Kategorie C2 · 24-V-Schaltnetzteil integriert · PROFINET (CFN) · Sicherheitsoption CSO (STO) · MOVILINK DDI integriert · Speichermodul CMM11A · Applikationslevel 1 mit MOVIKIT Positioning Drive (8 Prozessdaten) · Bremschopper integriert, Bremswiderstand extra · SEW-Dokumentation Nr. 31968481, 33957878</td></tr>
+</table>
+<p>Netzstrom der drei Umrichter zusammen ca. 9,5 A, dazu SPS, Industrie-PC, Kamera und Absperrklappe.</p>
+
+<h2>Auslegung durch den Schaltschrankbauer</h2>
+<ul>
+<li><b>Bremswiderstände:</b> J3 bremst beim Absenken dauerhaft – ca. 350 W am Gelenk, nach Verlusten in Schnecke und Getriebe grob 100–200 W, Absenkzeit ca. 15 s. J1/J2 je Bremsung ca. 10 J bzw. 3 J, bei Not-Halt mit Wind mehr. Mindestwiderstand je Umrichter laut SEW beachten.</li>
+<li><b>Hybridkabel:</b> konfektionierte SEW-Kabel, schleppkettentauglich (Verdrehung J1/J2, Biegung J3). Längen nach Kabelführung am Arm.</li>
+<li><b>STO:</b> zweikanalig von der Sicherheitstechnik auf alle drei Umrichter (Not-Halt Schaltschrank und Handbediengerät, Zustimmtaster).</li>
+</ul>
+
+<h2>Umgebung und weitere Aktoren</h2>
+<ul>
+<li>Aufstellung im Freien, −20 … +40 °C; Motoren J1/J2 IP65, J3 IP55. Keine Ex-Zone an der Verladestelle.</li>
+<li>Absperrklappe in der Fallleitung DN 100 mit Antrieb und Stellungsrückmeldung (Typ offen).</li>
+<li>Klapptreppe: vorhandene Steuerung, Rückmeldung „Ruhelage“ als Sicherheitssignal.</li>
+<li>Bedienung vor Ort ohne Display: Leuchttaster „Beladen starten“, Not-Halt, Quittieren, Schlüsselschalter Automatik / Hand, Leuchtmelder, Anschluss für Handbediengerät (Zustimmtaster, Not-Halt, Achswahl, + / −).</li>
+</ul>
+</body></html>

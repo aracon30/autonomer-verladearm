@@ -32,7 +32,7 @@ verlinkten Dokumenten.
 | SEW | offen: J1/J2 gleiche Geberausführung, Getriebe nur bis −15 °C (Anlage −20 °C), Motordatenblatt mit Rotorträgheit | nachfragen |
 | **IMO** (Herr Krasnici) | weiterer Schwenkantrieb WD-E 0223/3 + Adaption 07975 020, SEW-Motor mit Multiturngeber; Geber am Schwenkantrieb nur als Option (Anforderungsbogen ausgefüllt: `hardware/IMO_Anforderungsbogen_Drehgeber_J3.pdf`) | angefragt (Ref. 20022371). Hinweis: Motor ggf. doppelt angeboten (IMO und SEW) – nur bei einem bestellen |
 | **SICK** (Herr Hebben) | Kamera Visionary-T Mini CX V3S105-1AAAAAD | Angebot angekündigt, nachgefragt |
-| SICK | LFV 200 (Überfüllsicherung, Zulassung klären) + LFP Cubic (Messstab) | Anfrage vorbereitet |
+| SICK (Herr Müller) | **Angebot 33503391, ergänzt 22.10.**: LFC-XXSBTE + SiLink2 + Leitung (Test), **LFV230-XASGBTPM0800** (Überfüllsicherung, 800 mm), **LFP0800-A4NMB** LFP Cubic + Koaxialrohr LFPCT-0800G1 (Messstab), 1.384,88 € netto, gültig bis 09.01.2027 | erhalten; offen: Zulassung Überfüllsicherung (WHG/SIL), Koaxrohr bei Dispersion, 5-polige Leitung LFP, Produkttemperatur |
 | **Automatisierungspartner (Peter)** | Schaltschrank, Grundsoftware, Sicherheit, Siemens/Beckhoff-Vergleich | Angebot ausstehend; Antriebsliste: `hardware/antriebsliste.md` |
 
 ## Kunde BASF (Silas Kaestel, Werkstudent / Bachelorarbeit)

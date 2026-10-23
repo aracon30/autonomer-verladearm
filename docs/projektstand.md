@@ -39,15 +39,15 @@ verlinkten Dokumenten.
 
 - Technische Zusammenfassung gesendet (`docs/extern/`), Feedback: Konzept „sehr gelungen“.
 - BASF prüft intern Machbarkeit und **PLS-Anbindung**.
-- Fotos, Maße und Unterschiede der Tankfahrzeuge folgen.
-- Termin vorgeschlagen: Mittwoch bzw. Donnerstagvormittag.
+- **Fotos und Maße H517 erhalten (22./23.10.)**: Mannloch Ø 0,5 m, Eintauchtiefe 2–3 cm unter Spiegel, Produkte Acronal/Lhydran/Lurapret, überdachte Halle mit mehreren Spuren – Auswertung `docs/kunde_basf_h517.md` (Fotos vertraulich, nicht im Repository).
+- Fahrzeugstatistik folgt.
 
 ### Fragen für den nächsten Termin
 
 1. Liquiphant heute: **Typ** (Typenschild/Foto), **Einhängelänge unter Domrand**, für alle Fahrzeuge gleich?
 2. Welches **Auswertegerät** bzw. welche Abschaltung (Relais, PLS)?
 3. Werden andere Hersteller (z. B. SICK LFV 200) als Überfüllsicherung akzeptiert? Bevorzugte Hersteller?
-4. Nachziehen: gewünschte Eintauchtiefe unter Spiegel, Mindestabstand zum Tankboden?
+4. ~~Eintauchtiefe~~ (2–3 cm, beantwortet); Mindestabstand zum Tankboden, Tiefe Domrand–Boden?
 5. Anbindung an das PLS: welche Signale?
 
 ## Nächste Schritte

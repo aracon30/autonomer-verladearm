@@ -51,7 +51,7 @@ Die Simulation bildet den aktuellen Stand ab (`hardware/antriebe.md`,
   Beschleunigung im Verhältnis zu ihrem Weg vor (gleiche Ruckzeit), alle kommen gleichzeitig an.
   `PROZESSDATEN=1 tools/simulation.sh` schreibt die Vorgaben je Fahrt ins SPS-Log.
 - **Befüllen mit Nachziehen:** Absperrklappe auf, Durchflusssensor zählt die Menge, der Spiegel
-  steigt; der Messstab meldet die Eintauchtiefe, ab 0,20 m zieht die SPS den Arm auf 0,10 m nach.
+  steigt; der Messstab meldet die Eintauchtiefe, ab 5 cm zieht die SPS den Arm auf 2 cm nach (BASF: 2–3 cm).
   Sollmenge erreicht → Klappe zu, Abtropfen, Rückfahrt. Produkt 1/2 = Unterspiegelbeladung
   (Annahmen im Abschnitt `filling` von `simulation.yaml`).
 - **Überfüllsicherung:** Schaltpunkt mit fester Länge unter dem Domrand (aufliegende Lanze),

@@ -47,7 +47,7 @@ HAND_SPEED = 2.0  # °/s, Arm von Hand geschoben (Bremse gelüftet)
 FILL_STEP = 2.0  # s Befüllzeit je Rechenschritt
 # Befüllung, falls die Anlagendatei keinen Abschnitt `filling` hat (Werte siehe simulation.yaml)
 FILL_DEFAULTS = dict(flow=60.0, chamber_area=5.0, depth_below_rim=2.3, start_level=0.05,
-                     target_volume=8.5, immersion=(0.10, 0.20), overfill_below_rim=0.40,
+                     target_volume=8.5, immersion=(0.02, 0.05), overfill_below_rim=0.40,
                      speedup=10.0)
 
 HELP = """Befehle (Eingabe + Enter):

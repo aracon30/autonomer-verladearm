@@ -18,7 +18,7 @@ filling:
   depth_below_rim: 2.3    # m Tankboden unter Domrand
   start_level: 0.05       # m Restmenge über dem Boden
   target_volume: 8.5      # m³ Sollmenge -> Absperrklappe zu
-  immersion: [0.10, 0.20] # m Auslass unter dem Spiegel: ab 0,20 auf 0,10 nachziehen
+  immersion: [0.02, 0.05] # m Auslass unter dem Spiegel: ab 5 cm auf 2 cm nachziehen (BASF: 2–3 cm)
   overfill_below_rim: 0.40  # m Schaltpunkt Überfüllsicherung (Länge L der aufliegenden Lanze)
   speedup: 10             # Simulation: Befüllung zusätzlich zum Zeitraffer schneller zeigen
 

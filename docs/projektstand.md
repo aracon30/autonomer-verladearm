@@ -31,23 +31,24 @@ verlinkten Dokumenten.
 | SEW | Umrichter MOVI-C für J1–J3 (PROFINET, STO, Bremse) | angefragt |
 | SEW | offen: J1/J2 gleiche Geberausführung, Getriebe nur bis −15 °C (Anlage −20 °C), Motordatenblatt mit Rotorträgheit | nachfragen |
 | **IMO** (Herr Krasnici) | weiterer Schwenkantrieb WD-E 0223/3 + Adaption 07975 020, SEW-Motor mit Multiturngeber; Geber am Schwenkantrieb nur als Option (Anforderungsbogen ausgefüllt: `hardware/IMO_Anforderungsbogen_Drehgeber_J3.pdf`) | angefragt (Ref. 20022371). Hinweis: Motor ggf. doppelt angeboten (IMO und SEW) – nur bei einem bestellen |
-| **SICK** (Herr Hebben) | Kamera Visionary-T Mini CX V3S105-1AAAAAD | Angebot angekündigt, nachgefragt |
-| SICK | LFV 200 (Überfüllsicherung, Zulassung klären) + LFP Cubic (Messstab) | Anfrage vorbereitet |
+| **SICK** (Herr Müller) | **Angebot 33503320 (09.10., gültig bis 31.01.2027)**: Visionary-T Mini CX V3S105-1AAAAAD + Halter 2124497 + Leitungen 15 m (M12 A 8-pol. offen 2095599, M12 X → RJ45 2124208), **1.501,19 €**; alternativ Visionary-B Two V3S146-1AAAAAA (Stereo) mit Halter und 5-m-Leitungen 2.217,05 € | Empfehlung T Mini CX (Treiber vorhanden, Halle überdacht); ab Lager, kann bestellt werden. SICK-Betriebsruhe 24.12.–06.01. |
+| SICK (Herr Müller) | **Angebot 33503391, ergänzt 22.10.**: LFC-XXSBTE + SiLink2 + Leitung (Test), **LFV230-XASGBTPM0800** (Überfüllsicherung, 800 mm), **LFP0800-A4NMB** LFP Cubic + Koaxialrohr LFPCT-0800G1 (Messstab), 1.384,88 € netto, gültig bis 09.01.2027 | erhalten; offen: Zulassung Überfüllsicherung (WHG/SIL), Koaxrohr bei Dispersion, 5-polige Leitung LFP, Produkttemperatur |
 | **Automatisierungspartner (Peter)** | Schaltschrank, Grundsoftware, Sicherheit, Siemens/Beckhoff-Vergleich | Angebot ausstehend; Antriebsliste: `hardware/antriebsliste.md` |
 
 ## Kunde BASF (Silas Kaestel, Werkstudent / Bachelorarbeit)
 
 - Technische Zusammenfassung gesendet (`docs/extern/`), Feedback: Konzept „sehr gelungen“.
 - BASF prüft intern Machbarkeit und **PLS-Anbindung**.
-- Fotos, Maße und Unterschiede der Tankfahrzeuge folgen.
-- Termin vorgeschlagen: Mittwoch bzw. Donnerstagvormittag.
+- **Fotos und Maße H517 erhalten (22./23.10.)**: Mannloch Ø 0,5 m, Eintauchtiefe 2–3 cm unter Spiegel, Produkte Acronal/Lhydran/Lurapret, überdachte Halle mit mehreren Spuren – Auswertung `docs/kunde_basf_h517.md` (Fotos vertraulich, nicht im Repository).
+- Fahrzeugstatistik folgt (erbeten: Spanne Tiefe Domrand–Tankboden, Füllleistung).
+- **Termin 27.10.2026**, Themen vorab gesendet: Überfüllsicherung (von Hand weiter oder automatisch mit dem Arm andocken), Tanktiefen, Spülwanne an der Parkstellung.
 
 ### Fragen für den nächsten Termin
 
 1. Liquiphant heute: **Typ** (Typenschild/Foto), **Einhängelänge unter Domrand**, für alle Fahrzeuge gleich?
 2. Welches **Auswertegerät** bzw. welche Abschaltung (Relais, PLS)?
 3. Werden andere Hersteller (z. B. SICK LFV 200) als Überfüllsicherung akzeptiert? Bevorzugte Hersteller?
-4. Nachziehen: gewünschte Eintauchtiefe unter Spiegel, Mindestabstand zum Tankboden?
+4. ~~Eintauchtiefe~~ (2–3 cm, beantwortet); Mindestabstand zum Tankboden, Tiefe Domrand–Boden?
 5. Anbindung an das PLS: welche Signale?
 
 ## Nächste Schritte

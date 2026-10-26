@@ -40,7 +40,8 @@ verlinkten Dokumenten.
 - Technische Zusammenfassung gesendet (`docs/extern/`), Feedback: Konzept „sehr gelungen“.
 - BASF prüft intern Machbarkeit und **PLS-Anbindung**.
 - **Fotos und Maße H517 erhalten (22./23.10.)**: Mannloch Ø 0,5 m, Eintauchtiefe 2–3 cm unter Spiegel, Produkte Acronal/Lhydran/Lurapret, überdachte Halle mit mehreren Spuren – Auswertung `docs/kunde_basf_h517.md` (Fotos vertraulich, nicht im Repository).
-- Fahrzeugstatistik folgt.
+- Fahrzeugstatistik folgt (erbeten: Spanne Tiefe Domrand–Tankboden, Füllleistung).
+- **Termin 27.10.2026**, Themen vorab gesendet: Überfüllsicherung (von Hand weiter oder automatisch mit dem Arm andocken), Tanktiefen, Spülwanne an der Parkstellung.
 
 ### Fragen für den nächsten Termin
 

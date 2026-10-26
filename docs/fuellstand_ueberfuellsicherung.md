@@ -84,3 +84,19 @@ sie die heutige Sonde weiterverwendet.
 - **Vision-PC:** Bodenhöhe/Tankgeometrie für die maximale Eintauchtiefe, Nachzieh-Tabelle
   (Schnittstelle Version 3), Erkennung einer eingelegten Sonde (Variante C).
 - **Simulation:** steigender Füllstand, Nachziehen, Abschaltung.
+
+## Test Messstab LFC (Entscheidung 26.10.2026)
+
+Zuerst den kapazitiven **SICK LFC** (Testset LFC-XXSBTE + SiLink2) testen; LFP Cubic mit
+Koaxialrohr zurückgestellt, weil sich das Rohr mit antrocknender Dispersion zusetzen kann.
+
+1. Aufbau: Stab senkrecht in Fass/Eimer mit echter Dispersion (Acronal), Auswertung über SiLink2
+   am Laptop (SOPAS), Abgleich leer/voll.
+2. Linearität: Stab schrittweise eintauchen (z. B. 1 cm), Messwert gegen Maßstab notieren.
+   Ziel: Spiegel auf ±1 cm, damit 2–3 cm Eintauchtiefe gehalten werden.
+3. Anhaftung: Stab herausziehen, Film am Stab lassen, nach 10 min / 1 h erneut messen; danach
+   antrocknen lassen und wiederholen. Prüfen, ob der leere Stab „Füllstand“ meldet.
+4. Schaum: Produkt aufschäumen (Rühren/Einfüllen von oben), Anzeige gegen Flüssigkeitsspiegel
+   und Schaumoberfläche vergleichen.
+5. Reinigung: Abspülen mit Wasser wie in der Spülwanne, danach wieder Nullpunkt prüfen.
+6. Ergebnis mit Fotos dokumentieren; Entscheidung LFC oder LFP für die Anlage.

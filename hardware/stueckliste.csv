@@ -1,5 +1,5 @@
 Pos;Bezeichnung;Vorschlag;Menge;Status;Bemerkung
-1;3D-Sensor;SICK Visionary-T Mini CX, Frontscheibe Glas: V3S105-1AAAAAD (Art.-Nr. 1132065);1;offen;ToF, 512x424, IP65/67/69, 24 V typ. 12 W, GigE, -10..+50 °C, max. 50 klx Fremdlicht, 520 g, 4x M5; Glas statt PMMA wegen Lösemitteldämpfen/Reinigung/Kratzern an der Verladestelle; für den Prüfstand geht auch V3S105-1AAAAAA (PMMA, 1112649); docs/sensor_sick.md
+1;3D-Sensor;SICK Visionary-T Mini CX, Frontscheibe Glas: V3S105-1AAAAAD (Art.-Nr. 1132065);1;angeboten SICK 33503320: 1.286,60 € + Halter 2124497 + Leitungen 15 m (2095599, 2124208);ToF, 512x424, IP65/67/69, 24 V typ. 12 W, GigE, -10..+50 °C, max. 50 klx Fremdlicht, 520 g, 4x M5; Glas statt PMMA wegen Lösemitteldämpfen/Reinigung/Kratzern an der Verladestelle; für den Prüfstand geht auch V3S105-1AAAAAA (PMMA, 1112649); docs/sensor_sick.md
 2;Kabel Ethernet;M12 8-polig X-kodiert auf RJ45, Cat6a, ca. 10 m;1;offen;Länge nach Montagehöhe
 3;Kabel Versorgung Sensor;M12 8-polig A-kodiert Buchse, offenes Ende, geschirmt, ca. 10 m;1;offen;24 V DC, typ. 12 W, Spitzenstrom 2 A
 4;Edge-PC Prüfstand;ASUS NUC 14 Pro, Core Ultra 5, 16 GB, 512 GB SSD;1;offen;Ubuntu 24.04; ca. 640 EUR

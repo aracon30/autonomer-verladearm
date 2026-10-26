@@ -87,8 +87,9 @@ sie die heutige Sonde weiterverwendet.
 
 ## Test Messstab LFC (Entscheidung 26.10.2026)
 
-Zuerst den kapazitiven **SICK LFC** (Testset LFC-XXSBTE + SiLink2) testen; LFP Cubic mit
+Zuerst den kapazitiven **SICK LFC** (Testset LFC-XXSBTE + SiLink2, **Sonde/Stab fehlt im Angebot, bei SICK nachfordern**) testen; LFP Cubic mit
 Koaxialrohr zurückgestellt, weil sich das Rohr mit antrocknender Dispersion zusetzen kann.
+Auch kapazitiv kann Belag aus leitfähigem Produkt den Messwert verfälschen – genau das prüft der Test.
 
 1. Aufbau: Stab senkrecht in Fass/Eimer mit echter Dispersion (Acronal), Auswertung über SiLink2
    am Laptop (SOPAS), Abgleich leer/voll.

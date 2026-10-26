@@ -17,6 +17,8 @@ Auslegung nötigen Angaben.
 | Absperrung heute | manuelle Stellklappe am Arm DN 80, PN 10, −10 … +100 °C |
 | Grundstellung heute | optischer Näherungsschalter mit Reflektor |
 | Überfüllsicherung heute | Liquiphant auf einem Halter, der auf dem Domkasten aufliegt und das Füllrohr mit einem Ring umfasst – von Hand gesetzt |
+| Schäumen | Produkt **schäumt** beim Befüllen (Rücksprache P. Schreiber, 26.10.) |
+| Spülwanne | vermutlich heute schon an der Parkstellung, wird nach jedem Füllvorgang befüllt [bestätigen] |
 | Fahrzeugstatistik | in Arbeit |
 
 ## Beobachtungen aus den Fotos
@@ -40,13 +42,15 @@ Auslegung nötigen Angaben.
   kontinuierlich nachziehen (Geschwindigkeit an den Spiegelanstieg angepasst, siehe Stützpunkte
   nachschieben). Simulation umgestellt auf 2–5 cm.
 - Messstab und Koaxialrohr: Dispersionen trocknen an → Reinigung/Spülen berücksichtigen.
-- Parkstellung über einer Spülwanne vorsehen? Spülablauf klären.
+- Parkstellung über der vorhandenen Spülwanne.
+- Schaum: Messstab (geführte Mikrowelle) misst durch leichten Schaum meist den Flüssigkeitsspiegel, dichter Schaum kann stören; Schwinggabel kann bei dichtem Schaum früher schalten (sichere Seite). Mit SICK klären, am Versuch prüfen.
 - Schnittstelle DN 80 (heute) ↔ DN 100 (HETA-Arm) klären.
 
 ## Offene Fragen an BASF
 
-1. Höhe der Decke bzw. Aufhängung über der Fahrbahn, Lage der Spuren zueinander (Kamera, Arm).
-2. Tiefe Domrand bis Tankboden, typische Füllmenge je Kammer und Füllleistung (m³/h).
-3. Produkttemperatur und Schäumen beim Befüllen.
-4. Liquiphant: Typ, Einhängelänge unter dem Rand, Auswertung (Relais, PLS).
-5. Spülen: wann und wo (Parkstellung über der Wanne?).
+1. Überfüllsicherung: bleibt der von Hand gesetzte Liquiphant, oder dockt eine Überfüllsicherung
+   automatisch mit dem Arm an? Typ, Einhängelänge, Abschaltung (Relais/PLS), anderes Fabrikat zulässig?
+2. Tiefe Domrand bis Tankboden und Füllleistung (m³/h).
+3. Schaum: wie stark, wie hoch über dem Spiegel?
+4. Spülwanne an der Parkstellung bestätigen.
+5. Später: Hallenhöhe/Spuren, Anschluss DN 80/100 (intern), Signale PLS.

@@ -85,19 +85,28 @@ sie die heutige Sonde weiterverwendet.
   (Schnittstelle Version 3), Erkennung einer eingelegten Sonde (Variante C).
 - **Simulation:** steigender Füllstand, Nachziehen, Abschaltung.
 
-## Test Messstab LFC (Entscheidung 26.10.2026)
+## Test Grenzschalter LFC für das Nachziehen (Entscheidung 26.10.2026)
 
-Zuerst den kapazitiven **SICK LFC** (Testset LFC-XXSBTE + SiLink2, **Sonde/Stab fehlt im Angebot, bei SICK nachfordern**) testen; LFP Cubic mit
-Koaxialrohr zurückgestellt, weil sich das Rohr mit antrocknender Dispersion zusetzen kann.
-Auch kapazitiv kann Belag aus leitfähigem Produkt den Messwert verfälschen – genau das prüft der Test.
+Der **SICK LFC-XXSBTE** ist ein **kapazitiver Grenzschalter** (kompakt, G ½", PEEK-Spitze, IO-Link,
+2 × PNP), **kein Messstab**: er meldet nur „Produkt an der Spitze ja/nein“. Laut SICK kann er Schaum
+und Anhaftungen ausblenden; wasserbasierte Medien sind voreingestellt.
 
-1. Aufbau: Stab senkrecht in Fass/Eimer mit echter Dispersion (Acronal), Auswertung über SiLink2
-   am Laptop (SOPAS), Abgleich leer/voll.
-2. Linearität: Stab schrittweise eintauchen (z. B. 1 cm), Messwert gegen Maßstab notieren.
-   Ziel: Spiegel auf ±1 cm, damit 2–3 cm Eintauchtiefe gehalten werden.
-3. Anhaftung: Stab herausziehen, Film am Stab lassen, nach 10 min / 1 h erneut messen; danach
-   antrocknen lassen und wiederholen. Prüfen, ob der leere Stab „Füllstand“ meldet.
-4. Schaum: Produkt aufschäumen (Rühren/Einfüllen von oben), Anzeige gegen Flüssigkeitsspiegel
-   und Schaumoberfläche vergleichen.
-5. Reinigung: Abspülen mit Wasser wie in der Spülwanne, danach wieder Nullpunkt prüfen.
-6. Ergebnis mit Fotos dokumentieren; Entscheidung LFC oder LFP für die Anlage.
+**Idee: Nachziehen als Zweipunktregelung.** Spitze des LFC ca. 3 cm über dem Auslassende am Rohr.
+- LFC meldet „nass“ → Auslass ca. 3 cm eingetaucht → J3 hebt ca. 2 cm, bis der LFC „trocken“ meldet.
+- Spiegel steigt weiter → wieder „nass“ → nächster Schritt. Der Auslass bleibt so ca. 1–3 cm unter
+  dem Spiegel (Vorgabe BASF 2–3 cm).
+- Füllstand ist bei jedem Schaltpunkt bekannt (Armhöhe + Lage der Spitze); Füllende weiter über
+  den Durchflusssensor.
+- Vorteil: billig (ca. 200 €), kein Koaxialrohr, das sich zusetzt. Nachteil: kein durchgehender
+  Messwert, nur Schaltpunkte. Optional zweiter LFC als „zu tief“-Warnung.
+
+LFP Cubic (kontinuierlich) bleibt die Alternative, falls der LFC im Test nicht sicher schaltet.
+
+Test mit echter Dispersion (Acronal), Auswertung über SiLink2 am Laptop (SOPAS):
+1. Schaltpunkt: Spitze langsam eintauchen und herausziehen, Schaltpunkt gegen Maßstab notieren
+   (Ziel ±5 mm, Wiederholbarkeit).
+2. Anhaftung: nach dem Herausziehen mit Film an der Spitze – schaltet er wieder auf „trocken“?
+   Nach 10 min / 1 h / angetrocknet wiederholen; Einstellungen zum Ausblenden von Anhaftungen testen.
+3. Schaum: Produkt aufschäumen – schaltet er im Schaum oder erst an der Flüssigkeit?
+4. Reinigung: mit Wasser abspülen, danach Schaltverhalten wie neu?
+5. Ergebnis mit Fotos dokumentieren; Entscheidung LFC (Zweipunkt) oder LFP (kontinuierlich).

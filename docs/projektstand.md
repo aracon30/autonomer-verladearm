@@ -14,7 +14,8 @@ verlinkten Dokumenten.
 | 15.10. | Geber J1/J2 | **kein Sicherheitsgeber**: J1 wie J2 mit AZ2Z und Direktanbau MD071A (Änderung bei SEW angefragt) | `hardware/antriebe.md` |
 | 16.10. | Umrichter | MOVITRAC advanced mit **MOVIKIT Positioning Drive (Level 1)**; Synchronfahrt koordiniert die SPS (v/a je Achse skaliert, gleiche Ruckzeit) | `hardware/antriebe.md`, `docs/schnittstelle.md` |
 | 26.10. | Übersetzung J1/J2 | i = 10,6 wird **ohne Rückfrage bei SEW** angenommen; Regelung bei der Inbetriebnahme mit flachen Rampen einstellen | `hardware/antriebe.md` |
-| 26.10. | Nachziehen-Sensor | erst **SICK LFC testen** – kapazitiver **Grenzschalter** (kein Stab) für Nachziehen als Zweipunktregelung mit echter Dispersion (Anhaftung, Schaum); LFP Cubic mit Koaxialrohr zurückgestellt (Rohr kann sich zusetzen) | `docs/fuellstand_ueberfuellsicherung.md` |
+| 26.10. | Füllende | Schutzebenen: 1. Sollmenge (Durchfluss), 2. Maximalhöhe aus Armhöhe + Grenzschaltern, 3. Überfüllsicherung **nur als letzte Ebene, nie betriebsmäßig** | `docs/fuellstand_ueberfuellsicherung.md` |
+| 26.10. | Nachziehen | **zwei kapazitive Grenzschalter** (A 1 cm, B 3 cm über Auslassende) statt Messstab; zuerst **SICK LFC mit Acronal testen** (Anhaftung, Schaum); LFP Cubic zurückgestellt | `docs/fuellstand_ueberfuellsicherung.md` |
 | 19.10. | Bedienung | Schaltschrank **ohne Display**: Leuchttaster „Beladen starten“, Not-Halt, Quittieren, Schlüsselschalter Automatik/Hand, Leuchtmelder; Produkt, Freigabe und Kalibrierung aus der **Leitstelle**; **Handbetrieb nur vor Ort** mit Handbediengerät (Zustimmtaster) | `docs/schnittstelle.md` |
 | 15.10. | Ex-Schutz | BASF: **keine Ex-Zone** an der Verladestelle | `docs/ideenspeicher.md` |
 | 15.10. | Füllstand | Nachziehen gefordert; Messstab (geführte Mikrowelle) an der Lanze; Füllende über Durchflusssensor; Füllstand zusätzlich aus Armhöhe + Messstab | `docs/fuellstand_ueberfuellsicherung.md` |

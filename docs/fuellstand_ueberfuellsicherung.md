@@ -1,23 +1,26 @@
 # Konzept: Füllstand, Nachziehen und Überfüllsicherung
 
-Stand 15.10.2026 – Entwurf zur Abstimmung mit dem Kunden (Anforderung BASF vom 15.10.2026).
+Stand 26.10.2026 – Entwurf zur Abstimmung mit dem Kunden (Anforderung BASF vom 15.10.2026).
 Hintergrund und erste Idee: `docs/ideenspeicher.md`.
 
-## Festlegungen (Stand 15.10.2026)
+## Festlegungen (Stand 26.10.2026)
 
 | Thema | Lösung |
 |---|---|
-| **Nachziehen** | ja, gefordert. Messstab (SICK LFC bzw. LFP) fest an der Lanze misst, wie tief der Auslass im Produkt steckt; die SPS hält ihn **2–3 cm** unter dem Spiegel (Vorgabe BASF, 23.10.2026) und zieht den Arm nach |
-| **Füllende** | Durchflusssensor mit Sollmenge (wie im ersten Termin mit BASF besprochen) |
-| **Füllstand aus der Armhöhe** | Spiegel unter Domrand = Eintauchtiefe des Auslasses (Kamera + Kinematik) − benetzte Länge am Messstab. Für Anzeige, Nachziehen und als Plausibilitätsprüfung gegen den Durchflusssensor |
+| **Nachziehen** | ja, gefordert. **Zwei kapazitive Grenzschalter** (z. B. SICK LFC) übereinander am Auslassrohr, ca. 1 cm (A) und 3 cm (B) über dem Auslassende; die SPS hält den Auslass **1–3 cm** unter dem Spiegel (Vorgabe BASF 2–3 cm, 23.10.2026). Messstab LFP nur noch Alternative, falls der LFC im Test nicht sicher schaltet (Abschnitt unten) |
+| **Füllende** | 1. Sollmenge über Durchflusssensor; 2. zusätzlich **Maximalhöhe** aus Armhöhe + Grenzschaltern (Spiegel an jedem Schaltpunkt bekannt). **Nie über die Überfüllsicherung** (Abschnitt Schutzebenen) |
+| **Füllstand aus der Armhöhe** | an jedem Schaltpunkt: Spiegel unter Domrand = Eintauchtiefe des Auslasses (Kamera + Kinematik) − Höhe des Schaltpunkts über dem Auslassende. Für Maximalhöhe, Anzeige und Plausibilität gegen den Durchflusssensor |
 | **Überfüllsicherung** | wie heute **Liquiphant mit fester Länge ab Domrand** – künftig an der **aufliegenden Lanze** (Skizze `docs/skizzen/ueberfuell_lanze.png`): Auflage am Domrand, Lanze bleibt beim Nachziehen liegen, Schaltpunkt bleibt fest; wirkt direkt auf die Absperrklappe |
 
 **Gerätewahl (Vorschlag HETA, 15.10.2026):**
 - Überfüllsicherung: **SICK LFV 200** (Schwinggabel) mit **Rohrverlängerung** – die Verlängerung bildet
   die Lanze (Länge L). Voraussetzung: Ausführung mit Zulassung als Überfüllsicherung (WHG/SIL nach
   Vorgabe BASF) und Freigabe durch BASF; sonst Liquiphant wie heute.
-- Messstab Nachziehen: geführte Mikrowelle, günstig **SICK LFP Cubic** oder **ifm LR** (IO-Link);
-  Abstand zum Auslassrohr bzw. Koaxrohr beachten (Fehlechos, Anhaftung bei Kleber).
+- Nachziehen (Stand 26.10.2026): **2 × kapazitiver Grenzschalter** (SICK LFC, Alternativen ifm LMT,
+  Baumer CleverLevel, VEGAPOINT, E+H Liquipoint – ähnlicher Preis; entscheidend ist das Ausblenden
+  von Anhaftung und Schaum). Test mit Acronal vorab (Abschnitt unten).
+- Alternative Messstab: geführte Mikrowelle **SICK LFP Cubic** oder **ifm LR** (IO-Link); Koaxrohr
+  kann sich mit Dispersion zusetzen.
 
 Heute wird der Liquiphant von Hand am oberen Rand des Tankwagens befestigt. Die Lanze übernimmt
 genau diesen Bezug (Domrand + feste Länge) automatisch.
@@ -85,20 +88,47 @@ sie die heutige Sonde weiterverwendet.
   (Schnittstelle Version 3), Erkennung einer eingelegten Sonde (Variante C).
 - **Simulation:** steigender Füllstand, Nachziehen, Abschaltung.
 
+## Nachziehen mit zwei Grenzschaltern (26.10.2026)
+
+```
+        │ Auslassrohr
+   [B]  ├─ ca. 3 cm über Auslassende  → „nass“ = zu tief → J3 hebt
+   [A]  ├─ ca. 1 cm über Auslassende  → „nass“ = Auslass eingetaucht
+        └─ Auslassende
+```
+
+| A | B | Bedeutung | SPS |
+|---|---|---|---|
+| trocken | trocken | Auslass über dem Spiegel (Füllbeginn) | warten, Spiegel steigt; war A schon nass → zu weit gehoben, Störung |
+| nass | trocken | **richtig**: Auslass 1–3 cm unter dem Spiegel | Arm steht |
+| nass | nass | zu tief | J3 hebt, bis B trocken |
+| trocken | nass | unplausibel (Schaum, Belag, Defekt) | Störung, Klappe zu |
+
+Die Schalter überwachen sich gegenseitig. Beide dienen **nur** dem Nachziehen und der
+Maximalhöhe, nie als Überfüllsicherung.
+
+## Schutzebenen Füllende (26.10.2026)
+
+Die Überfüllsicherung darf **nicht betriebsmäßig** zum Beenden der Füllung genutzt werden
+(Grundsatz WHG/AwSV): Sie ist die letzte, unabhängige Ebene; ihr Ansprechen ist eine Störung.
+
+| Ebene | Einrichtung | Normalfall |
+|---|---|---|
+| 1 | **Sollmenge** über Durchflusssensor (Vorgabe Leitstelle) | beendet die Füllung |
+| 2 | **Maximalhöhe** aus Armhöhe + Grenzschaltern (Einstellwert je Anlage/Fahrzeug) | greift, wenn die Menge nicht passt → Klappe zu, Meldung |
+| 3 | **Überfüllsicherung** (Liquiphant bzw. aufliegende Lanze), direkt auf die Absperrklappe | greift nur, wenn 1 und 2 versagen → Klappe zu, Störung |
+
+Die Maximalhöhe (Ebene 2) muss einige Zentimeter **unter** dem Schaltpunkt der Überfüllsicherung
+liegen, damit Ebene 3 im Normalfall nie anspricht.
+
 ## Test Grenzschalter LFC für das Nachziehen (Entscheidung 26.10.2026)
 
 Der **SICK LFC-XXSBTE** ist ein **kapazitiver Grenzschalter** (kompakt, G ½", PEEK-Spitze, IO-Link,
 2 × PNP), **kein Messstab**: er meldet nur „Produkt an der Spitze ja/nein“. Laut SICK kann er Schaum
 und Anhaftungen ausblenden; wasserbasierte Medien sind voreingestellt.
 
-**Idee: Nachziehen als Zweipunktregelung.** Spitze des LFC ca. 3 cm über dem Auslassende am Rohr.
-- LFC meldet „nass“ → Auslass ca. 3 cm eingetaucht → J3 hebt ca. 2 cm, bis der LFC „trocken“ meldet.
-- Spiegel steigt weiter → wieder „nass“ → nächster Schritt. Der Auslass bleibt so ca. 1–3 cm unter
-  dem Spiegel (Vorgabe BASF 2–3 cm).
-- Füllstand ist bei jedem Schaltpunkt bekannt (Armhöhe + Lage der Spitze); Füllende weiter über
-  den Durchflusssensor.
-- Vorteil: billig (ca. 200 €), kein Koaxialrohr, das sich zusetzt. Nachteil: kein durchgehender
-  Messwert, nur Schaltpunkte. Optional zweiter LFC als „zu tief“-Warnung.
+Einsatz: zwei Stück am Auslassrohr (Abschnitt „Nachziehen mit zwei Grenzschaltern“). Für den Test
+reicht ein LFC – beide Schaltpunkte lassen sich nacheinander prüfen.
 
 LFP Cubic (kontinuierlich) bleibt die Alternative, falls der LFC im Test nicht sicher schaltet.
 

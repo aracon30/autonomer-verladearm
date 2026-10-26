@@ -27,7 +27,7 @@ Leitstelle) sind folgende Änderungen nötig. Offene Werte sind mit **[folgt]** 
 | Kamera | – | SICK Visionary-T Mini CX (3D), Montage über der Verladestelle |
 | Bedienung | Taster Heben/Senken/Reset, Hängetaster XAC-A2713 | Leuchttaster „Beladen starten“, Not-Halt, „Quittieren“, Schlüsselschalter Automatik/Hand, Leuchtmelder; steckbares **Handbediengerät** mit Zustimmtaster, Not-Halt, Achswahl, +/−; Auftrag, Produkt und Kalibrierung aus der **Leitstelle** |
 | Sensorik Bewegung | 2 Endlagensensoren, induktiver Hindernissensor | Multiturn-Absolutgeber je Achse, Software-Endlagen, Endlagenschalter [folgt], Hindernissensor Lanze (beibehalten?) [folgt], Lichtschranke Stellplatz, Rückmeldung Klapptreppe |
-| Sensorik Füllstand | Liquiphant + Ultraschall | Messstab (geführte Mikrowelle) an der Lanze, Durchflusssensor, **Überfüllsicherung** an aufliegender Lanze (z. B. SICK LFV 200) [folgt], Absperrklappe mit Stellungsrückmeldung |
+| Sensorik Füllstand | Liquiphant + Ultraschall | zwei Grenzschalter (kapazitiv) am Auslassrohr fürs Nachziehen, Durchflusssensor (Sollmenge), Maximalhöhe aus Armhöhe, **Überfüllsicherung** an aufliegender Lanze (z. B. SICK LFV 200) [folgt], Absperrklappe mit Stellungsrückmeldung |
 | Elektrischer Anschluss / Schaltschrank | 16 A, Rittal AX 500 × 500 × 300 | Leistung und Schrankgröße neu (3 Umrichter, SPS, PC) [folgt Schaltschrankbauer] |
 | Gewicht | 251/326 kg | neu mit Antrieben J1/J2 und Zahnkränzen [folgt] |
 | Neu | – | Umgebungstemperatur −20…+40 °C (Getriebe J1/J2 −15 °C, zurückgestellt), Windgrenze für Automatik [folgt], Netzwerk/Schnittstellen (PROFINET, OPC UA, PLS) |

@@ -92,11 +92,12 @@ Klapptreppe fährt auf das Fahrzeug, der Fahrer öffnet den Dom, die Klapptreppe
 5. **Job 2** → Korrektur prüfen (Betrag < Grenzwert, sonst Job 2 wiederholen oder Abbruch) →
    Stützpunkt 1 anfahren → restliche Stützpunkte langsam = Eintauchen.
 6. **Befüllen** (SPS, **ohne PC**, `docs/fuellstand_ueberfuellsicherung.md`): Absperrklappe auf,
-   Durchflusssensor zählt die Menge. Der Messstab an der Lanze meldet die Eintauchtiefe; ab der
-   oberen Grenze zieht die SPS den Arm senkrecht nach, entlang der Eintauch-Stützpunkte aus Job 2
+   Durchflusssensor zählt die Menge. Zwei Grenzschalter am Auslassrohr (ca. 1 und 3 cm über dem
+   Auslassende) melden die Eintauchtiefe; meldet der obere „nass“, zieht die SPS den Arm senkrecht nach, entlang der Eintauch-Stützpunkte aus Job 2
    (Höhe je Stützpunkt aus der Vorwärtsrechnung, dazwischen linear im Gelenkraum). Die
-   Überfüllsicherung schließt die Klappe unabhängig davon.
-7. **Sollmenge erreicht** (oder Bediener beendet die Beladung) → Klappe zu, Abtropfpause.
+   Überfüllsicherung schließt die Klappe unabhängig davon (nur letzte Ebene, nie betriebsmäßig).
+7. **Sollmenge erreicht** oder **Maximalhöhe** aus Armhöhe erreicht (oder Bediener beendet die
+   Beladung) → Klappe zu, Abtropfpause.
 8. **Job 3** → Stützpunkte fahren → Parkstellung. Danach Klapptreppe/Fahrzeug frei.
 
 Während der Automatik: Klapptreppe verriegelt (darf nicht ausfahren). Fällt die Lichtschranke ab

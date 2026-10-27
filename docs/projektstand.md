@@ -16,7 +16,7 @@ verlinkten Dokumenten.
 | 27.10. | Mehrere Dome | **Schnittstelle Version 3**: Auftrag als Füllschritte (Dom, Menge); `DomeNo` 0 = automatisch (Kammern verbunden, Schwallwände), n = n-ter offener Dom von vorn (Mehrkammer); zwischen den Kammern senkrecht heraus und Job 1 vom vorigen Dom aus. Plausibilität (erwartete Zahl offener Dome) noch nicht | `docs/schnittstelle.md` |
 | 26.10. | Übersetzung J1/J2 | i = 10,6 wird **ohne Rückfrage bei SEW** angenommen; Regelung bei der Inbetriebnahme mit flachen Rampen einstellen | `hardware/antriebe.md` |
 | 26.10. | Füllende | Schutzebenen: 1. Sollmenge (Durchfluss), 2. Maximalhöhe aus Armhöhe + Grenzschaltern, 3. Überfüllsicherung **nur als letzte Ebene, nie betriebsmäßig** | `docs/fuellstand_ueberfuellsicherung.md` |
-| 26.10. | Nachziehen | **zwei kapazitive Grenzschalter** (A 1 cm, B 3 cm über Auslassende) statt Messstab; zuerst **SICK LFC mit Acronal testen** (Anhaftung, Schaum); LFP Cubic zurückgestellt | `docs/fuellstand_ueberfuellsicherung.md` |
+| 26.10. | Nachziehen | **zwei kapazitive Grenzschalter** (A 1 cm, B 3 cm über Auslassende) statt Messstab; Test mit Produkt (Anhaftung, Schaum) macht **BASF** (27.10.), HETA testet nicht selbst; LFP Cubic zurückgestellt | `docs/fuellstand_ueberfuellsicherung.md` |
 | 19.10. | Bedienung | Schaltschrank **ohne Display**: Leuchttaster „Beladen starten“, Not-Halt, Quittieren, Schlüsselschalter Automatik/Hand, Leuchtmelder; Produkt, Freigabe und Kalibrierung aus der **Leitstelle**; **Handbetrieb nur vor Ort** mit Handbediengerät (Zustimmtaster) | `docs/schnittstelle.md` |
 | 15.10. | Ex-Schutz | BASF: **keine Ex-Zone** an der Verladestelle | `docs/ideenspeicher.md` |
 | 15.10. | Füllstand | Nachziehen gefordert; Messstab (geführte Mikrowelle) an der Lanze; Füllende über Durchflusssensor; Füllstand zusätzlich aus Armhöhe + Messstab | `docs/fuellstand_ueberfuellsicherung.md` |
@@ -68,7 +68,7 @@ verlinkten Dokumenten.
 
 - [ ] Mail an BASF: Sensorvergleich und Skizze Halterung (Aufgabe aus dem Termin 27.10.)
 - [ ] Rohrisolierung über J1 gegen Motorlage prüfen – vor der SEW-Bestellung
-- [ ] SEW-Motoren J1/J2 bestellen; IMO-Angebot J3 (Geber AK8Z) abwarten; SICK Kamera + LFC-Testset bestellen
+- [ ] SEW-Motoren J1/J2 bestellen; IMO-Angebot J3 (Geber AK8Z) abwarten; SICK Kamera bestellen (kein LFC-Testset: Sensortest macht BASF)
 - [ ] Mit Peter: Überfüll-Abschaltung (Klappe/Pumpe, F-SPS), Kammerwahl vor Ort oder Leitstelle
 - [ ] Konstruktion: aufliegende Lanze kurz (ca. 20 cm), Führung ohne klemmende Hülse; Halter
   Grenzschalter; **Abtropfschale/-klappe**

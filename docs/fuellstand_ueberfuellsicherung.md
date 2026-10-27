@@ -144,6 +144,9 @@ liegen, damit Ebene 3 im Normalfall nie anspricht.
 
 ## Test Grenzschalter LFC für das Nachziehen (Entscheidung 26.10.2026)
 
+**Stand 27.10.2026:** Den Test mit Produkt und Schaum macht **BASF** (favorisiert Baumer
+kapazitiv); HETA testet nicht selbst. Der Ablauf unten dient als Vorschlag für den BASF-Test.
+
 Der **SICK LFC-XXSBTE** ist ein **kapazitiver Grenzschalter** (kompakt, G ½", PEEK-Spitze, IO-Link,
 2 × PNP), **kein Messstab**: er meldet nur „Produkt an der Spitze ja/nein“. Laut SICK kann er Schaum
 und Anhaftungen ausblenden; wasserbasierte Medien sind voreingestellt.

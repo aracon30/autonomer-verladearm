@@ -50,7 +50,7 @@ verlinkten Dokumenten.
   - Liquiphant heute: Schutzkorb 22 cm im Tank, Gabel 17 cm → Überfüll-Lanze kurz.
   - Abschaltung heute über die SPS; Sicherheitskreis könnte die Pumpe stoppen.
   - BASF favorisiert kapazitive Sensorik (Baumer) und testet selbst; Druckmessung als Idee.
-  - Halterung: Sorge, dass eine Gleithülse klemmt; möglichst kein Produktkontakt.
+  - Halterung: Gleithülse könnte klemmen (Hinweis HETA) → offene Führung; möglichst kein Produktkontakt.
   - Spülwanne an der Parkstellung bestätigt; Abtropfen heute mit Eimer, automatische Lösung gewünscht.
   - Kammeraufteilung laut Notiz am Bedienpult vor Ort wählbar (mit „ohne Display“ abgleichen).
   - Rohrisolierung über dem Arm könnte mit Servo J1 kollidieren – prüfen.

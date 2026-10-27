@@ -12,7 +12,7 @@ Gespräch 27.10.2026: `docs/kunde_basf_h517.md`). Hintergrund und erste Idee: `d
 | Überfüllsicherung heute | Schutzkorb **22 cm** im Tank, Gabel 17 cm | Schaltpunkt nur ca. 20 cm unter dem Rand → Lanze kurz, nicht 800 mm |
 | Abschaltung | heute über die SPS; Sicherheitskreis könnte die **Pumpe** stoppen | Ebene 3: Klappe und/oder Pumpe – mit Peter und BASF festlegen |
 | Sensor | BASF favorisiert **kapazitiv (Baumer)**, testet selbst; Druckmessung als Idee | Vergleich unten; Baumer CleverLevel als Alternative zum SICK LFC |
-| Halterung | Gleithülse könnte bei Verschmutzung klemmen; möglichst kein Produktkontakt, spritzwassergeschützt | Führung offen gestalten (z. B. Gabel statt Hülse), reinigbar; Skizze überarbeiten |
+| Halterung | möglichst kein Produktkontakt, spritzwassergeschützt; Gleithülse könnte bei Verschmutzung klemmen (Hinweis HETA) | Führung offen gestalten (z. B. Gabel statt Hülse), reinigbar; Skizze überarbeiten |
 | Abtropfen | heute Eimer, 1 min reicht nicht | einfahrbare Abtropfschale/-klappe am Arm vorsehen |
 
 ## Sensorvergleich Nachziehen (27.10.2026)

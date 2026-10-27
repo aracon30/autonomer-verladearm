@@ -71,8 +71,8 @@ Auslegung nötigen Angaben.
   verkleben, Grenzschalter liefern nur zwei Punkte.
 
 **Halterung Überfüllsicherung**
-- Vorschlag HETA (aufliegend auf dem Dom, Arm bewegt sich daneben): Bedenken, dass eine
-  **Gleithülse bei Verschmutzung klemmt**.
+- Vorschlag HETA (aufliegend auf dem Dom, Arm bewegt sich daneben). P. Schreiber selbst hat
+  angemerkt, dass eine **Gleithülse bei Verschmutzung klemmen** kann → Führung offen gestalten.
 - Sensor und Halterung sollen möglichst wenig Produktkontakt haben; der heutige Sensor bekommt
   beim Reinigen Spritzer ab.
 

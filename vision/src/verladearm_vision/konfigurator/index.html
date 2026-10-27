@@ -102,17 +102,22 @@ details summary{cursor:pointer;font-family:var(--f-display);font-weight:600}
 .dirty{color:var(--warn);font-size:.85rem}
 .tpl{font-family:var(--f-display);font-weight:600;font-size:.75rem;padding:.1rem .45rem;border-radius:3px;
   background:color-mix(in srgb,var(--steel) 18%,transparent);color:var(--steel)}
-nav.steps{position:sticky;top:61px;z-index:4;background:var(--bg);display:flex;gap:6px;flex-wrap:wrap;
-  padding:10px 16px 0}
-nav.steps a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);background:var(--panel);
-  border:1px solid var(--rule);border-radius:999px;padding:.2rem .7rem .2rem .25rem;font-family:var(--f-display);
-  font-weight:600;font-size:.88rem;white-space:nowrap}
-nav.steps a:hover{border-color:var(--ink)}
-nav.steps a b{display:inline-grid;place-items:center;width:1.35rem;height:1.35rem;border-radius:50%;background:var(--ink);
-  color:var(--panel);font-size:.75rem}
-nav.steps a.bad{border-color:var(--err);color:var(--err)} nav.steps a.bad b{background:var(--err)}
-nav.steps a.cur{border-color:var(--signal);box-shadow:inset 0 -3px 0 var(--signal)}
-.card{scroll-margin-top:118px}
+nav.steps{position:sticky;top:61px;z-index:4;background:var(--bg);display:flex;gap:4px;flex-wrap:wrap;
+  padding:10px 16px 0;border-bottom:1px solid var(--rule)}
+nav.steps button{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--rule);border-bottom:none;
+  border-radius:6px 6px 0 0;background:var(--field);padding:.45rem .9rem .4rem .45rem;font-size:.95rem;margin-bottom:-1px}
+nav.steps button b{display:inline-grid;place-items:center;width:1.45rem;height:1.45rem;border-radius:50%;
+  background:var(--muted);color:var(--panel);font-size:.78rem}
+nav.steps button.cur{background:var(--panel);border-color:var(--ink);box-shadow:inset 0 3px 0 var(--signal)}
+nav.steps button.cur b{background:var(--ink)}
+nav.steps button.bad{color:var(--err);border-color:var(--err)} nav.steps button.bad b{background:var(--err)}
+nav.steps button .warn{color:var(--warn);font-weight:700}
+.tabfoot{display:flex;justify-content:space-between;gap:8px;margin:-4px 0 16px}
+.card > h2 .hint{font-size:.85rem}
+.dir{display:flex;gap:8px;flex-wrap:wrap}
+.dir label{display:flex;align-items:center;gap:6px;border:1px solid var(--rule);border-radius:4px;padding:.35rem .7rem;
+  cursor:pointer;background:var(--field)}
+.dir label:has(input:checked){border-color:var(--signal);box-shadow:inset 0 0 0 1px var(--signal)}
 .cmd{display:flex;gap:6px;align-items:flex-start;margin:.35rem 0}
 .cmd code{flex:1;font-family:var(--f-mono);font-size:.78rem;background:var(--field);border:1px solid var(--rule);
   padding:.35rem .5rem;overflow-x:auto;white-space:nowrap}
@@ -121,7 +126,7 @@ nav.steps a.cur{border-color:var(--signal);box-shadow:inset 0 -3px 0 var(--signa
 .callout.ok{border-left-color:var(--ok);background:color-mix(in srgb,var(--ok) 7%,var(--panel))}
 details.drive > summary{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;padding:4px 0}
 details.drive > summary .sum{font-family:var(--f-body);font-weight:400;font-size:.85rem;color:var(--muted)}
-@media (max-width:640px){nav.steps{position:static}.card{scroll-margin-top:8px}
+@media (max-width:640px){nav.steps{position:static}
   .card>h2{flex-wrap:wrap}.card>h2 .hint{margin-left:0;flex-basis:100%}}
 </style>
 </head>
@@ -155,7 +160,8 @@ details.drive > summary .sum{font-family:var(--f-body);font-weight:400;font-size
     <div class="legend">
       <span><i style="border-color:var(--signal)"></i>Parkstellung</span>
       <span><i style="border-color:var(--muted);border-top-style:dashed"></i>Nullstellung</span>
-      <span><i style="border-color:var(--steel);border-top-style:dotted"></i>Arbeitsraum Dom</span>
+      <span><i style="border-color:var(--steel);border-top-style:dotted"></i>mögliche Domlagen</span>
+      <span><i style="border-color:var(--steel);opacity:.5"></i>eigene Spur, Pfeil = Front</span>
       <span><i style="border-color:var(--clutter)"></i>Hindernis</span>
       <span>· erreichbare Auslasslagen</span>
       <span><i style="border-color:var(--steel);border-top-width:8px;width:10px"></i>Kamera</span>
@@ -165,10 +171,10 @@ details.drive > summary .sum{font-family:var(--f-body);font-weight:400;font-size
     <h2>Kennzahlen</h2>
     <dl class="kv" id="kv"></dl>
   </div>
-  <div class="card" id="next">
-    <h2>Nächste Schritte <span class="hint">Befehle auf dem Server</span></h2>
-    <div class="body" id="next-body"></div>
-  </div>
+  <details class="card" id="next">
+    <summary class="body">Nächste Schritte <span class="note">– Befehle auf dem Server</span></summary>
+    <div class="body" id="next-body" style="padding-top:0"></div>
+  </details>
   <div class="card">
     <h2>Inbetriebnahmeprüfung <span class="hint">Reichweite, Kollisionen, Fahrzeiten</span></h2>
     <div class="body"><button id="check" type="button">Prüfung starten</button>
@@ -235,10 +241,21 @@ function cellNum(get, set, attrs = {}) {
   i.addEventListener("input", () => { const v = num(i.value); i.classList.toggle("bad", Number.isNaN(v)); if (!Number.isNaN(v)) { set(v); changed(); } });
   return i;
 }
-const SHORT = ["Anlage", "Maße", "Achsen", "Hindernisse", "Produkte", "Referenz", "Arbeitsraum", "Antriebe", "Sensor"];
-function card(no, title, hint, ...content) {
-  return el("section", { class: "card", id: "c" + no, "data-title": SHORT[no] || title }, el("h2", {}, el("span", { class: "no" }, String(no)), title, hint ? el("span", { class: "hint" }, hint) : null),
+// Reiter: je Thema eine Seite, immer nur eine sichtbar
+const TABS = [["anlage", "Anlage & Kamera"], ["arm", "Arm"], ["station", "Verladestelle"],
+  ["auslass", "Auslass & Produkte"], ["antriebe", "Antriebe"]];
+let activeTab = "anlage";
+try { activeTab = localStorage.getItem("konf-tab") || activeTab; } catch {}
+function card(title, hint, ...content) {
+  return el("section", { class: "card" }, el("h2", {}, title, hint ? el("span", { class: "hint" }, hint) : null),
     el("div", { class: "body" }, ...content));
+}
+function tab(id, ...cards) {
+  const i = TABS.findIndex(t => t[0] === id), prev = TABS[i - 1], next = TABS[i + 1];
+  const go = t => el("button", { type: "button", on: { click: () => { showTab(t[0]); scrollTo({ top: 0 }); } } },
+    t === prev ? "← " + t[1] : t[1] + " →");
+  return el("div", { class: "tab", id: "t-" + id, hidden: id === activeTab ? null : "" }, ...cards,
+    el("div", { class: "tabfoot" }, prev ? go(prev) : el("span"), next ? go(next) : el("span")));
 }
 
 // ---------- Formular ----------
@@ -266,12 +283,12 @@ const DIMNO = { flange_height: "①", flange_offset: "①a", inner_length: "②"
 
 function buildForm() {
   const f = $("#form"); f.replaceChildren();
-  // 0 Anlage
-  f.append(card(0, "Anlage", "Kopfdaten und Verbindung zur SPS",
+  // Anlage
+  const cAnlage = card("Anlage", "Kopfdaten und Verbindung zur SPS",
     el("div", { class: "grid" },
       textField({ label: "Anlage / Station", id: "m-anlage", get: () => data.meta.anlage, set: v => data.meta.anlage = v }),
       textField({ label: "Inbetriebnehmer", id: "m-name", get: () => data.meta.name, set: v => data.meta.name = v }),
-      textField({ label: "OPC-UA-Adresse der SPS", id: "m-plc", wide: true, get: () => data.plc_url, set: v => data.plc_url = v, placeholder: "opc.tcp://192.168.0.10:4840/" }))));
+      textField({ label: "OPC-UA-Adresse der SPS", id: "m-plc", wide: true, get: () => data.plc_url, set: v => data.plc_url = v, placeholder: "opc.tcp://192.168.0.10:4840/" })));
   // 1 Maße
   const dims = el("div", { class: "grid" });
   for (const d of data.dimensions) {
@@ -300,7 +317,7 @@ function buildForm() {
   dims.append(el("div", { class: "field" }, el("label", { for: "d-support" }, "Bauform am Haltepunkt J1"), sup), feed,
     numField({ id: "d-pipe", label: "Außendurchmesser Rohr der Ausleger (Darstellung, Simulation)", unit: "m", min: 0.03, max: 0.6,
       get: () => data.arm.pipe_diameter, set: v => data.arm.pipe_diameter = v }));
-  f.append(card(1, "Maße des Arms", "Rohrmitte zu Rohrmitte bzw. Gelenkachse zu Gelenkachse, nie Außenkanten", sketch(), dims));
+  const cMasse = card("Maße", "Rohrmitte bzw. Gelenkachse, nie Außenkanten", sketch(), dims);
   // 2 Servoachsen
   const plcVals = el("span", { class: "vals" }, "–");
   let lastPlc = null;
@@ -330,9 +347,9 @@ function buildForm() {
     t.append(tb); jtable.replaceChildren(t);
   }
   buildJoints();
-  f.append(card(2, "Servoachsen", "Servo-Grad wie am Antrieb angezeigt",
+  const cAchsen = card("Achsen", "Servo-Grad wie am Antrieb angezeigt",
     el("div", { class: "plc" }, plcBtn, plcVals), jtable,
-    el("p", { class: "note" }, "Null: beide Ausleger gestreckt nach vorne, äußerer Ausleger waagerecht. Richtung +1: steigender Servowert dreht J1/J2 nach links (von oben gegen den Uhrzeigersinn) bzw. hebt J3. min/max: freigegebener Bereich, nicht die mechanischen Anschläge.")));
+    el("p", { class: "note" }, "Null: beide Ausleger gestreckt nach vorne, äußerer Ausleger waagerecht. Richtung +1: steigender Servowert dreht J1/J2 nach links (von oben gegen den Uhrzeigersinn) bzw. hebt J3. min/max: freigegebener Bereich, nicht die mechanischen Anschläge."));
   // 3 Hindernisse
   const obox = el("div", { class: "table-wrap" });
   function buildObstacles() {
@@ -362,14 +379,14 @@ function buildForm() {
   }
   refreshObstacles = buildObstacles;
   buildObstacles();
-  f.append(card(3, "Hindernisse im Schwenkbereich", "Ursprung Achse J1, x vorne, y links, z oben",
+  const cHind = card("Feste Hindernisse im Schwenkbereich", "Ursprung Achse J1, x vorne, y links, z oben",
     obox, el("div", { class: "row-actions" },
       el("button", { type: "button", on: { click: () => { const g = -data.arm.base_height; data.arm.obstacles.push({ name: "Hindernis", min: [-3.5, -3.5, g], max: [-3, -3, g + 1] }); sel = data.arm.obstacles.length - 1; buildObstacles(); changed(); } } }, "+ Quader"),
       el("button", { type: "button", on: { click: () => { const g = -data.arm.base_height; data.arm.obstacles.push({ name: "Stütze", form: "zylinder", p0: [-3, -3, g / 2], axis: [0, 0, 1], radius: 0.15, half_length: Math.abs(g) / 2 + 0.5 }); sel = data.arm.obstacles.length - 1; buildObstacles(); changed(); } } }, "+ Zylinder (Stütze)"),
       el("button", { type: "button", on: { click: () => { const g = -data.arm.base_height; data.arm.obstacles.push({ name: "Klapptreppe (eingefahren)", min: [1.0, -2.5, g + 2.0], max: [2.0, -1.5, g + 4.5] }); sel = data.arm.obstacles.length - 1; buildObstacles(); changed(); toast("Klapptreppe: Lage und Maße der eingefahrenen Treppe eintragen"); } } }, "+ Klapptreppe")),
     el("div", { class: "grid", style: "margin-top:10px" }, numField({ id: "clear", label: "Mindestabstand Rohrachse zu Hindernissen", unit: "m", min: 0.05, max: 1, get: () => data.arm.clearance, set: v => data.arm.clearance = v })),
     el("p", { class: "note" }, "In der Vorschau rechts: Hindernis anklicken und ziehen = verschieben, an den gelben Eckpunkten ziehen = größer/kleiner (Raster 5 cm). Draufsicht ändert x/y, Seitenansicht x/Höhe. Pfeiltasten verschieben das gewählte Hindernis um 5 cm, Entf löscht es."),
-    el("p", { class: "note" }, "Tankwagen, Domkragen und offener Deckel werden bei jeder Messung erfasst und müssen hier nicht eingetragen werden.")));
+    el("p", { class: "note" }, "Tankwagen, Domkragen und offener Deckel werden bei jeder Messung erfasst und müssen hier nicht eingetragen werden."));
   // 4 Produkte
   const ptab = el("div", { class: "table-wrap" });
   function buildProducts() {
@@ -390,17 +407,18 @@ function buildForm() {
   }
   if (!data.products.default) data.products.default = { insertion_depth: 0.4 };
   buildProducts();
-  f.append(card(4, "Produkte", "Eintauchtiefe je ProductId der SPS", ptab,
+  const cProd = card("Produkte", "Eintauchtiefe je ProductId der SPS", ptab,
     el("div", { class: "row-actions" }, el("button", { type: "button", on: { click: () => {
-      let n = 1; while (data.products[String(n)]) n++; data.products[String(n)] = { name: "", insertion_depth: data.products.default.insertion_depth }; buildProducts(); changed(); } } }, "+ Produkt"))));
-  // 5 Referenz
-  f.append(card(5, "Referenz am Auslass", "Markierungsscheibe oder von oben sichtbarer Flansch",
+      let n = 1; while (data.products[String(n)]) n++; data.products[String(n)] = { name: "", insertion_depth: data.products.default.insertion_depth }; buildProducts(); changed(); } } }, "+ Produkt")),
+    el("p", { class: "note" }, "Eintauchtiefe unter dem Domrand. Sie muss beim flachsten Tank noch über dem Boden liegen; bei kleinen Öffnungen begrenzt der Referenzflansch (Fehler 30). Sollmenge, Maximalhöhe und Überfüllsicherung liegen in der SPS bzw. kommen aus der Leitstelle."));
+  // Referenz
+  const cRef = card("Referenz am Auslass", "Markierungsscheibe oder von oben sichtbarer Flansch",
     el("div", { class: "grid" },
       numField({ id: "o-d", label: "Außendurchmesser Scheibe / Flansch", unit: "m", min: 0.15, max: 0.45, get: () => 2 * data.outlet.marker_radius, set: v => data.outlet.marker_radius = v / 2 }),
       numField({ id: "o-off", label: "Oberkante Referenz bis unterster Punkt Auslass", unit: "m", min: 0.03, max: 1.5, get: () => data.outlet.marker_offset, set: v => data.outlet.marker_offset = v }),
       numField({ id: "o-pipe", label: "Außendurchmesser Auslassrohr", unit: "m", min: 0.05, max: 0.4, get: () => 2 * data.outlet.pipe_radius, set: v => data.outlet.pipe_radius = v / 2 })),
-    el("p", { class: "note" }, "Rund, mittig und rechtwinklig zum Auslassrohr. Teilweise Verdeckung durch die Rohrleitung darüber ist zulässig.")));
-  // 6 Arbeitsraum: aus anschaulichen Angaben zur Fahrspur und zu den Domhöhen berechnet
+    el("p", { class: "note" }, "Rund, mittig und rechtwinklig zum Auslassrohr. Teilweise Verdeckung durch die Rohrleitung darüber ist zulässig."));
+  // Verladestelle: Fahrspur, Fahrtrichtung, mögliche Domlagen (Arbeitsraum)
   const ws = data.commissioning;
   ws.workspace_min = ws.workspace_min || [2.6, -0.6, -2]; ws.workspace_max = ws.workspace_max || [3.6, 0.6, -0.5];
   const h0 = data.arm.base_height;
@@ -409,27 +427,44 @@ function buildForm() {
     tolCross: (ws.workspace_max[0] - ws.workspace_min[0]) / 2, tolAlong: (ws.workspace_max[1] - ws.workspace_min[1]) / 2,
     hMin: ws.workspace_min[2] + h0, hMax: ws.workspace_max[2] + h0 };
   const r2 = v => +v.toFixed(3);
+  const veh = data.vehicle;
   const wsApply = () => {
     const h = data.arm.base_height;
     ws.workspace_min = [r2(st.lane - st.tolCross), r2(st.along - st.tolAlong), r2(Math.min(st.hMin, st.hMax) - h)];
     ws.workspace_max = [r2(st.lane + st.tolCross), r2(st.along + st.tolAlong), r2(Math.max(st.hMin, st.hMax) - h)];
-    wsNote.textContent = `Ergibt den Prüfbereich x ${fmt(ws.workspace_min[0])} … ${fmt(ws.workspace_max[0])} m, ` +
+    veh.lane_center = [r2(st.lane), r2(st.along)];
+    wsNote.textContent = `Prüfbereich x ${fmt(ws.workspace_min[0])} … ${fmt(ws.workspace_max[0])} m, ` +
       `y ${fmt(ws.workspace_min[1])} … ${fmt(ws.workspace_max[1])} m, z ${fmt(ws.workspace_min[2])} … ${fmt(ws.workspace_max[2])} m (Armbasis).`;
   };
   const sf = (id, label, key, min, max) => numField({ id, label, unit: "m", min, max, get: () => r2(st[key]), set: v => { st[key] = v; wsApply(); } });
-  const wsGrid = el("div", { class: "grid" },
-    sf("ws-lane", "Abstand Mitte Fahrspur bis Achse J1 (waagerecht, nach vorne)", "lane", 0.5, 12),
-    sf("ws-along", "Haltemarke längs gegenüber J1 (links +, rechts −) – meist 0", "along", -6, 6),
-    sf("ws-tolc", "Haltetoleranz quer zur Fahrspur (±)", "tolCross", 0, 2),
-    sf("ws-tola", "Haltetoleranz längs, inkl. Lage des Doms am Fahrzeug (±)", "tolAlong", 0, 4),
-    sf("ws-hmin", "Domoberkante niedrigstes Fahrzeug über Fahrbahn (Lkw ca. 3,2)", "hMin", 1, 8),
-    sf("ws-hmax", "Domoberkante höchstes Fahrzeug über Fahrbahn (Kesselwagen ca. 4,6)", "hMax", 1, 8));
+  // Fahrtrichtung: Dom 1 = vorderster Dom (Mehrkammer). Die Spur läuft entlang y.
+  const dirWarn = el("div", { class: "callout" }, el("b", {}, "Fahrtrichtung noch nicht festgelegt. "),
+    "Bei Mehrkammer-Fahrzeugen zählt die Software die Dome von vorn – ohne Angabe nimmt sie „nach links“ an und sucht im ganzen Bild. Spurbreite und Fahrtrichtung werden zusammen gespeichert.");
+  dirWarn.hidden = veh.set;
+  const dirOpt = (val, text) => { const r = el("input", { type: "radio", name: "front", value: val });
+    r.checked = veh.set && veh.front.join(",") === val;
+    r.addEventListener("change", () => { veh.front = val.split(",").map(Number); veh.set = true; dirWarn.hidden = true; changed(); });
+    return el("label", {}, r, text); };
+  const cStation = card("Fahrspur und Fahrtrichtung", "eigene Spur, wo die Dome liegen",
+    dirWarn,
+    el("div", { class: "field wide" }, el("label", {}, "Fahrzeugfront zeigt – von J1 aus auf die Spur gesehen"),
+      el("div", { class: "dir" }, dirOpt("0,1", "← nach links (+y, Draufsicht oben)"), dirOpt("0,-1", "nach rechts (−y, Draufsicht unten) →"))),
+    el("div", { style: "height:10px" }),
+    el("div", { class: "grid" },
+      sf("ws-lane", "Abstand Mitte Fahrspur bis Achse J1 (waagerecht, nach vorne)", "lane", 0.5, 12),
+      numField({ id: "ws-width", label: "Breite der eigenen Spur – die Kamera sucht Dome nur darin", unit: "m", min: 2.6, max: 8,
+        get: () => veh.lane_width, set: v => { veh.lane_width = v; } }),
+      sf("ws-along", "Haltemarke längs gegenüber J1 (links +, rechts −) – meist 0", "along", -6, 6),
+      sf("ws-tolc", "Haltetoleranz quer zur Fahrspur (±)", "tolCross", 0, 2),
+      sf("ws-tola", "Haltetoleranz längs, inkl. Lage der Dome am Fahrzeug (±)", "tolAlong", 0, 4),
+      sf("ws-hmin", "Domoberkante niedrigstes Fahrzeug über Fahrbahn (Lkw ca. 3,2)", "hMin", 1, 8),
+      sf("ws-hmax", "Domoberkante höchstes Fahrzeug über Fahrbahn (Kesselwagen ca. 4,6)", "hMax", 1, 8)));
   const wsNote = el("p", { class: "note" });
   wsApply();
-  $("#form").addEventListener("input", e => { if (e.target.id && e.target.id.startsWith("d-flange")) wsApply(); });
-  f.append(card(6, "Arbeitsraum", "wo Dome vorkommen – nur für Inbetriebnahmeprüfung und Kalibrierung", wsGrid, wsNote,
-    el("p", { class: "note" }, "Im Betrieb findet die Kamera den Dom selbst. Dieser Bereich legt fest, welche Domlagen die Inbetriebnahmeprüfung durchrechnet (erreichbar? Kollision? Fahrzeit?) und wo die Kalibrierstellungen liegen. Zu klein: spätere Fälle ungeprüft; zu groß: unnötige Warnungen.")));
-  // 7 Antriebe
+  f.oninput = e => { if (e.target.id && e.target.id.startsWith("d-flange")) wsApply(); };
+  cStation.querySelector(".body").append(wsNote,
+    el("p", { class: "note" }, "Die Kamera sieht auch Nachbarspur und Nachbararme – Dome zählen nur in der eigenen Spur, Hindernisse überall. Die Spur muss alle Dome des längsten Fahrzeugs enthalten. Haltetoleranz und Domhöhen legen fest, welche Domlagen die Inbetriebnahmeprüfung durchrechnet und wo die Kalibrierstellungen liegen."));
+  // Antriebe
   const dwrap = el("div");
   JN.forEach(k => {
     const d = data.drives[k] = data.drives[k] || {};
@@ -458,9 +493,9 @@ function buildForm() {
     dwrap.append(el("details", { class: "drive", open: k === "q1" ? "" : null, style: "margin-bottom:10px", on: { change: upd } }, el("summary", {}, JLABEL[k], sum),
       el("div", { style: "padding-top:8px" }, g, el("div", { class: "bar", style: "margin-top:8px" }, chk("Haltebremse", "brake"), chk("Hubachse (Gewicht drückt das Spiel auf eine Seite)", "gravity_preload")))));
   });
-  f.append(card(7, "Antriebe", "optional – für Fahrzeiten, SPS-Simulator und Getriebespiel", dwrap,
-    el("p", { class: "note" }, "Herleitung der Werte: hardware/antriebe.md. Leer lassen, wenn noch nicht bekannt.")));
-  // 8 Sensor und Kalibrierung
+  const cDrives = card("Antriebe", "optional – für Fahrzeiten, SPS-Simulator und Getriebespiel", dwrap,
+    el("p", { class: "note" }, "Herleitung der Werte: hardware/antriebe.md. Leer lassen, wenn noch nicht bekannt."));
+  // Kamera und Kalibrierung
   const src = data.source = data.source || {};
   const srcChanged = () => { data.source_changed = true; changed(); };
   const type = el("select", { id: "src-type" },
@@ -478,29 +513,33 @@ function buildForm() {
   const calBox = m ? (cal.example
     ? el("div", { class: "callout" }, el("b", {}, "Kalibrierung: Beispielwerte. "), "Nach Montage der Kamera die Hand-Auge-Kalibrierung durchführen (docs/kalibrierung.md, Befehl unter „Nächste Schritte“).")
     : el("div", { class: "callout ok" }, el("b", {}, "Kalibriert. "), `Kamera bei x ${fmt((+m[0][3]).toFixed(2))} / y ${fmt((+m[1][3]).toFixed(2))} m, ${fmt((+m[2][3] + data.arm.base_height).toFixed(2))} m über der Fahrbahn.`)) : null;
-  f.append(card(8, "Sensor und Kalibrierung", "Quelle der Punktwolke, Lage der Kamera",
+  const cSensor = card("Kamera und Kalibrierung", "Quelle der Punktwolke, Lage der Kamera",
     calBox, el("div", { class: "field" }, el("label", { for: "src-type" }, "Quelle"), type), el("div", { style: "height:10px" }), sickBox,
-    el("p", { class: "note" }, "Die Kalibrierung schreibt das Kalibrierprogramm in die Anlagendatei; hier nur Anzeige. Kamera ab Werk 192.168.1.10, PC-Anschluss im selben Netz (docs/sensor_sick.md).")));
+    el("p", { class: "note" }, "Die Kalibrierung schreibt das Kalibrierprogramm in die Anlagendatei; hier nur Anzeige. Kamera ab Werk 192.168.1.10, PC-Anschluss im selben Netz (docs/sensor_sick.md)."));
+  f.append(tab("anlage", cAnlage, cSensor), tab("arm", cMasse, cAchsen),
+    tab("station", cStation, cHind), tab("auslass", cRef, cProd), tab("antriebe", cDrives));
   buildNav();
 }
 
 // ---------- Navigation ----------
 function buildNav() {
   const nav = $("#steps"); nav.replaceChildren();
-  for (const c of document.querySelectorAll("#form > section.card")) {
-    const no = c.id.slice(1);
-    nav.append(el("a", { href: "#" + c.id, "data-for": c.id }, el("b", {}, no), c.dataset.title));
-  }
+  TABS.forEach(([id, title], i) => nav.append(el("button", { type: "button", "data-for": id, role: "tab",
+    on: { click: () => showTab(id) } }, el("b", {}, String(i + 1)), title, el("span", { class: "warn" }))));
+  showTab(TABS.some(t => t[0] === activeTab) ? activeTab : "anlage");
+}
+function showTab(id) {
+  activeTab = id; try { localStorage.setItem("konf-tab", id); } catch {}
+  document.querySelectorAll("#form > .tab").forEach(t => t.hidden = t.id !== "t-" + id);
+  document.querySelectorAll("#steps button").forEach(b => b.classList.toggle("cur", b.dataset.for === id));
   updateNav();
-  const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) {
-    nav.querySelectorAll("a").forEach(a => a.classList.toggle("cur", a.dataset.for === e.target.id)); } },
-    { rootMargin: "-130px 0px -65% 0px" });
-  document.querySelectorAll("#form > section.card").forEach(c => io.observe(c));
 }
 function updateNav() {
-  document.querySelectorAll("#steps a").forEach(a => {
-    const bad = document.getElementById(a.dataset.for)?.querySelector("input.bad");
-    a.classList.toggle("bad", !!bad); a.title = bad ? "ungültige Eingabe in diesem Abschnitt" : ""; });
+  document.querySelectorAll("#steps button").forEach(b => {
+    const bad = document.getElementById("t-" + b.dataset.for)?.querySelector("input.bad");
+    const open = b.dataset.for === "station" && data && !data.vehicle.set;  // Fahrtrichtung fehlt
+    b.classList.toggle("bad", !!bad); b.querySelector(".warn").textContent = open ? " !" : "";
+    b.title = bad ? "ungültige Eingabe auf dieser Seite" : open ? "Fahrtrichtung noch nicht festgelegt" : ""; });
 }
 function renderNext() {
   const b = $("#next-body"); b.replaceChildren();
@@ -578,6 +617,8 @@ function draw(freeze = false) {
     if (c.tips) pts.push(...c.tips);
     if (c.workspace) pts.push(c.workspace[0], c.workspace[1]);
     if (c.sensor) pts.push(c.sensor);
+    if (c.vehicle && !v.side) { const [lx, ly] = c.vehicle.lane_center, hw = c.vehicle.lane_width / 2;
+      pts.push([lx - hw, ly, 0], [lx + hw, ly, 0], [lx + 1.8 * c.vehicle.front[0], ly + 1.8 * c.vehicle.front[1], 0]); }
     const sparts = (c.structure && c.structure.parts) || [];
     sparts.forEach(p => pts.push(p.a, p.b));
     if (v.side && c.ground_z !== undefined) pts.push([0, 0, c.ground_z]);
@@ -614,6 +655,12 @@ function draw(freeze = false) {
         if (on && o.kind) handles.push([xl - 6, yb + 6, "00"], [xr + 6, yb + 6, "10"], [xl - 6, yt - 6, "01"], [xr + 6, yt - 6, "11"]);
       }
       handles.forEach(hd => hd.length === 3 && hd.push(o.i)); }
+    if (!v.side && c.vehicle) {  // eigene Spur (entlang y) und Fahrtrichtung
+      const [lx, ly] = c.vehicle.lane_center, hw = c.vehicle.lane_width / 2, f = c.vehicle.front;
+      parts.push(`<rect x="${X(lx - hw)}" y="0" width="${2 * hw * s}" height="${v.h}" fill="${col("--steel")}" fill-opacity=".08" stroke="${col("--steel")}" stroke-opacity=".5"/>`);
+      const ax = X(lx), ay = Y(ly), bx = X(lx + f[0] * 1.6), by = Y(ly + f[1] * 1.6);
+      parts.push(`<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="${col("--steel")}" stroke-width="3"/><circle cx="${bx}" cy="${by}" r="5" fill="${col("--steel")}"/><text x="${bx + 8}" y="${by + 4}" font-size="11" fill="${col("--steel")}">Front${data && data.vehicle.set ? "" : " ?"}</text>`);
+    }
     if (c.workspace) { const a = v.p(c.workspace[0]), d = v.p(c.workspace[1]);
       parts.push(`<rect x="${X(Math.min(a[0], d[0]))}" y="${Y(Math.max(a[1], d[1]))}" width="${Math.abs(d[0] - a[0]) * s}" height="${Math.abs(d[1] - a[1]) * s}" fill="none" stroke="${col("--steel")}" stroke-dasharray="2 3" stroke-width="1.5"/>`); }
     if (c.tips) parts.push(...c.tips.map(t => { const q = v.p(t); return `<circle cx="${X(q[0])}" cy="${Y(q[1])}" r="1" fill="${col("--muted")}" fill-opacity=".3"/>`; }));

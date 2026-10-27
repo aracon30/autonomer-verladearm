@@ -14,6 +14,8 @@ detection:                             # Arbeitsraum für bis zu 3 Dome hinterei
 
 vehicle:
   front: [0.0, 1.0]                    # Richtung zur Fahrzeugfront (Armbasis): Dom 1 = vorderster
+  lane_center: [3.0, 0.0]              # Mitte der eigenen Spur (Armbasis, m)
+  lane_width: 3.5                      # Dome nur in der eigenen Spur suchen
 
 plc:
   url: opc.tcp://127.0.0.1:4840/       # tools/plc_simulator.py

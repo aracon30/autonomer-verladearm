@@ -10,7 +10,7 @@ Gespräch 27.10.2026: `docs/kunde_basf_h517.md`). Hintergrund und erste Idee: `d
 | Füllleistung | 20–25 t/h ≈ **20–25 m³/h** | Spiegel steigt ca. 7–8 cm/min (bei ca. 5 m²), Nachziehen etwa alle 15–20 s um 2 cm |
 | Füllgrad | normal **95 %** | = Maximalhöhe (Ebene 2), je Fahrzeug bzw. Kammer |
 | Überfüllsicherung heute | Schutzkorb **22 cm** im Tank, Gabel 17 cm | Schaltpunkt nur ca. 20 cm unter dem Rand → Lanze kurz, nicht 800 mm |
-| Abschaltung | heute über die SPS; Sicherheitskreis könnte die **Pumpe** stoppen | Ebene 3: Klappe und/oder Pumpe – mit Peter und BASF festlegen |
+| Abschaltung | Überfüllsicherung schaltet die **Pumpe** ab | Ebene 3 wirkt auf die Pumpe (Signal an BASF bzw. Sicherheitskreis mit Peter festlegen) |
 | Sensor | BASF favorisiert **kapazitiv (Baumer)**, testet selbst; Druckmessung als Idee | Vergleich unten; Baumer CleverLevel als Alternative zum SICK LFC |
 | Halterung | möglichst kein Produktkontakt, spritzwassergeschützt; Gleithülse könnte bei Verschmutzung klemmen (Hinweis HETA) | Führung offen gestalten (z. B. Gabel statt Hülse), reinigbar; Skizze überarbeiten |
 | Abtropfen | heute Eimer, 1 min reicht nicht | einfahrbare Abtropfschale/-klappe am Arm vorsehen |
@@ -137,7 +137,7 @@ Die Überfüllsicherung darf **nicht betriebsmäßig** zum Beenden der Füllung 
 |---|---|---|
 | 1 | **Sollmenge** über Durchflusssensor (Vorgabe Leitstelle) | beendet die Füllung |
 | 2 | **Maximalhöhe** aus Armhöhe + Grenzschaltern (Einstellwert je Anlage/Fahrzeug) | greift, wenn die Menge nicht passt → Klappe zu, Meldung |
-| 3 | **Überfüllsicherung** (Liquiphant bzw. aufliegende Lanze), direkt auf die Absperrklappe bzw. Pumpe (BASF 27.10.: Sicherheitskreis stoppt die Pumpe – festlegen) | greift nur, wenn 1 und 2 versagen → Klappe zu, Störung |
+| 3 | **Überfüllsicherung** (Liquiphant bzw. aufliegende Lanze), **schaltet die Pumpe ab** (festgelegt 27.10.) | greift nur, wenn 1 und 2 versagen → Klappe zu, Störung |
 
 Die Maximalhöhe (Ebene 2) muss einige Zentimeter **unter** dem Schaltpunkt der Überfüllsicherung
 liegen, damit Ebene 3 im Normalfall nie anspricht.

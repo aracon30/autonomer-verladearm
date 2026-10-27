@@ -100,7 +100,7 @@ Auslegung nötigen Angaben.
 1. Tiefe Domrand bis Tankboden (Spanne) und Kammeraufteilung (Schwallwände oder Mehrkammer).
 2. Überfüllsicherung: von Hand weiter oder andocken? Bezug der 22 cm (ab Domrand/Auflage?),
    zulässiges Fabrikat, Zulassung (WHG/SIL).
-3. Abschaltung: Absperrklappe, Pumpe oder beides; über SPS oder eigenen Sicherheitskreis.
+3. ~~Abschaltung~~: Überfüllsicherung schaltet die **Pumpe** ab (festgelegt). Offen: Signalweg (SPS oder eigener Sicherheitskreis).
 4. Kammerwahl: am Bedienpult vor Ort oder aus der Leitstelle?
 5. DN80-Reduzierung/Lanze, Abstand Rohrisolierung über J1.
 6. Ergebnisse der Sensortests (Baumer kapazitiv, ggf. Drucksensor).

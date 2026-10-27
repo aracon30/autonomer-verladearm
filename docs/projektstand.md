@@ -60,7 +60,7 @@ verlinkten Dokumenten.
 
 1. Tiefe Domrand–Tankboden (Spanne), Kammeraufteilung (Schwallwände/Mehrkammer).
 2. Überfüllsicherung: von Hand oder andocken; Bezug der 22 cm; zulässiges Fabrikat, Zulassung.
-3. Abschaltung: Klappe, Pumpe oder beides; SPS oder eigener Sicherheitskreis.
+3. Überfüllsicherung schaltet die **Pumpe** ab (festgelegt); offen: Signalweg (SPS oder Sicherheitskreis).
 4. Kammerwahl vor Ort oder aus der Leitstelle; Signale PLS.
 5. DN80-Reduzierung/Lanze; Abstand Rohrisolierung über J1.
 

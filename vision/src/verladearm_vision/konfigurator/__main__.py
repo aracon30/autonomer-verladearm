@@ -109,8 +109,22 @@ def load_station(name: str, folder: Path = ANLAGEN) -> dict:
         "commissioning": {k: cfg.get("commissioning", {}).get(k)
                           for k in ("workspace_min", "workspace_max", "step")},
         "drives": {k: (cfg.get("drives") or {}).get(k) or {} for k in JOINTS},
+        "vehicle": _vehicle(cfg),
         "dimensions": [{"key": k, "text": t, "min": lo, "max": hi} for k, t, lo, hi in DIMENSIONS],
     }
+
+
+def _vehicle(cfg: dict) -> dict:
+    """Verladestelle: Fahrtrichtung und eigene Spur; fehlt sie, Vorschlag aus dem Arbeitsraum."""
+    v = dict(cfg.get("vehicle") or {})
+    c = cfg.get("commissioning") or {}
+    lo, hi = c.get("workspace_min"), c.get("workspace_max")
+    mid = ([round((lo[0] + hi[0]) / 2, 3), round((lo[1] + hi[1]) / 2, 3)] if lo and hi
+           else [3.0, 0.0])
+    return {"front": [float(x) for x in v.get("front", (0.0, 1.0))][:2],
+            "lane_center": [float(x) for x in v.get("lane_center", mid)][:2],
+            "lane_width": float(v.get("lane_width", 3.5)),
+            "set": "front" in v}
 
 
 def _arm(data: dict) -> dict:
@@ -159,6 +173,8 @@ def preview(data: dict) -> dict:
     m = (data.get("calibration") or {}).get("matrix")
     if m:
         out["sensor"] = [round(float(m[i][3]), 3) for i in range(3)]
+    if data.get("vehicle"):
+        out["vehicle"] = {k: data["vehicle"][k] for k in ("front", "lane_center", "lane_width")}
     drives = Drives.from_config(data.get("drives"))
     if drives.configured:
         out["drive_speed"] = {k: round(d.speed_max, 2) for k, d in drives.axes.items()}
@@ -219,9 +235,15 @@ def station_yaml(data: dict, folder: Path, name: str, origin: str | None = None)
     ws = dict(data["commissioning"])
     ws["step"] = ws.get("step") or 0.2
     extends = Path(os.path.relpath(ANLAGEN.parent / "default.yaml", folder)).as_posix()
+    veh = data.get("vehicle")
+    vehicle = None
+    if veh and veh.get("set"):  # im Formular festgelegt (sonst bleibt der bisherige Abschnitt)
+        vehicle = {"front": [float(x) for x in veh["front"]][:2],
+                   "lane_center": [round(float(x), 3) for x in veh["lane_center"]][:2],
+                   "lane_width": round(float(veh["lane_width"]), 3)}
     return render(meta, data["plc_url"], base["calibration"]["matrix"], arm,
                   {k if not str(k).isdigit() else int(k): v for k, v in data["products"].items()},
-                  ws, extends, data["outlet"], keep)
+                  ws, extends, data["outlet"], keep, vehicle)
 
 
 def save_station(data: dict, name: str, folder: Path = ANLAGEN,

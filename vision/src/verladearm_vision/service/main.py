@@ -132,8 +132,14 @@ class VisionService:
         self.scene_cfg = SceneConfig(**cfg.get("scene", {}))
         self.products = cfg.get("products")
         # Richtung zur Fahrzeugfront (Armbasis, waagerecht): Dom 1 ist der vorderste
-        front = np.asarray((cfg.get("vehicle") or {}).get("front", (0.0, 1.0)), float)[:2]
+        vehicle = cfg.get("vehicle") or {}
+        front = np.asarray(vehicle.get("front", (0.0, 1.0)), float)[:2]
         self.front = front / np.linalg.norm(front)
+        # eigene Spur (Mitte, Breite): Dome nur dort suchen – Nachbarspur und -arme ausblenden
+        self.lane = None
+        if vehicle.get("lane_center") is not None and vehicle.get("lane_width"):
+            self.lane = (np.asarray(vehicle["lane_center"], float)[:2],
+                         float(vehicle["lane_width"]))
         planning = cfg.get("planning", {})
         self.move_waypoints = int(planning.get("move_waypoints", 3))
         self.insert_waypoints = int(planning.get("insert_waypoints", 5))
@@ -244,12 +250,20 @@ class VisionService:
 
         Steht der Arm noch über einem Dom (nächste Kammer), verdeckt das Auslassrohr dessen
         Öffnung – ohne seine Punkte zählt dieser Dom weiter mit und die Nummerierung von vorn
-        bleibt gleich. Entfernt wird nur, was über dem Auslassende liegt (Domrand bleibt)."""
+        bleibt gleich. Entfernt wird nur, was über dem Auslassende liegt (Domrand bleibt).
+        Mit `vehicle.lane_*` zählt nur die eigene Spur. Hindernisse kommen weiter aus der ganzen
+        Aufnahme (auch Nachbarspur)."""
         points = self._grab(req)
+        arm = self._arm_points(points)
+        keep = np.ones(len(points), bool)
         if q_act is not None:
-            arm = self._arm_points(points)
-            points = points[not_arm(arm, self.geom, q_act, self.scene_cfg)
-                            | (arm[:, 2] < tip(self.geom, q_act)[2] - 0.1)]
+            keep = (not_arm(arm, self.geom, q_act, self.scene_cfg)
+                    | (arm[:, 2] < tip(self.geom, q_act)[2] - 0.1))
+        if self.lane is not None:  # quer zur Fahrtrichtung höchstens halbe Spurbreite
+            center, width = self.lane
+            cross = np.array([-self.front[1], self.front[0]])
+            keep &= np.abs((arm[:, :2] - center) @ cross) <= width / 2
+        points = points[keep]
         try:
             openings = detect_openings(points, self.det_cfg)
         except DetectionError as e:

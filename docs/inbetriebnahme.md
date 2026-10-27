@@ -15,16 +15,21 @@ Winkel, Achsbereiche, Hindernisse und Produkte werden je Arm bei der Ersteinrich
 .venv/bin/python -m verladearm_vision.konfigurator --host 0.0.0.0 --port 8090
 ```
 
-Im Browser `http://<IP des Rechners>:8090` öffnen. Alle Abschnitte der Anlagendatei auf einer
-Seite, oben eine Leiste zum Springen (rot = ungültige Eingabe im Abschnitt): Anlage, Maße mit
-Skizze, Servoachsen (Istwerte per Knopf aus der SPS übernehmen), Hindernisse (auch Vorlage
-„Klapptreppe“), Produkte, Referenz am Auslass, Arbeitsraum (mit Höhe über Fahrbahn), Antriebe
-(Kurzfassung je Achse) und Sensor/Kalibrierung (Quelle, IP der Kamera, Hinweis, ob noch
-Beispielwerte der Kalibrierung gelten). Rechts laufend Plausibilitätsprüfung, Draufsicht und
-Seitenansicht (Null- und Parkstellung, Hindernisse, Arbeitsraum, Kamera, erreichbare
-Auslasslagen), die **nächsten Schritte** als kopierbare Befehle (Simulation, Prüfung,
-Kalibrierung, Vision-Dienst für genau diese Anlage) und auf Knopfdruck die vollständige
-Inbetriebnahmeprüfung.
+Im Browser `http://<IP des Rechners>:8090` öffnen. Fünf Reiter, immer einer sichtbar (rot =
+ungültige Eingabe auf der Seite, „!“ = noch offen), unten „weiter“:
+
+| Reiter | Inhalt |
+|---|---|
+| 1 Anlage & Kamera | Kopfdaten, SPS-Adresse, Quelle/IP der Kamera, Hinweis, ob noch Beispielwerte der Kalibrierung gelten |
+| 2 Arm | Maße mit Skizze, Servoachsen (Istwerte per Knopf aus der SPS übernehmen) |
+| 3 Verladestelle | **Fahrtrichtung** (Dom 1 = vorderster), **eigene Spur** (Kamera sucht Dome nur darin), Haltetoleranzen und Domhöhen (mögliche Domlagen für Prüfung und Kalibrierung), feste Hindernisse (auch Vorlage „Klapptreppe“) |
+| 4 Auslass & Produkte | Referenz am Auslass, Eintauchtiefe je Produkt |
+| 5 Antriebe | optional, Kurzfassung je Achse |
+
+Rechts laufend Plausibilitätsprüfung, Draufsicht und Seitenansicht (Null- und Parkstellung,
+Hindernisse, mögliche Domlagen, eigene Spur mit Pfeil zur Fahrzeugfront, Kamera, erreichbare
+Auslasslagen), Kennzahlen, die **nächsten Schritte** (aufklappbar, kopierbare Befehle für genau
+diese Anlage) und auf Knopfdruck die vollständige Inbetriebnahmeprüfung.
 
 Speichern schreibt `vision/config/anlagen/<name>.yaml`; die bisherige Fassung wird vorher unter
 `data/sicherung_anlagen/` gesichert. **Vorlagen** aus dem Repository (`beispiel`,
@@ -122,6 +127,15 @@ Danach weiter mit Schritt 7 (Kalibrierung).
    Abstand Mitte Fahrspur bis J1, Haltemarke längs, Haltetoleranz quer/längs (±) und
    Domoberkante des niedrigsten/höchsten Fahrzeugs über der Fahrbahn (Lkw ca. 3,2 m, Kesselwagen
    ca. 4,6 m). Daraus wird `workspace_min/max` (Armbasis) berechnet.
+
+   **Verladestelle** (`vehicle`, Reiter 3 im Konfigurator):
+   - `front`: Richtung zur Fahrzeugfront (`[0, 1]` = von J1 aus nach links, `[0, -1]` = nach
+     rechts). Bei Mehrkammer-Fahrzeugen zählt die Software die offenen Dome **von vorn**
+     (`DomeNo`, docs/schnittstelle.md) – falsch eingestellt füllt der Arm die falsche Kammer.
+     Vor Ort mit einem Fahrzeug prüfen.
+   - `lane_center`, `lane_width`: eigene Spur. Die Kamera sucht Dome nur darin (Nachbarspur und
+     Nachbararme bleiben außen vor), Hindernisse weiter im ganzen Bild. Die Spur muss alle Dome
+     des längsten Fahrzeugs enthalten (Tankwagen ca. 2,55 m breit plus Haltetoleranz).
 
 7. **Hand-Auge-Kalibrierung** → `calibration.matrix`, siehe [Kalibrierung](kalibrierung.md):
    `python -m verladearm_vision.calibrate --config vision/config/anlagen/<anlage>.yaml --from-plc`

@@ -113,6 +113,21 @@ def test_sensor_nur_bei_aenderung_geschrieben(tmp_path):
     assert load_station("b", folder)["calibration"]["example"]  # noch Beispielwerte
 
 
+def test_verladestelle_erst_mit_fahrtrichtung_gespeichert(tmp_path):
+    folder = _copy_station(tmp_path)
+    d = load_station("heta_prototyp", folder)
+    assert not d["vehicle"]["set"] and d["vehicle"]["lane_width"] == 3.5
+    cfg = load_config(save_station(d, "a", folder, tmp_path / "bak", origin="heta_prototyp"))
+    assert "vehicle" not in cfg
+    d["vehicle"].update(set=True, front=[0, -1], lane_width=4.0)
+    cfg = load_config(save_station(d, "b", folder, tmp_path / "bak", origin="heta_prototyp"))
+    assert cfg["vehicle"]["front"] == [0.0, -1.0] and cfg["vehicle"]["lane_width"] == 4.0
+    assert len(cfg["vehicle"]["lane_center"]) == 2
+    assert load_station("b", folder)["vehicle"]["set"]
+    r = commissioning(d, "b", folder)
+    assert "nach rechts" in r["report"] and "eigenen Spur" in r["report"]
+
+
 def test_vorlage_wird_nicht_ueberschrieben(tmp_path):
     folder = _copy_station(tmp_path)
     server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(folder, tmp_path / "bak"))

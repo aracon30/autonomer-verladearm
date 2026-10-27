@@ -278,19 +278,21 @@ def _flow(v) -> str:
     return fmt(round(v, 4) if isinstance(v, float) else v)
 
 
-KNOWN = {"extends", "plc", "calibration", "arm", "products", "outlet", "commissioning"}
+KNOWN = {"extends", "plc", "calibration", "arm", "products", "outlet", "commissioning",
+         "vehicle"}
 ARM_KNOWN = {k for k, *_ in DIMENSIONS} | {"base_height", "joints", "obstacles", "clearance"}
 
 
 def render(meta: dict, plc_url: str, calibration: list, arm: dict, products: dict,
            workspace: dict, extends: str = "../default.yaml", outlet: dict | None = None,
-           keep: dict | None = None) -> str:
+           keep: dict | None = None, vehicle: dict | None = None) -> str:
     """Anlagendatei als YAML mit Erläuterungen. `keep`: weitere Abschnitte der bisherigen Datei
-    (z. B. drives, scene), die der Dialog nicht abfragt – sie bleiben unverändert erhalten."""
+    (z. B. drives, scene), die der Dialog nicht abfragt – sie bleiben unverändert erhalten.
+    `vehicle`: Verladestelle (Fahrtrichtung, eigene Spur); ohne Angabe die bisherige."""
     keep = keep or {}
     extra_arm = {k: v for k, v in (keep.get("arm") or {}).items() if k not in ARM_KNOWN}
     others = {k: v for k, v in keep.items() if k not in KNOWN}
-    """Anlagendatei als YAML mit Erläuterungen."""
+    vehicle = vehicle or keep.get("vehicle")
     lines = [
         "# Anlagenparameter Verladearm (angelegt mit Einrichtungsdialog bzw. Konfigurator)",
         "# Ablauf und Bedeutung der Werte: docs/inbetriebnahme.md",
@@ -341,6 +343,10 @@ def render(meta: dict, plc_url: str, calibration: list, arm: dict, products: dic
         f"  workspace_max: {_flow(workspace['workspace_max'])}",
         f"  step: {fmt(float(workspace['step']))}",
         "",
+        *(["# Verladestelle (Armbasis, m): Dom 1 = vorderster Dom; Domsuche in der eigenen Spur",
+           "vehicle:",
+           *[f"  {k}: {_flow(v)}" for k, v in vehicle.items()],
+           ""] if vehicle else []),
     ]
     if others:  # unverändert übernommen
         lines += ["# Weitere Abschnitte (vom Dialog nicht abgefragt, unverändert übernommen)",

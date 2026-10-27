@@ -84,6 +84,7 @@ def check(cfg: dict, config_name: str, out=sys.stdout) -> bool:
     if hit := collision(geom, park):
         w(f"- ❌ Parkstellung kollidiert mit {hit}\n")
     w("\n")
+    station_report(cfg, w)
 
     depth, depth_from = max_insertion_depth(cfg, geom)
     points = workspace_grid(cfg)
@@ -107,6 +108,47 @@ def check(cfg: dict, config_name: str, out=sys.stdout) -> bool:
     w("\n")
     drive_report(cfg, geom, depth, w)
     return not failures and not collision(geom, park)
+
+
+VEHICLE_WIDTH = 2.55  # m, Tankwagen (Lkw/Kesselwagen) ohne Spiegel
+
+
+def station_report(cfg: dict, w):
+    """Verladestelle: Fahrtrichtung (Zählung der Dome von vorn) und eigene Spur (Domsuche)."""
+    v = cfg.get("vehicle") or {}
+    w("## 3a. Verladestelle\n\n")
+    if "front" in v:
+        f = np.asarray(v["front"], float)
+        names = {(0, 1): "nach links (+y)", (0, -1): "nach rechts (−y)", (1, 0): "nach vorne (+x)",
+                 (-1, 0): "nach hinten (−x)"}
+        side = names.get(tuple(np.round(f[:2]).astype(int)), str(f.tolist()))
+        w(f"- Fahrzeugfront zeigt {side}: Dom 1 ist der vorderste – vor Ort an der Spur prüfen\n")
+    else:
+        w("- ⚠️ Fahrtrichtung nicht festgelegt (Annahme +y) – bei Mehrkammer-Fahrzeugen falsche "
+          "Kammer möglich\n")
+    if v.get("lane_center") is None or not v.get("lane_width"):
+        w("- ⚠️ eigene Spur nicht festgelegt: Domsuche im ganzen Bild, Nachbarspur kann stören\n\n")
+        return
+    width = float(v["lane_width"])
+    w(f"- Domsuche nur in der eigenen Spur: Mitte {_xy(v['lane_center'])} m, Breite "
+      f"{width:.2f} m\n")
+    if width < VEHICLE_WIDTH + 0.3:
+        w(f"- ⚠️ Spur schmaler als Tankwagen ({VEHICLE_WIDTH} m) plus Haltetoleranz\n")
+    c = cfg.get("commissioning") or {}
+    if c.get("workspace_min") and c.get("workspace_max"):
+        f = np.asarray(v.get("front", (0.0, 1.0)), float)[:2]
+        cross = np.array([-f[1], f[0]]) / np.linalg.norm(f)
+        lo, hi = np.asarray(c["workspace_min"], float), np.asarray(c["workspace_max"], float)
+        corners = [np.array([x, y]) for x in (lo[0], hi[0]) for y in (lo[1], hi[1])]
+        off = max(abs((p - np.asarray(v["lane_center"], float)[:2]) @ cross) for p in corners)
+        if off > width / 2:
+            w("- ⚠️ Arbeitsraum (mögliche Domlagen) reicht über die Spur hinaus – Spurbreite "
+              "oder Haltetoleranz prüfen\n")
+    w("\n")
+
+
+def _xy(p) -> str:
+    return f"x {float(p[0]):.2f} / y {float(p[1]):.2f}"
 
 
 def drive_report(cfg: dict, geom: ArmGeometry, depth: float, w):

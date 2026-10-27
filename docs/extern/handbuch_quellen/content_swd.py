@@ -269,10 +269,10 @@ BLOCKS = [
           "Schnittstelle und Standardwerte sind für alle Anlagen gleich."),
     ("h2", "6.1. Werkzeuge"),
     ("table", W2b, [
-        ("Konfigurator (Browser)", "alle Abschnitte der Anlagendatei auf einer Seite mit "
-         "Plausibilitätsprüfung, Draufsicht und Seitenansicht, Hindernisse in der Vorschau "
-         "verschieben, Servowerte per Knopf aus der SPS übernehmen, Inbetriebnahmeprüfung auf "
-         "Knopfdruck."),
+        ("Konfigurator (Browser)", "Anlagendatei in fünf Reitern (Anlage & Kamera, Arm, "
+         "Verladestelle, Auslass & Produkte, Antriebe) mit Plausibilitätsprüfung, Draufsicht und "
+         "Seitenansicht, Fahrtrichtung und eigener Spur, Hindernisse in der Vorschau verschieben, "
+         "Servowerte per Knopf aus der SPS übernehmen, Inbetriebnahmeprüfung auf Knopfdruck."),
         ("Einrichtungsdialog (Kommandozeile)", "führt Schritt für Schritt durch die Werte und "
          "liest Nullstellung, Drehrichtung und Parkstellung aus der SPS."),
         ("Inbetriebnahmeprüfung", "rechnet alle Domlagen im Arbeitsraum durch und erstellt ein "

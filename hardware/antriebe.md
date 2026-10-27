@@ -408,10 +408,10 @@ Entspricht der Anfrage (Herr Lay bestätigt Positioning Drive mit Level 1). Nich
 Kabel (Längen fehlen), Bremswiderstände (Schaltschrankbauer), IMO-Schwenkantrieb und Adaption J3.
 
 **Vor der Bestellung klären:**
-- **Übersetzung J1/J2 (i = 4 × 2,65 = 10,6):** siehe Bewertung oben – Trägheitsverhältnis sehr groß,
-  Motor nur ca. 11 1/min. Regelbarkeit mit den Lastträgheiten (J1 ca. 1 700, J2 ca. 500 kg·m²)
-  von SEW schriftlich bestätigen lassen oder größere Übersetzung (i_P 20–50, je nach Zahnradpaar).
-  Das Getriebe ist Teil der Servo-Position und lässt sich nach der Bestellung nicht mehr ändern.
+- **Übersetzung J1/J2 (i = 4 × 2,65 = 10,6): angenommen ohne Rückfrage bei SEW (Entscheidung
+  P. Schreiber, 26.10.2026).** Risiko bleibt (Trägheitsverhältnis, siehe Bewertung oben): bei der
+  Inbetriebnahme Reglereinstellung mit kleinen Rampen beginnen, Schwingen und Überschwingen an den
+  Stützpunkten prüfen; Abhilfe notfalls über flachere Rampen bzw. geringere Geschwindigkeit.
 - Temperatur (Getriebe −15 °C, Anlage −20 °C): vorerst zurückgestellt (16.10.2026).
 - Bremswiderstände und Kabellängen klärt HETA mit dem Schaltschrankbauer.
 - **J3-Motor nur einmal bestellen** (auch bei IMO angefragt).

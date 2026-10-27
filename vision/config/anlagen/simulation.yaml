@@ -6,6 +6,14 @@ extends: heta_prototyp.yaml
 source:
   type: sim
   joint_error_deg: [0.3, -0.25, 0.2]   # Durchbiegung/Modellfehler, wird in Job 2 nachgemessen
+  openings: [1, 1, 2, 3]               # offene Dome je Fahrzeug (Mehrkammer), zufällig
+
+detection:                             # Arbeitsraum für bis zu 3 Dome hintereinander
+  roi_min: [-2.0, -2.8, 0.5]
+  roi_max: [2.0, 2.8, 8.0]
+
+vehicle:
+  front: [0.0, 1.0]                    # Richtung zur Fahrzeugfront (Armbasis): Dom 1 = vorderster
 
 plc:
   url: opc.tcp://127.0.0.1:4840/       # tools/plc_simulator.py

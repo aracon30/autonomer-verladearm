@@ -13,6 +13,7 @@ verlinkten Dokumenten.
 | 12.10. | Selbstkollision | Bahnplanung prüft den Arm gegen sich selbst (Mindestspalt 0,10 m) | `docs/kinematik.md` |
 | 15.10. | Geber J1/J2 | **kein Sicherheitsgeber**: J1 wie J2 mit AZ2Z und Direktanbau MD071A (Änderung bei SEW angefragt) | `hardware/antriebe.md` |
 | 16.10. | Umrichter | MOVITRAC advanced mit **MOVIKIT Positioning Drive (Level 1)**; Synchronfahrt koordiniert die SPS (v/a je Achse skaliert, gleiche Ruckzeit) | `hardware/antriebe.md`, `docs/schnittstelle.md` |
+| 27.10. | Mehrere Dome | **Schnittstelle Version 3**: Auftrag als Füllschritte (Dom, Menge); `DomeNo` 0 = automatisch (Kammern verbunden, Schwallwände), n = n-ter offener Dom von vorn (Mehrkammer); zwischen den Kammern senkrecht heraus und Job 1 vom vorigen Dom aus. Plausibilität (erwartete Zahl offener Dome) noch nicht | `docs/schnittstelle.md` |
 | 26.10. | Übersetzung J1/J2 | i = 10,6 wird **ohne Rückfrage bei SEW** angenommen; Regelung bei der Inbetriebnahme mit flachen Rampen einstellen | `hardware/antriebe.md` |
 | 26.10. | Füllende | Schutzebenen: 1. Sollmenge (Durchfluss), 2. Maximalhöhe aus Armhöhe + Grenzschaltern, 3. Überfüllsicherung **nur als letzte Ebene, nie betriebsmäßig** | `docs/fuellstand_ueberfuellsicherung.md` |
 | 26.10. | Nachziehen | **zwei kapazitive Grenzschalter** (A 1 cm, B 3 cm über Auslassende) statt Messstab; zuerst **SICK LFC mit Acronal testen** (Anhaftung, Schaum); LFP Cubic zurückgestellt | `docs/fuellstand_ueberfuellsicherung.md` |

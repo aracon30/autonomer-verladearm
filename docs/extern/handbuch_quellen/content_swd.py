@@ -33,7 +33,7 @@ BLOCKS = [
     ("h2", "1.1. Softwarestand"),
     ("table", W2, [
         ("Vision-Software", "[Version folgt]"),
-        ("Schnittstelle", "InterfaceVersion 2 (Version 3 mit Nachziehen in Vorbereitung)"),
+        ("Schnittstelle", "InterfaceVersion 3 (mehrere Dome)"),
         ("SPS-Programm", "[Version folgt]"),
         ("Betriebssystem Vision-PC", "Ubuntu Linux 22.04 / 24.04 [Stand bei Auslieferung folgt]"),
     ]),
@@ -75,7 +75,7 @@ BLOCKS = [
     ("h1", "3. SCHNITTSTELLE SPS ↔ VISION-PC"),
     ("p", "Protokoll **OPC UA**. Die SPS stellt den Datenbaustein **DB_Vision** als Server "
           "bereit, der Vision-PC liest und schreibt als Client. Aktuelle Version: "
-          "**InterfaceVersion = 2**."),
+          "**InterfaceVersion = 3**."),
     ("h2", "3.1. Variablen SPS → Vision-PC"),
     ("table", W3, [
         ("HeartbeatPLC", "Int", "Zählt alle ca. 100 ms hoch"),
@@ -83,6 +83,8 @@ BLOCKS = [
         ("Job", "Int", "1 = Dom messen, Bahn planen · 2 = Auslass nachmessen, Bahn korrigieren · "
                        "3 = Rückfahrt planen · 0 = nur messen"),
         ("ProductId", "Int", "Produkt der aktuellen Verladung (bestimmt die Eintauchtiefe)"),
+        ("DomeNo", "Int", "Welcher Dom: 0 = automatisch (Kammern verbunden), n = n-ter offener "
+                          "Dom von vorn (Mehrkammer)"),
         ("Reset", "Bool", "Fehler quittieren"),
         ("ActualJ1 / J2 / J3", "Real", "Istwinkel der Achsen [Servo-Grad]"),
         ("AxesHomed", "Bool", "Istwinkel gültig (Multiturngeber, keine Referenzfahrt nötig)"),
@@ -101,6 +103,7 @@ BLOCKS = [
         ("NormalX / Y / Z", "Real", "Normale der Öffnung (Einheitsvektor)"),
         ("DiameterMm", "Real", "Erkannter Durchmesser der Öffnung [mm]"),
         ("Confidence", "Real", "Qualität der Erkennung 0 … 1"),
+        ("DomeCount / DomeSelected", "Int", "Erkannte offene Dome / angefahrener Dom von vorn"),
         ("WaypointCount", "Int", "Anzahl gültiger Stützpunkte (0 … 16)"),
         ("WaypointsJ1 / J2 / J3", "Array[1..16] of Real", "Zielwinkel je Stützpunkt "
                                                           "[Servo-Grad]"),
@@ -112,8 +115,9 @@ BLOCKS = [
     ], ("Name", "Typ", "Bedeutung")),
     ("h2", "3.3. Aufträge"),
     ("table", [1000, 4300, 4338], [
-        ("1", "Dom und Deckel messen, Bahn ab Istlage planen", "Anfahrt (ggf. mit Umweg), "
-         "senkrechtes Absenken, Eintauchen; ApproachIndex = Anfahrpunkt über dem Dom"),
+        ("1", "Dom (DomeNo) und Deckel messen, Bahn ab Istlage planen", "vom vorigen Dom aus "
+         "erst senkrecht hoch; Anfahrt (ggf. mit Umweg), senkrechtes Absenken, Eintauchen; "
+         "ApproachIndex = Anfahrpunkt über dem Dom"),
         ("2", "Auslass über dem Dom nachmessen (Referenzflansch), Modellabweichung ausgleichen",
          "korrigierter Anfahrpunkt und Eintauchen; ApproachIndex = 1"),
         ("3", "Rückfahrt ab Istlage planen (aus jeder Lage, auch nach Handbetrieb)",
@@ -125,8 +129,15 @@ BLOCKS = [
           "gefahren), nimmt der Vision-PC neu auf und behandelt alles außer dem Arm als "
           "Hindernis. Ist die Kamera nicht verfügbar, meldet Job 3 Fehler 90 – Rückfahrt im "
           "Handbetrieb."),
+    ("p", "**Tankwagen mit mehreren Domen:** Ob die Kammern verbunden (Schwallwände) oder "
+          "getrennt (Mehrkammer) sind, weiß nur der Auftrag. Verbunden: ein Füllschritt mit "
+          "DomeNo = 0, der Vision-PC wählt den nächsten erreichbaren Dom. Mehrkammer: ein "
+          "Füllschritt je Kammer (DomeNo 1, 2, … von vorn, eigene Menge); dazwischen fährt die "
+          "SPS senkrecht heraus bis über den Dom und startet Job 1 aus der Istlage, ohne Umweg "
+          "über die Parkstellung. Die Kamera muss alle Dome sehen."),
     ("h2", "3.4. Handshake und Zeitüberwachung"),
-    ("li", "SPS setzt Job, ProductId und Istwerte, danach Trigger (nur wenn Ready = TRUE)."),
+    ("li", "SPS setzt Job, ProductId, DomeNo und Istwerte, danach Trigger (nur wenn Ready = "
+           "TRUE)."),
     ("li", "Vision-PC setzt Busy und löscht Error."),
     ("li", "Vision-PC schreibt alle Ergebniswerte und ResultId in einem Aufruf, danach Done (bei "
            "Fehler zusätzlich Error und ErrorCode) und löscht Busy."),
@@ -152,14 +163,15 @@ BLOCKS = [
            "ApproachIndex mit reduzierter Geschwindigkeit (30 %) fahren."),
     ("li", "**Nachziehen beim Befüllen:** Die Eintauch-Stützpunkte aus Job 2 bilden die "
            "Nachzieh-Tabelle. Die SPS fährt sie rückwärts ab und interpoliert dazwischen "
-           "linear im Gelenkraum [Höhe je Stützpunkt mit InterfaceVersion 3 vom Vision-PC]."),
+           "linear im Gelenkraum [Höhe je Stützpunkt mit InterfaceVersion 4 vom Vision-PC]."),
     ("h2", "3.6. Fehlercodes"),
     ("table", [1000, 8638], [
         ("0", "kein Fehler"),
         ("11", "Zu wenige Messpunkte im Arbeitsraum (Kamera verschmutzt oder verdeckt?)"),
         ("12", "Tankoberfläche nicht erkannt"),
         ("20", "Keine Domöffnung gefunden (Deckel geschlossen?)"),
-        ("21", "Mehrere Domöffnungen gefunden"),
+        ("21", "Mehrere Domöffnungen gefunden (nur bis Version 2)"),
+        ("22", "Dom laut DomeNo nicht vorhanden: weniger offene Dome erkannt"),
         ("30", "Ziel außerhalb der Reichweite oder der Achsgrenzen, bzw. Eintauchtiefe zu groß "
                "für die Öffnung"),
         ("31", "Kein kollisionsfreier Weg (festes Hindernis, Tankkörper, Domkragen, Deckel oder "
@@ -182,7 +194,9 @@ BLOCKS = [
         ("1", "Zielkoordinate, Handshake, Heartbeat"),
         ("2", "Aufträge (Job), Istwinkel von der SPS, Stützpunkte in Servo-Grad, Nachmessen mit "
               "Korrektur, Fehlercodes 30–34 und 91"),
-        ("3", "[in Vorbereitung: Nachzieh-Tabelle mit Höhen, Kontrollwerte für die Prüfung in "
+        ("3", "Mehrere Dome: DomeNo, DomeCount, DomeSelected, Fehler 22; Job 1 auch vom vorigen "
+              "Dom aus"),
+        ("4", "[in Vorbereitung: Nachzieh-Tabelle mit Höhen, Kontrollwerte für die Prüfung in "
               "der SPS]"),
     ], ("Version", "Änderung")),
 
@@ -194,6 +208,8 @@ BLOCKS = [
     ("table", [4300, 1300, 4038], [
         ("Freigabe Verladung", "PLS → SPS", "Auftrag freigegeben, Start vor Ort möglich"),
         ("Produkt (ProductId), Sollmenge", "PLS → SPS", "bestimmt Eintauchtiefe und Füllende"),
+        ("Füllschritte (Dom, Menge)", "PLS → SPS", "Kammern verbunden: ein Schritt, Dom 0; "
+                                                  "Mehrkammer: Dom 1, 2, … von vorn je Kammer"),
         ("Verladung beenden", "PLS → SPS", "Klappe zu, Abtropfen, Rückfahrt"),
         ("Kalibrierung anstoßen", "PLS → SPS", "startet erst nach Freigabe vor Ort"),
         ("Automatisch in Parkstellung", "PLS → SPS", "nur nach Freigabe vor Ort"),

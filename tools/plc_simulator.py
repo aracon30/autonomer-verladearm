@@ -1,8 +1,13 @@
-"""Simuliert die SPS-Seite (OPC-UA-Server mit DB_Vision, InterfaceVersion 2).
+"""Simuliert die SPS-Seite (OPC-UA-Server mit DB_Vision, InterfaceVersion 3).
 
 Ablauf je Verladung wie im echten SPS-Programm vorgesehen (docs/schnittstelle.md):
 Job 1 (messen, planen) -> Fahrt bis über den Dom -> Job 2 (nachmessen, korrigieren) ->
 Eintauchen -> Befüllen mit Nachziehen -> Job 3 (Rückfahrt planen) -> Park.
+Mehrere Dome: Der Auftrag ist eine Liste von Füllschritten (DomeNo, Menge). Tank mit
+Schwallwänden = ein Schritt mit DomeNo 0 (automatisch); Mehrkammer = je Kammer ein Schritt
+(DomeNo 1, 2, … von vorn), dazwischen senkrecht heraus und Job 1 vom vorigen Dom aus.
+Im Dauertest wechseln beide Bauarten ab; die Zahl der Kammern nimmt der Simulator aus
+DomeCount (an der Anlage kommt sie aus dem Auftrag der Leitstelle).
 Achsen fahren synchron; die Istwinkel gehen an den PC zurück.
 Mit Abschnitt `drives` in der Anlagendatei fährt jede Achse wie mit SEW MOVIKIT Positioning
 Drive: Die SPS gibt je Stützpunkt Zielposition, Geschwindigkeit und Beschleunigung im Verhältnis
@@ -55,6 +60,8 @@ HELP = """Befehle (Eingabe + Enter):
   l              Lichtschranke umschalten (Fahrzeug da / weg)
   t              Klapptreppe umschalten (ausgefahren / Ruhelage)
   p <nr>         Produkt wählen (Eintauchtiefe), z. B. p 1
+  k <dom> ...    Kammern des Auftrags: k 0 = Tank mit Schwallwänden (ein Dom, automatisch),
+                 k 1 2 3 = Mehrkammer, Dome von vorn nacheinander (Menge je Kammer gleich)
   f              „Fahrzeug bereit“ bestätigen
   s              Start „Automatisch beladen“
   e              Beladung vorzeitig beenden (Klappe zu) -> Arm fährt in die Parkstellung
@@ -96,6 +103,9 @@ class PlcSim:
         self.park = np.array([geom.joints[k].park for k in JOINTS], dtype=float)
         self.actual = self.park.copy()
         self.product = 0
+        self.domes = [0]  # Auftrag: DomeNo je Füllschritt (0 = automatisch, ein Schritt)
+        self.dome_no = 0
+        self.multi_test = False  # Dauertest: abwechselnd Schwallwände / Mehrkammer
         # Bedienung und Verriegelungen (im Dauertest immer erfüllt)
         self.mode = "Automatik"
         self.vehicle_ready = False
@@ -207,9 +217,11 @@ class PlcSim:
             return None
         return np.array([np.interp(z, heights, wps[:, j]) for j in range(3)])
 
-    async def fill_tank(self, interactive: bool):
+    async def fill_tank(self, interactive: bool, target_volume: float | None = None):
         """Befüllen mit Nachziehen; Ende über Sollmenge, Überfüllsicherung unabhängig davon."""
-        f = self.fill
+        f = dict(self.fill)
+        if target_volume is not None:
+            f["target_volume"] = target_volume
         rim = self.rim_z
         base = rim - f["depth_below_rim"] + f["start_level"]  # Spiegel zu Beginn
         lo, hi = f["immersion"]
@@ -258,6 +270,7 @@ class PlcSim:
         """Auftrag an den Vision-PC, Handshake nach docs/schnittstelle.md."""
         await self.write("Job", job)
         await self.write("ProductId", self.product)
+        await self.write("DomeNo", self.dome_no)
         await self.write("Trigger", True)
         for _ in range(100):  # 5 s Zeitüberwachung
             if await self.read("Done"):
@@ -270,7 +283,8 @@ class PlcSim:
                                                "WaypointsJ1", "WaypointsJ2", "WaypointsJ3",
                                                "ApproachIndex", "CorrectionX", "CorrectionY",
                                                "TargetX", "TargetY", "TargetZ",
-                                               "NormalX", "NormalY", "NormalZ")}
+                                               "NormalX", "NormalY", "NormalZ",
+                                               "DomeCount", "DomeSelected")}
         await self.write("Trigger", False)
         while await self.read("Done"):
             await asyncio.sleep(0.05)
@@ -314,45 +328,65 @@ class PlcSim:
 
     # --- Automatik ---------------------------------------------------------------------------
     async def sequence(self, interactive: bool):
-        """Automatisch beladen: Job 1 -> über Dom -> Job 2 -> eintauchen -> Beladung -> Job 3."""
+        """Automatisch beladen: je Füllschritt Job 1 -> über Dom -> Job 2 -> eintauchen ->
+        Beladung -> (nächste Kammer: senkrecht heraus) ... -> Job 3 -> Park."""
         self.moved = 0.0
+        steps = list(self.domes)  # DomeNo je Füllschritt; None = alle offenen (Dauertest)
         try:
             await self.write("ArmState", 0)
-            self.set_phase("Job 1: Dom messen, Bahn planen")
-            res, err = await self.job(1)
-            if err:
-                return await self.fault(f"Job 1: {err}")
-            wps, out = res
-            a = out["ApproachIndex"]
-            self.rim_z = out["TargetZ"] / 1000.0
-            print(f"  Dom bei {out['TargetX']:.0f} / {out['TargetY']:.0f} / "
-                  f"{out['TargetZ']:.0f} mm, {len(wps)} Stützpunkte, über Dom = Nr. {a}")
-            await self.write("ArmState", 1)
-            self.set_phase("fährt über den Dom")
-            for wp in wps[:a]:
-                await self.move_to(wp)
-            await self.write("ArmState", 2)
-            await asyncio.sleep(0.5)  # Beruhigungszeit (Auslass pendelt frei)
+            k = 0
+            while k < len(steps):
+                self.dome_no = steps[k] or 0
+                label = f"Kammer {k + 1}/{len(steps)}: " if len(steps) > 1 else ""
+                self.set_phase(f"Job 1: {label}Dom {self.dome_no or 'automatisch'} messen, "
+                               "Bahn planen")
+                res, err = await self.job(1)
+                if err:
+                    return await self.fault(f"Job 1: {err}")
+                wps, out = res
+                if steps[k] is None:  # Dauertest Mehrkammer: alle offenen Dome von vorn
+                    steps = list(range(1, out["DomeCount"] + 1))
+                    self.dome_no = steps[0]
+                    res, err = await self.job(1)
+                    if err:
+                        return await self.fault(f"Job 1: {err}")
+                    wps, out = res
+                a = out["ApproachIndex"]
+                self.rim_z = out["TargetZ"] / 1000.0
+                print(f"  Dom {out['DomeSelected']} von {out['DomeCount']} offenen bei "
+                      f"{out['TargetX']:.0f} / {out['TargetY']:.0f} / {out['TargetZ']:.0f} mm, "
+                      f"{len(wps)} Stützpunkte, über Dom = Nr. {a}")
+                await self.write("ArmState", 1)
+                self.set_phase(f"{label}fährt über den Dom")
+                for wp in wps[:a]:
+                    await self.move_to(wp)
+                await self.write("ArmState", 2)
+                await asyncio.sleep(0.5)  # Beruhigungszeit (Auslass pendelt frei)
 
-            self.set_phase("Job 2: Auslass nachmessen")
-            res, err = await self.job(2)
-            if err:
-                print(f"  Job 2: {err} -> Abbruch, Rückfahrt")
-            else:
+                self.set_phase(f"{label}Job 2: Auslass nachmessen")
+                res, err = await self.job(2)
+                if err:
+                    print(f"  Job 2: {err} -> Abbruch, Rückfahrt")
+                    break
                 wps, out = res
                 print(f"  Korrektur {out['CorrectionX']:+.1f} / {out['CorrectionY']:+.1f} mm")
-                self.set_phase("taucht ein")
+                self.set_phase(f"{label}taucht ein")
                 await self.move_to(wps[0])
                 for wp in wps[1:]:
                     await self.move_to(wp, slow=True)
                 self.set_table(wps)
                 await self.write("ArmState", 3)
                 self.loading_done.clear()
-                self.set_phase("Beladung läuft" + (" – vorzeitig beenden: e" if interactive
-                                                   else ""))
-                await self.fill_tank(interactive)
-                self.set_phase("Abtropfen")
+                self.set_phase(f"{label}Beladung läuft"
+                               + (" – vorzeitig beenden: e" if interactive else ""))
+                await self.fill_tank(interactive, self.fill["target_volume"] / len(steps))
+                self.set_phase(f"{label}Abtropfen")
                 await asyncio.sleep(2.0 * self.time_scale)
+                k += 1
+                if k < len(steps):  # nächste Kammer: senkrecht heraus bis über den Dom
+                    self.set_phase(f"{label}fährt senkrecht heraus, weiter zur nächsten Kammer")
+                    await self.move_to(self.table[0][-1], slow=True)
+                    await self.write("ArmState", 2)
             await self.park_auto()
         except Abort as e:
             await self.fault(str(e))
@@ -375,7 +409,12 @@ class PlcSim:
     async def cycle(self):
         """Dauertest: eine Verladung ohne Bediener."""
         self.light_barrier = self.vehicle_ready = self.product_chosen = True
+        # abwechselnd: Tank mit Schwallwänden (ein Dom, automatisch) / Mehrkammer (alle Dome)
+        self.domes = [None] if self.multi_test else [0]
+        print("Auftrag: " + ("Mehrkammer, alle offenen Dome von vorn" if self.multi_test
+                             else "Kammern verbunden, ein Dom automatisch"))
         await self.sequence(interactive=False)
+        self.multi_test = not self.multi_test
         self.product = (self.product + 1) % 3
 
     # --- Bedienung ---------------------------------------------------------------------------
@@ -477,6 +516,13 @@ class PlcSim:
         elif cmd == "p" and args:
             self.product, self.product_chosen = int(args[0]), True
             print(f"Produkt {self.product} gewählt")
+        elif cmd == "k" and args:
+            domes = [int(a) for a in args]
+            if any(d < 0 for d in domes) or (0 in domes and len(domes) > 1):
+                return print("k 0 (verbunden) oder k 1 2 3 (Mehrkammer, Dome von vorn)")
+            self.domes = domes
+            print("Auftrag: " + ("Kammern verbunden, ein Dom automatisch" if domes == [0]
+                                 else f"Mehrkammer, Dome {', '.join(args)} nacheinander"))
         elif cmd == "f":
             self.vehicle_ready = True
             print("Fahrzeug bereit")

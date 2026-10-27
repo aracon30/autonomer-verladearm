@@ -16,7 +16,9 @@ Ablauf:
 
 Der Sensor muss ungefähr senkrecht nach unten blicken. Der Arbeitsraum (roi) muss die Fahrbahn
 ausschließen, sonst kann statt des Tanks der Boden als Oberfläche gefunden werden.
-TODO: Mehrkammer-Tankwagen (Auswahl der Kammer), Laufstege direkt am Dom.
+Bei mehreren offenen Domen liefert `detect_openings` alle; welcher angefahren wird, entscheidet
+der Vision-Dienst nach `DomeNo` der SPS (docs/schnittstelle.md).
+TODO: Laufstege direkt am Dom.
 """
 
 from dataclasses import dataclass
@@ -45,7 +47,9 @@ class DetectorConfig:
     raised_max: float = 0.5  # m, bis zu dieser Höhe über der Oberfläche zählt ein Punkt als Kragen
     ransac_iterations: int = 400
     ransac_sample: int = 5000  # Punkte zur Bewertung der Hypothesen
-    min_surface_fraction: float = 0.3
+    # Anteil der Punkte auf der Tankoberfläche; mehrere Dome mit Armaturen und Laufstegen
+    # bedecken viel Dach (Simulation: bis herab auf ca. 0,27)
+    min_surface_fraction: float = 0.2
     grid_size: float = 0.02  # m
     min_diameter: float = 0.18  # m (kleine Füllöffnung im Domdeckel)
     max_diameter: float = 0.70  # m (offenes Mannloch)
@@ -164,7 +168,8 @@ def _fit_circle(xy: np.ndarray, rounds: int = 3, tol: float = 0.012):
     return center, radius
 
 
-def detect_opening(points: np.ndarray, cfg: DetectorConfig | None = None) -> Opening:
+def detect_openings(points: np.ndarray, cfg: DetectorConfig | None = None) -> list[Opening]:
+    """Alle offenen Domöffnungen (Mehrkammer-Tankwagen bzw. mehrere Dome je Tank)."""
     cfg = cfg or DetectorConfig()
     rng = np.random.default_rng(cfg.seed)
 
@@ -213,11 +218,20 @@ def detect_opening(points: np.ndarray, cfg: DetectorConfig | None = None) -> Ope
 
     if not candidates:
         raise DetectionError(ERR_NO_OPENING, "Keine Domöffnung gefunden")
-    if len(candidates) > 1:
-        raise DetectionError(ERR_MULTIPLE_OPENINGS, f"{len(candidates)} Öffnungen gefunden")
+    return [_refine(c2d, diameter, confidence, pts, solid, surface, inliers, g)
+            for c2d, diameter, confidence in candidates]
 
-    c2d, diameter, confidence = candidates[0]
 
+def detect_opening(points: np.ndarray, cfg: DetectorConfig | None = None) -> Opening:
+    """Genau eine offene Domöffnung; mehrere sind ein Fehler (Auswahl: `detect_openings`)."""
+    openings = detect_openings(points, cfg)
+    if len(openings) > 1:
+        raise DetectionError(ERR_MULTIPLE_OPENINGS, f"{len(openings)} Öffnungen gefunden")
+    return openings[0]
+
+
+def _refine(c2d, diameter, confidence, pts, solid, surface, inliers, g) -> Opening:
+    """Mitte, Höhe, Normale und Tankform einer gefundenen Öffnung."""
     # Rand der Öffnung: innerster Punkt je Sektor, darauf Kreis-Fit (genauer als Rasterzellen)
     rim = _edge(pts[solid], c2d, diameter / 2, g)
     fit = _fit_circle(rim[:, :2]) if len(rim) >= 20 else None

@@ -23,7 +23,7 @@ from verladearm_vision.detection import (
     DetectionError,
     DetectorConfig,
     OutletConfig,
-    detect_opening,
+    detect_openings,
     detect_outlet,
 )
 from verladearm_vision.drives import Drives
@@ -34,6 +34,7 @@ from verladearm_vision.kinematics import (
     outlet_axis,
     pick,
     plan_correction,
+    plan_lift,
     plan_motion,
     plan_retract,
     product_insertion_depth,
@@ -55,6 +56,7 @@ from verladearm_vision.scene import (
     SceneConfig,
     build_obstacles,
     foreign_obstacles,
+    not_arm,
     obstacles_from_points,
 )
 
@@ -62,6 +64,7 @@ log = logging.getLogger("verladearm")
 
 ERR_NOT_HOMED = 32
 ERR_FEW_POINTS = 11
+ERR_DOME_MISSING = 22  # DomeNo größer als die Zahl der offenen Dome
 ERR_NO_TARGET = 34  # Job 2 ohne vorheriges Ergebnis aus Job 1
 ERR_INTERNAL = 90
 ERR_UNKNOWN_JOB = 91
@@ -112,11 +115,12 @@ def _r(v, digits=1):
 
 
 class VisionService:
-    """Bearbeitet die Aufträge der SPS (docs/schnittstelle.md, InterfaceVersion 2).
+    """Bearbeitet die Aufträge der SPS (docs/schnittstelle.md, InterfaceVersion 3).
 
     Job 0: nur messen · Job 1: Dom messen und Bahn planen · Job 2: Auslass nachmessen und Bahn
-    korrigieren · Job 3: Rückfahrt planen. Die SPS prüft jede Vorgabe und fährt mit ihren
-    Technologieobjekten (Rampen, Ruckbegrenzung).
+    korrigieren · Job 3: Rückfahrt planen. Bei mehreren offenen Domen wählt `DomeNo` den Dom
+    (n = n-ter von vorn, 0 = automatisch der nächste erreichbare). Die SPS prüft jede Vorgabe
+    und fährt mit ihren Technologieobjekten (Rampen, Ruckbegrenzung).
     """
 
     def __init__(self, cfg: dict):
@@ -127,6 +131,9 @@ class VisionService:
         self.outlet_cfg = OutletConfig(**cfg.get("outlet", {}))
         self.scene_cfg = SceneConfig(**cfg.get("scene", {}))
         self.products = cfg.get("products")
+        # Richtung zur Fahrzeugfront (Armbasis, waagerecht): Dom 1 ist der vorderste
+        front = np.asarray((cfg.get("vehicle") or {}).get("front", (0.0, 1.0)), float)[:2]
+        self.front = front / np.linalg.norm(front)
         planning = cfg.get("planning", {})
         self.move_waypoints = int(planning.get("move_waypoints", 3))
         self.insert_waypoints = int(planning.get("insert_waypoints", 5))
@@ -232,27 +239,84 @@ class VisionService:
             return self._job_correct(req, q_act)
         return self._job_retract(req, q_act)
 
-    def _measure(self, req: Request):
+    def _measure_domes(self, req: Request, q_act=None):
+        """Alle offenen Dome, von vorn nach hinten sortiert: (Fehler oder None, [(res, op), …]).
+
+        Steht der Arm noch über einem Dom (nächste Kammer), verdeckt das Auslassrohr dessen
+        Öffnung – ohne seine Punkte zählt dieser Dom weiter mit und die Nummerierung von vorn
+        bleibt gleich. Entfernt wird nur, was über dem Auslassende liegt (Domrand bleibt)."""
+        points = self._grab(req)
+        if q_act is not None:
+            arm = self._arm_points(points)
+            points = points[not_arm(arm, self.geom, q_act, self.scene_cfg)
+                            | (arm[:, 2] < tip(self.geom, q_act)[2] - 0.1)]
         try:
-            op = detect_opening(self._grab(req), self.det_cfg)
+            openings = detect_openings(points, self.det_cfg)
         except DetectionError as e:
-            return self._fail(e.code, str(e)), None
-        res = MeasureResult(
-            ok=True,
-            target_mm=_r(self.transform.point(op.center) * 1000.0),
-            normal=_r(self.transform.direction(op.normal), 4),
-            diameter_mm=round(op.diameter * 1000.0, 1),
-            confidence=round(op.confidence, 3),
-        )
-        return res, op
+            return self._fail(e.code, str(e)), []
+        domes = []
+        for op in openings:
+            res = MeasureResult(
+                ok=True,
+                target_mm=_r(self.transform.point(op.center) * 1000.0),
+                normal=_r(self.transform.direction(op.normal), 4),
+                diameter_mm=round(op.diameter * 1000.0, 1),
+                confidence=round(op.confidence, 3),
+                dome_count=len(openings),
+            )
+            domes.append((res, op))
+        domes.sort(key=lambda d: -(np.asarray(d[0].target_mm[:2]) @ self.front))
+        for i, (res, _) in enumerate(domes):
+            res.dome_selected = i + 1
+        self._info["dome"] = [d[0].target_mm for d in domes]
+        return None, domes
+
+    def _dome_order(self, req: Request, domes, q_act=None):
+        """Reihenfolge der Dome für den Auftrag: DomeNo n = genau der n-te von vorn; 0 = der dem
+        Auslass nächste zuerst (ohne Istlage: der vorderste). (Fehler oder None, [Index, …])"""
+        if req.dome_no > 0:
+            if req.dome_no > len(domes):
+                return self._fail(ERR_DOME_MISSING, f"Dom {req.dome_no} nicht gefunden, nur "
+                                  f"{len(domes)} offen", dome_count=len(domes)), []
+            return None, [req.dome_no - 1]
+        order = list(range(len(domes)))
+        if q_act is not None:
+            here = tip(self.geom, q_act)[:2] * 1000.0
+            order.sort(key=lambda i: np.hypot(*(np.asarray(domes[i][0].target_mm[:2]) - here)))
+        return None, order
+
+    def _measure(self, req: Request):
+        err, domes = self._measure_domes(req)
+        if err is None:
+            err, order = self._dome_order(req, domes)
+        if err is not None:
+            return err, None
+        return domes[order[0]]
 
     def _job_measure_plan(self, req: Request, q_act) -> MeasureResult:
         # Ein neuer Messauftrag ersetzt den bisherigen Kontext. Ein fehlgeschlagener Auftrag darf
         # insbesondere nicht als Grundlage für Job 2 oder den Rückweg von Job 3 erhalten bleiben.
         self.last = None
-        res, op = self._measure(req)
-        if not res.ok:
-            return res
+        err, domes = self._measure_domes(req, q_act)
+        if err is None:
+            err, order = self._dome_order(req, domes, q_act)
+        if err is not None:
+            return err
+        # Automatisch: der nächste Dom, den der Arm erreicht; sonst der Fehler des nächsten
+        first = None
+        for i in order:
+            others = [op for j, (_, op) in enumerate(domes) if j != i]
+            res = self._plan_dome(req, q_act, *domes[i], others)
+            if res.ok:
+                return res
+            first = first or res
+        return first
+
+    def _plan_dome(self, req: Request, q_act, res: MeasureResult, op, others=()) -> MeasureResult:
+        """Bahn zu einem gemessenen Dom planen (Job 1). `others`: weitere offene Dome desselben
+        Fahrzeugs – Kragen, Deckel und Aufbauten werden Hindernisse (mit Durchgang über ihrer
+        Öffnung, damit der Arm vom vorigen Dom senkrecht herausfahren kann)."""
+        info = dict(dome_count=res.dome_count, dome_selected=res.dome_selected)
         depth = product_insertion_depth(self.products, req.product_id, self.geom.insertion_depth)
         # Referenzflansch am Auslass muss über dem Öffnungsrand bleiben, wenn er nicht hindurchpasst
         oc, sc = self.outlet_cfg, self.scene_cfg
@@ -262,10 +326,16 @@ class VisionService:
                               f"({oc.marker_offset * 1000:.0f} mm über Auslassende) passt nicht "
                               f"durch die Öffnung Ø {res.diameter_mm:.0f} mm",
                               target_mm=res.target_mm, normal=res.normal,
-                              diameter_mm=res.diameter_mm, confidence=res.confidence)
+                              diameter_mm=res.diameter_mm, confidence=res.confidence, **info)
         # Tankkörper, Domkragen und offener Deckel als Hindernisse für alle folgenden Bahnen
-        obstacles, scene_info = build_obstacles(op, self.transform, self._points,
+        # ohne den eigenen Arm: steht er noch über dem vorigen Dom, ist er kein Aufbau
+        points = self._points[not_arm(self._arm_points(), self.geom, q_act, self.scene_cfg)]
+        obstacles, scene_info = build_obstacles(op, self.transform, points,
                                                 self.outlet_cfg, self.scene_cfg)
+        for other in others:  # Tankkörper ist derselbe, nur die Aufbauten der anderen Dome
+            more, _ = build_obstacles(other, self.transform, points, self.outlet_cfg,
+                                      self.scene_cfg)
+            obstacles += [o for o in more if o.name != "Tankkörper"]
         # Scan der ganzen Szene: was sonst noch im Weg steht (Leiter, Fass, Führerhaus …)
         center = self.transform.point(op.center)
         passage = (float(center[0]), float(center[1]), scene_info["durchgang_radius_m"])
@@ -278,22 +348,31 @@ class VisionService:
         context = dict(target_mm=res.target_mm, normal=res.normal, depth=depth,
                        diameter_mm=res.diameter_mm, confidence=res.confidence,
                        obstacles=obstacles, passage=passage, opening=opening,
-                       time=time.monotonic())
+                       time=time.monotonic(), **info)
         scene_geom = self.geom.with_obstacles(obstacles)
+        # Nicht aus der Parkstellung (nächste Kammer): erst senkrecht hoch, weg von Kragen und
+        # Deckel des vorigen Doms
+        q_start, lift = q_act, []
+        if np.abs(q_act - self.geom.park).max() > np.radians(0.5):
+            q_lift, _ = plan_lift(scene_geom, q_act, self.geom.approach_lift)
+            if q_lift is not None:
+                q_start, lift = np.asarray(q_lift[-1]), [q_act, q_lift[-1]]
         plan = plan_motion(scene_geom, res.target_mm, res.normal, insertion_depth=depth,
-                           q_start=q_act, time_limit=self.plan_time_limit)
+                           q_start=q_start, time_limit=self.plan_time_limit)
         self._info.update(eintauchtiefe_m=depth, szene=scene_info,
                           umweg=len(plan.get("move_vias") or []) > 1)
         if not plan["ok"]:
             return self._fail(plan["code"], plan["reason"], target_mm=res.target_mm,
                               normal=res.normal, diameter_mm=res.diameter_mm,
-                              confidence=res.confidence)
+                              confidence=res.confidence, **info)
         # Erst ein vollständig geplanter Job 1 ist ein gültiger Kontext für Folgeaufträge.
         # Der geprüfte Anfahrweg dient Job 3 bei Bedarf als rückwärtiger Notweg.
-        context["approach"] = [q_act.tolist()] + plan["move_vias"][:-1]
+        context["approach"] = ([q.tolist() for q in lift] or [q_act.tolist()]) \
+            + plan["move_vias"][:-1]
         self.last = context
-        move, n_move = self._move_segment(plan, q_act, self.move_waypoints)
+        move, n_move = self._move_segment(plan, q_start, self.move_waypoints)
         res.waypoints, res.approach_index = self._waypoints(
+            *([(lift, 1, False)] if lift else []),
             (move, n_move, True),
             (plan["q_insert"], self.insert_waypoints, False),
         )
@@ -304,7 +383,8 @@ class VisionService:
             return self._fail(ERR_NO_TARGET, "Kein Dom aus Job 1 vorhanden")
         last = self.last
         keep = dict(target_mm=last["target_mm"], normal=last["normal"],
-                    diameter_mm=last["diameter_mm"], confidence=last["confidence"])
+                    diameter_mm=last["diameter_mm"], confidence=last["confidence"],
+                    dome_count=last["dome_count"], dome_selected=last["dome_selected"])
         points = self._grab(req)
         arm_pts = points @ self.transform.T[:3, :3].T + self.transform.T[:3, 3]
         try:

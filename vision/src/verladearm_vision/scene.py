@@ -208,6 +208,17 @@ def _segment_distance(p, a, b):
     return np.linalg.norm(p - (a + t[:, None] * ab), axis=1)
 
 
+def not_arm(arm_pts: np.ndarray, geom, q, cfg: SceneConfig | None = None) -> np.ndarray:
+    """Maske der Punkte, die nicht zur Rohrführung in Stellung `q` gehören (Armbasis)."""
+    cfg = cfg or SceneConfig()
+    p = np.asarray(arm_pts, float)
+    pts = forward(geom, q)
+    keep = np.ones(len(p), bool)
+    for a, b in zip(pts[:-1], pts[1:], strict=True):
+        keep &= _segment_distance(p, a, b) > cfg.arm_exclude
+    return keep
+
+
 def obstacles_from_points(arm_pts: np.ndarray, geom, q, cfg: SceneConfig | None = None,
                           passage=None, known=(), exclude=None, interior=None,
                           name: str = "Fahrzeug/Aufbau (Höhenkarte)"):

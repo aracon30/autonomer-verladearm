@@ -1,6 +1,6 @@
 # Schnittstelle Vision-PC ↔ SPS
 
-**Version:** 2 (`InterfaceVersion = 2`)
+**Version:** 3 (`InterfaceVersion = 3`)
 **Protokoll:** OPC UA. Die SPS ist Server (z. B. S7-1500, integrierter OPC-UA-Server), der Vision-PC ist Client.
 **Datenbaustein:** `DB_Vision` (Quelle: `plc/DB_Vision.db`)
 
@@ -26,6 +26,7 @@ Begründung: [ADR 0002](adr/0002-gelenkwinkel-vom-pc.md).
 | Trigger | Bool | Auftrag starten |
 | **Job** | Int | 1 = Dom messen, Bahn planen · 2 = Auslass nachmessen, Bahn korrigieren · 3 = Rückfahrt planen · 0 = nur messen |
 | ProductId | Int | Produkt der aktuellen Verladung (Eintauchtiefe) |
+| **DomeNo** | Int | Job 0/1: welcher Dom · 0 = automatisch (der dem Auslass nächste erreichbare; Tank mit Schwallwänden) · n = **n-ter offener Dom von vorn** (Mehrkammer, Vorgabe aus dem Auftrag) |
 | Reset | Bool | Fehler quittieren |
 | **ActualJ1 / J2 / J3** | Real | Istwinkel der Servoachsen [Servo-Grad] |
 | **AxesHomed** | Bool | Alle Achsen referenziert, Istwinkel gültig |
@@ -46,17 +47,19 @@ Begründung: [ADR 0002](adr/0002-gelenkwinkel-vom-pc.md).
 | NormalX / NormalY / NormalZ | Real | Normale der Öffnung (Einheitsvektor, Armbasis) |
 | DiameterMm | Real | Erkannter Durchmesser [mm] |
 | Confidence | Real | Qualität der Erkennung 0…1 |
+| **DomeCount** | Int | Anzahl erkannter offener Dome (Job 0/1; bei Job 2 aus Job 1) |
+| **DomeSelected** | Int | Angefahrener Dom, von vorn gezählt (1-basiert; 0 = keiner) |
 | **WaypointCount** | Int | Anzahl gültiger Stützpunkte (0…16) |
 | **WaypointsJ1 / J2 / J3** | Array[1..16] of Real | Zielwinkel je Stützpunkt [Servo-Grad] |
 | **ApproachIndex** | Int | Nummer des Stützpunkts „über dem Dom“ (1-basiert, 0 = keiner). Danach folgt das Eintauchen |
 | **CorrectionX / CorrectionY** | Real | Job 2: gemessene Abweichung Soll − Ist des Auslasses über dem Dom [mm] |
-| InterfaceVersion | Int | Muss der SPS-seitig erwarteten Version entsprechen (2) |
+| InterfaceVersion | Int | Muss der SPS-seitig erwarteten Version entsprechen (3) |
 
 ## Aufträge
 
 | Job | PC tut | Stützpunkte | ApproachIndex |
 |---|---|---|---|
-| 1 | Dom und Deckel messen, Bahn ab **Istlage** planen | Anfahrt (Gelenkraum, synchron, ggf. mit Umweg) + senkrechtes Absenken + Eintauchen (senkrecht) | Anfahrpunkt über dem Dom |
+| 1 | Dom (`DomeNo`) und Deckel messen, Bahn ab **Istlage** planen | außerhalb der Parkstellung (nächste Kammer) zuerst senkrecht hoch, dann Anfahrt (Gelenkraum, synchron, ggf. mit Umweg) + senkrechtes Absenken + Eintauchen (senkrecht) | Anfahrpunkt über dem Dom |
 | 2 | Auslass über dem Dom nachmessen (Markierungsscheibe), Modellabweichung ausgleichen | korrigierter Anfahrpunkt + Eintauchen | 1 |
 | 3 | Rückfahrt ab Istlage planen | senkrecht heraus + synchron in die Parkstellung (Notweg: Anfahrt aus Job 1 rückwärts) | 0 |
 
@@ -82,7 +85,8 @@ Klapptreppe fährt auf das Fahrzeug, der Fahrer öffnet den Dom, die Klapptreppe
 
 1. **Leitstelle** (PLS) gibt den Auftrag frei und wählt das **Produkt** (→ `ProductId`, bestimmt
    die Eintauchtiefe und Sollmenge). Am Schaltschrank gibt es **kein Display** (Festlegung
-   19.10.2026), nur Taster und Leuchtmelder.
+   19.10.2026), nur Taster und Leuchtmelder. Der Auftrag ist eine **Liste von Füllschritten**
+   (Dom, Menge), je nach Tankwagen (Abschnitt „Tankwagen mit mehreren Domen“ unten).
 2. **Bediener drückt „Beladen starten“** (Leuchttaster am Schaltschrank, einziger Bedientaster im
    Automatikbetrieb). Startbedingungen: Arm in Parkstellung,
    **Klapptreppe in Ruhelage** (Endschalter), ggf. Lichtschranke Stellplatz belegt, Freigabe PLS,
@@ -98,7 +102,33 @@ Klapptreppe fährt auf das Fahrzeug, der Fahrer öffnet den Dom, die Klapptreppe
    Überfüllsicherung schließt die Klappe unabhängig davon (nur letzte Ebene, nie betriebsmäßig).
 7. **Sollmenge erreicht** oder **Maximalhöhe** aus Armhöhe erreicht (oder Bediener beendet die
    Beladung) → Klappe zu, Abtropfpause.
-8. **Job 3** → Stützpunkte fahren → Parkstellung. Danach Klapptreppe/Fahrzeug frei.
+8. **Weitere Füllschritte** (Mehrkammer): senkrecht heraus bis zum Anfahrpunkt (Eintauch-
+   Stützpunkte rückwärts), dann **Job 1** mit dem nächsten `DomeNo` aus der Istlage – der PC plant
+   erst senkrecht hoch, dann zum nächsten Dom – weiter ab Schritt 3. Ohne Umweg über die
+   Parkstellung.
+9. **Job 3** → Stützpunkte fahren → Parkstellung. Danach Klapptreppe/Fahrzeug frei.
+
+### Tankwagen mit mehreren Domen
+
+Von außen ist nicht zu erkennen, ob die Kammern verbunden (Schwallwände) oder getrennt
+(Mehrkammer) sind; das weiß nur der Auftrag bzw. das Fahrzeug im PLS. Der Vision-PC braucht die
+Bauart nicht, nur den Dom:
+
+| Tankwagen | Auftrag (Füllschritte) | `DomeNo` |
+|---|---|---|
+| **ein Tank mit Schwallwänden** (Kammern verbunden) | 1 Schritt, Gesamtmenge | 0 = automatisch: der dem Auslass nächste erreichbare Dom |
+| **Mehrkammer** (dichte Trennwände) | 1 Schritt je Kammer mit eigener Menge | 1, 2, … = n-ter **offener** Dom von vorn |
+
+- „Vorn“ legt die Anlagendatei fest (`vehicle.front`, Richtung zur Fahrzeugfront in Armbasis).
+- Gezählt werden nur **offene** Dome im Blickfeld der Kamera. Die Kamera muss deshalb alle Dome
+  des Fahrzeugs sehen (Montage, Arbeitsraum `detection.roi_*`).
+- Fehler 22, wenn es weniger offene Dome gibt als `DomeNo`; ein nicht erreichbarer Dom ergibt
+  wie bisher Fehler 30/31 (Fahrzeug umsetzen).
+- Eine Plausibilitätsprüfung (erwartete Zahl offener Dome aus dem Auftrag gegen `DomeCount`) ist
+  vorgesehen, aber noch nicht umgesetzt.
+- **Überfüllsicherung bei Mehrkammer:** jede Kammer braucht ihre eigene. Mit Liquiphant von Hand
+  muss der Bediener ihn zwischen den Kammern umsetzen und mit „Beladen starten“ quittieren; mit
+  einer Lanze am Arm geht es ohne Eingriff (offen, Termin BASF).
 
 Während der Automatik: Klapptreppe verriegelt (darf nicht ausfahren). Fällt die Lichtschranke ab
 oder verlässt die Treppe die Ruhelage: Bewegung stoppen, Meldung (reine SPS-Funktion, kein PC-Signal).
@@ -129,7 +159,7 @@ Bei Fehler, fehlendem Ergebnis oder Heartbeat-Ausfall: Bewegung stoppen, sichere
 
 ## Handshake
 
-1. SPS setzt `Job`, `ProductId`, Istwerte und dann `Trigger` (nur wenn `Ready = TRUE`).
+1. SPS setzt `Job`, `ProductId`, `DomeNo`, Istwerte und dann `Trigger` (nur wenn `Ready = TRUE`).
 2. PC setzt `Busy`, löscht `Error`.
 3. PC schreibt alle Ergebniswerte und `ResultId` in **einem** Aufruf, danach `Done` (bei Fehler zusätzlich `Error` + `ErrorCode`), löscht `Busy`.
 4. SPS übernimmt die Werte und löscht `Trigger`.
@@ -152,7 +182,8 @@ Beide Seiten prüfen, ob sich der Heartbeat der Gegenseite ändert. Ausfall > **
 | 11 | Zu wenige Messpunkte im Arbeitsraum (Sensor verschmutzt/verdeckt?) |
 | 12 | Tankoberfläche nicht erkannt |
 | 20 | Keine Domöffnung gefunden (Deckel geschlossen?) |
-| 21 | Mehrere Domöffnungen gefunden |
+| 21 | Mehrere Domöffnungen gefunden (nur bis Version 2; ab Version 3 wählt `DomeNo`) |
+| 22 | Dom `DomeNo` nicht vorhanden: weniger offene Dome erkannt (`DomeCount`) |
 | 30 | Ziel außerhalb der Reichweite / Achsgrenzen |
 | 31 | Kein kollisionsfreier Weg: Sperrbereich, Tankkörper, Domkragen oder offener Domdeckel im Weg (z. B. Deckel steht so, dass der Arm nicht senkrecht eintauchen kann). Deckel/Fahrzeug prüfen, neu auslösen |
 | 32 | Achsen nicht referenziert oder Istwinkel unplausibel |
@@ -177,3 +208,4 @@ mit Freigabe durch den SPS-Programmierer.
 |---|---|
 | 1 | Zielkoordinate, Handshake, Heartbeat |
 | 2 | Aufträge (Job), Istwinkel und Referenzierung von der SPS, Stützpunkte in Servo-Grad, Nachmessen mit Korrektur, Fehlercodes 30–34, 91 |
+| 3 | Mehrere Dome: `DomeNo` (SPS → PC), `DomeCount`/`DomeSelected` (PC → SPS), Fehler 22 statt 21; Job 1 auch vom vorigen Dom aus (erst senkrecht hoch) |

@@ -109,7 +109,7 @@ def make_tank_vehicle(
         a = rng.uniform(0, 2 * np.pi, n)
         return np.column_stack([c[0] + r * np.cos(a), c[1] + r * np.sin(a), rng.uniform(z0, z1, n)])
 
-    info = {"dome": dome}
+    info = {"dome": dome, "domes": []}  # domes: Mitte und Durchmesser jeder Füllöffnung
     for i, (ox, oy) in enumerate(domes):
         parts.append(disc((ox, oy), r_in + 0.005, r_out, height, 2500))  # Oberkante Kragen
         parts.append(wall((ox, oy), r_out, height, apex, 1500))  # Außenwand
@@ -117,6 +117,7 @@ def make_tank_vehicle(
             depth = height - 0.02 if lid_closed else apex + fill_depth
             inner = disc((ox, oy), 0, r_in * 0.85, depth, 1500)
             parts.append(inner)
+            info["domes"].append((np.array([ox, oy, height]), 2 * r_in))
             if i == 0:
                 info.update(center=np.array([ox, oy, height]), diameter=2 * r_in)
             continue
@@ -148,6 +149,10 @@ def make_tank_vehicle(
         for c, rc, top in fittings:
             parts.append(disc(c, 0, rc, top, 400))
             parts.append(wall(c, rc, top, plate, 300))
+        info["domes"].append((np.array([f[0], f[1], rim_top]), 2 * r_f))
+        if i > 0 and lid_azimuth_deg is not None:  # Füllklappen der weiteren Dome
+            parts.append(_open_lid(f, r_f + 0.02, rim_top, rng.uniform(-180, 180),
+                                   lid_open_deg, rng, n=1200))
         if i == 0:
             info.update(center=np.array([f[0], f[1], rim_top]), diameter=2 * r_f,
                         ring_center=np.array([ox, oy, height]), ring_diameter=2 * r_in,
@@ -158,6 +163,8 @@ def make_tank_vehicle(
 
     if lid_azimuth_deg is not None and not lid_closed and dome != "armatur":
         parts.append(_open_lid(domes[0], r_out, height, lid_azimuth_deg, lid_open_deg, rng))
+        for d in domes[1:]:  # Deckel der weiteren Dome, je eigene Richtung
+            parts.append(_open_lid(d, r_out, height, rng.uniform(-180, 180), lid_open_deg, rng))
     if walkways:  # Gitterroste neben dem Dom, entlang der Tankachse, mit Lücken
         for side in (-1, 1):
             w = rng.uniform(0.35, 0.5)

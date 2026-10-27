@@ -226,3 +226,61 @@ def test_fremdkoerper_nach_job1_wird_bei_der_rueckfahrt_erkannt():
         assert _hits_box(s, r3.waypoints, r1.waypoints[-1], lo, hi) is None
     else:
         assert r3.error_code == 31
+
+
+def make_multi(seed=0, openings=3, dome="offen"):
+    cfg = load_config(BEISPIEL.with_name("simulation.yaml"))
+    cfg["source"] = {"type": "sim", "seed": seed, "joint_error_deg": [0.3, -0.25, 0.2],
+                     "openings": [openings], "domes": [dome]}
+    cfg["recording"] = {"enabled": False}
+    cfg["snapshot"] = {"path": None}
+    return VisionService(cfg)
+
+
+def _truth_from_front(s):
+    """Sollmitten der offenen Dome, von vorn (Fahrzeugfront) nach hinten."""
+    return sorted(s.source.truth["centers"], key=lambda c: -(c[:2] @ s.front))
+
+
+@pytest.mark.parametrize("seed,dome", [(0, "offen"), (1, "offen"), (2, "armatur"),
+                                       (3, "armatur")])
+def test_mehrkammer_nacheinander_befuellen(seed, dome):
+    """Mehrkammer-Tankwagen: DomeNo 1..3 nacheinander, ohne Umweg über die Parkstellung; das
+    Fahrzeug bleibt dasselbe (Job 1 vom vorigen Dom aus). Der Arm über dem vorigen Dom verdeckt
+    dessen Öffnung nicht – die Zählung von vorn bleibt gleich."""
+    s = make_multi(seed, dome=dome)
+    q = park(s)
+    truth = None
+    for no in (1, 2, 3):
+        r1 = s(Request(job=1, dome_no=no, actual_deg=q, axes_homed=True))
+        assert r1.ok, r1.message
+        truth = truth or _truth_from_front(s)
+        assert (r1.dome_count, r1.dome_selected) == (3, no)
+        assert np.hypot(*(np.array(r1.target_mm[:2]) / 1000 - truth[no - 1][:2])) < 0.02
+        r2 = s(Request(job=2, actual_deg=r1.waypoints[r1.approach_index - 1], axes_homed=True))
+        assert r2.ok, r2.message
+        assert r2.dome_selected == no
+        inside = tip(s.geom, model(s, r2.waypoints[-1]) + s.source.offset)
+        assert np.hypot(*(inside - truth[no - 1])[:2]) < 0.02
+        q = r2.waypoints[0]  # nach dem Befüllen senkrecht heraus bis über den Dom
+    r3 = s(Request(job=3, actual_deg=q, axes_homed=True))
+    assert r3.ok, r3.message
+    assert np.allclose(r3.waypoints[-1], park(s), atol=0.01)
+
+
+def test_verbundene_kammern_automatisch_naechster_dom():
+    """DomeNo 0 (Tank mit Schwallwänden): ein Dom genügt – der dem Auslass nächste."""
+    s = make_multi(0)
+    r = s(Request(job=1, dome_no=0, actual_deg=park(s), axes_homed=True))
+    assert r.ok, r.message
+    assert r.dome_count == 3
+    here = tip(s.geom, model(s, park(s)))[:2]
+    dist = [np.hypot(*(c[:2] - here)) for c in _truth_from_front(s)]
+    assert r.dome_selected == int(np.argmin(dist)) + 1
+
+
+def test_dom_nicht_vorhanden():
+    s = make_multi(0, openings=2)
+    r = s(Request(job=1, dome_no=3, actual_deg=park(s), axes_homed=True))
+    assert not r.ok and r.error_code == 22 and r.dome_count == 2
+    assert s.last is None

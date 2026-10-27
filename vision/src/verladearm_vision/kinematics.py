@@ -936,6 +936,19 @@ def plan_retract(geom: ArmGeometry, q_start, lift: float, lift_steps: int = 8,
     return back if back["ok"] else result
 
 
+def plan_lift(geom: ArmGeometry, q_start, lift: float, lift_steps: int = 8):
+    """Senkrecht hochfahren (so hoch wie frei, höchstens `lift`), z. B. vom vorigen Dom vor der
+    Anfahrt zur nächsten Kammer. Ergebnis: (Gelenkstellungen, Fehlertext oder None)."""
+    q_start = np.asarray(q_start, dtype=float)
+    p0 = tip(geom, q_start)
+    err = "Herausfahren nicht möglich"
+    for h in np.linspace(lift, min(lift, 0.1), 5):
+        q_lift, _, err = _line(geom, q_start, p0, p0 + [0, 0, h], lift_steps, "Herausfahren")
+        if not err:
+            return q_lift, None
+    return None, err
+
+
 def _retract_reverse(geom, q_start, p0, fallback, lift_steps, plan):
     frames = [np.asarray(q, float) for q in reversed(fallback)]
     h = tip(geom, frames[0])[2] - p0[2]

@@ -55,7 +55,7 @@ log = logging.getLogger("verladearm.viewer")
 SIGNALS = ("Ready", "Trigger", "Busy", "Done", "Error", "ErrorCode", "ResultId", "ProductId",
            "HeartbeatPLC", "HeartbeatPC", "InterfaceVersion", "Job", "AxesHomed", "ArmState",
            "ActualJ1", "ActualJ2", "ActualJ3", "WaypointCount", "ApproachIndex", "CorrectionX",
-           "CorrectionY")
+           "CorrectionY", "DomeNo", "DomeCount", "DomeSelected")
 
 
 class FrameProducer:

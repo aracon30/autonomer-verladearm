@@ -56,6 +56,10 @@ Die Simulation bildet den aktuellen Stand ab (`hardware/antriebe.md`,
   (Annahmen im Abschnitt `filling` von `simulation.yaml`).
 - **Überfüllsicherung:** Schaltpunkt mit fester Länge unter dem Domrand (aufliegende Lanze),
   schließt die Klappe unabhängig von der Mengenmessung (Test: Befehl `u`).
+- **Tankwagen mit mehreren Domen** (1–3 offene, `openings` in `simulation.yaml`): Der Dauertest
+  wechselt ab zwischen „Kammern verbunden“ (ein Dom, automatisch der nächste) und „Mehrkammer“
+  (alle offenen Dome von vorn nacheinander, ohne Umweg über die Parkstellung). Schnittstelle:
+  `DomeNo`, `DomeCount`, `DomeSelected` (`docs/schnittstelle.md`).
 
 Selbst bedienen wie an der Anlage statt Dauertest: `tools/simulation.sh --netz --bedienen`.
 Befehle im Terminal (`?` zeigt alle):
@@ -64,6 +68,7 @@ Befehle im Terminal (`?` zeigt alle):
 |---|---|
 | `n` | neues Fahrzeug: fährt vor (Lichtschranke belegt), Klapptreppe aus, Dom öffnen, Treppe zurück |
 | `p 1`, `f`, `s` | Produkt wählen, „Fahrzeug bereit“ bestätigen, „Automatisch beladen“ starten |
+| `k 0`, `k 1 2 3` | Auftrag: Kammern verbunden (ein Dom, automatisch) bzw. Mehrkammer, Dome von vorn nacheinander |
 | `e` | Beladung vorzeitig beenden (Klappe zu) → Rückfahrt in die Parkstellung; sonst endet sie bei Sollmenge |
 | `u` | Durchflusssensor fällt aus → Spiegel steigt bis zur Überfüllsicherung (Klappe zu, Störung) |
 | `l`, `t` | Lichtschranke / Klapptreppe umschalten (Verriegelungen testen) |

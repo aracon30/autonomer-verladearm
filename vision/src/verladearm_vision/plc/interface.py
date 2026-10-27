@@ -14,7 +14,7 @@ from asyncua import Client, ua
 
 log = logging.getLogger(__name__)
 
-INTERFACE_VERSION = 2
+INTERFACE_VERSION = 3
 ERR_INTERNAL = 90
 MAX_WAYPOINTS = 16
 
@@ -33,6 +33,7 @@ VARIABLES: dict[str, tuple[ua.VariantType, str, int]] = {
     "Trigger": (_B, "in", 0),
     "Job": (_I, "in", 0),
     "ProductId": (_I, "in", 0),
+    "DomeNo": (_I, "in", 0),
     "Reset": (_B, "in", 0),
     "ActualJ1": (_R, "in", 0),
     "ActualJ2": (_R, "in", 0),
@@ -54,6 +55,8 @@ VARIABLES: dict[str, tuple[ua.VariantType, str, int]] = {
     "NormalZ": (_R, "out", 0),
     "DiameterMm": (_R, "out", 0),
     "Confidence": (_R, "out", 0),
+    "DomeCount": (_I, "out", 0),
+    "DomeSelected": (_I, "out", 0),
     "WaypointCount": (_I, "out", 0),
     "WaypointsJ1": (_R, "out", MAX_WAYPOINTS),
     "WaypointsJ2": (_R, "out", MAX_WAYPOINTS),
@@ -71,6 +74,7 @@ class Request:
 
     job: int = JOB_MEASURE_PLAN
     product_id: int = 0
+    dome_no: int = 0  # 0 = automatisch, n = n-ter offener Dom von vorn
     actual_deg: tuple = (0.0, 0.0, 0.0)  # Servo-Istwinkel J1..J3
     axes_homed: bool = False
     arm_state: int = 0
@@ -84,6 +88,8 @@ class MeasureResult:
     normal: tuple = (0.0, 0.0, 1.0)
     diameter_mm: float = 0.0
     confidence: float = 0.0
+    dome_count: int = 0  # gefundene offene Dome
+    dome_selected: int = 0  # angefahrener Dom, von vorn gezählt (1-basiert)
     waypoints: list = field(default_factory=list)  # [(J1, J2, J3) Servo-Grad, ...]
     approach_index: int = 0  # 1-basiert: Stützpunkt "über dem Dom"; 0 = keiner
     correction_mm: tuple = (0.0, 0.0)
@@ -132,6 +138,7 @@ class PlcInterface:
             TargetX=r.target_mm[0], TargetY=r.target_mm[1], TargetZ=r.target_mm[2],
             NormalX=r.normal[0], NormalY=r.normal[1], NormalZ=r.normal[2],
             DiameterMm=r.diameter_mm, Confidence=r.confidence,
+            DomeCount=r.dome_count, DomeSelected=r.dome_selected,
             WaypointCount=len(wp),
             WaypointsJ1=[w[0] for w in wp], WaypointsJ2=[w[1] for w in wp],
             WaypointsJ3=[w[2] for w in wp],
@@ -172,7 +179,7 @@ class PlcInterface:
                 InterfaceVersion=INTERFACE_VERSION, Busy=False, Done=False, Error=False
             )
 
-            names = ("Trigger", "Reset", "HeartbeatPLC", "Job", "ProductId",
+            names = ("Trigger", "Reset", "HeartbeatPLC", "Job", "ProductId", "DomeNo",
                      "ActualJ1", "ActualJ2", "ActualJ3", "AxesHomed", "ArmState")
             inputs = [self._nodes[n] for n in names]
             hb_pc, last_hb_plc, last_change = 0, None, time.monotonic()
@@ -211,6 +218,7 @@ class PlcInterface:
                     await self._write(Error=False, Busy=True)
                     req = Request(
                         job=int(v["Job"]), product_id=int(v["ProductId"]),
+                        dome_no=int(v["DomeNo"]),
                         actual_deg=(float(v["ActualJ1"]), float(v["ActualJ2"]),
                                     float(v["ActualJ3"])),
                         axes_homed=bool(v["AxesHomed"]), arm_state=int(v["ArmState"]),

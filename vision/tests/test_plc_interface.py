@@ -1,4 +1,4 @@
-"""Handshake InterfaceVersion 2 über OPC UA gegen einen Testserver (Stützpunkt-Felder)."""
+"""Handshake InterfaceVersion 3 über OPC UA gegen einen Testserver (Stützpunkte, Domwahl)."""
 
 import asyncio
 
@@ -17,7 +17,8 @@ def test_auftrag_und_stuetzpunkte_ueber_opcua():
         received.append(req)
         return MeasureResult(ok=True, target_mm=(3100.0, -200.0, -1500.0),
                              waypoints=[(10.0, -20.0, 5.0), (11.0, -21.0, 4.0)],
-                             approach_index=1, correction_mm=(2.5, -1.0))
+                             approach_index=1, correction_mm=(2.5, -1.0),
+                             dome_count=3, dome_selected=req.dome_no)
 
     async def scenario():
         server = Server()
@@ -47,9 +48,10 @@ def test_auftrag_und_stuetzpunkte_ueber_opcua():
                     await write("HeartbeatPLC", hb)
                     if step == 20:
                         assert await var["Ready"].read_value()
-                        assert await var["InterfaceVersion"].read_value() == 2
+                        assert await var["InterfaceVersion"].read_value() == 3
                         await write("Job", 1)
                         await write("ProductId", 2)
+                        await write("DomeNo", 2)
                         await write("ActualJ1", 70.0)
                         await write("AxesHomed", True)
                         await write("Trigger", True)
@@ -58,12 +60,14 @@ def test_auftrag_und_stuetzpunkte_ueber_opcua():
                     await asyncio.sleep(0.02)
                 return {n: await var[n].read_value() for n in
                         ("Error", "WaypointCount", "WaypointsJ1", "WaypointsJ3",
-                         "ApproachIndex", "CorrectionX", "TargetX", "ResultId")}
+                         "ApproachIndex", "CorrectionX", "TargetX", "ResultId", "DomeCount",
+                         "DomeSelected")}
             finally:
                 task.cancel()
 
     out = asyncio.run(scenario())
     assert received and received[0].job == 1 and received[0].product_id == 2
+    assert received[0].dome_no == 2 and out["DomeCount"] == 3 and out["DomeSelected"] == 2
     assert received[0].axes_homed and abs(received[0].actual_deg[0] - 70.0) < 1e-4
     assert not out["Error"] and out["ResultId"] == 1
     assert out["WaypointCount"] == 2 and out["ApproachIndex"] == 1

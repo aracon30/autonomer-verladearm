@@ -1,9 +1,9 @@
-// Schnittstellen-DB Vision-PC <-> SPS, InterfaceVersion 2, siehe docs/schnittstelle.md
+// Schnittstellen-DB Vision-PC <-> SPS, InterfaceVersion 3, siehe docs/schnittstelle.md
 // Import in TIA Portal: Externe Quellen > Neue externe Datei hinzufügen > Bausteine aus Quelle generieren
 // In den Eigenschaften "Erreichbar aus HMI/OPC UA" und "Schreibbar aus HMI/OPC UA" aktivieren.
 DATA_BLOCK "DB_Vision"
 { S7_Optimized_Access := 'TRUE' }
-VERSION : 0.2
+VERSION : 0.3
 NON_RETAIN
    VAR
       // SPS -> PC
@@ -11,6 +11,7 @@ NON_RETAIN
       Trigger : Bool;
       Job : Int;          // 1 messen+planen, 2 nachmessen+korrigieren, 3 Rückfahrt, 0 nur messen
       ProductId : Int;
+      DomeNo : Int;       // 0 automatisch (Kammern verbunden), n = n-ter offener Dom von vorn
       Reset : Bool;
       ActualJ1 : Real;    // Servo-Istwinkel [°]
       ActualJ2 : Real;
@@ -33,6 +34,8 @@ NON_RETAIN
       NormalZ : Real;
       DiameterMm : Real;
       Confidence : Real;
+      DomeCount : Int;                      // erkannte offene Dome
+      DomeSelected : Int;                   // angefahrener Dom von vorn, 0 = keiner
       WaypointCount : Int;
       WaypointsJ1 : Array[1..16] of Real;   // Servo-Sollwinkel [°]
       WaypointsJ2 : Array[1..16] of Real;

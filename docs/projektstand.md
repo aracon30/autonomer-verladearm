@@ -66,7 +66,7 @@ verlinkten Dokumenten.
 
 ## Nächste Schritte
 
-- [ ] Mail an BASF: Sensorvergleich und Skizze Halterung (Aufgabe aus dem Termin 27.10.)
+- [x] Mail an BASF: Sensorvergleich, Füllende nie über die Überfüllsicherung, Fragen zur Zulassung (gesendet 27.10.)
 - [ ] Rohrisolierung über J1 gegen Motorlage prüfen – vor der SEW-Bestellung
 - [ ] SEW-Motoren J1/J2 bestellen; IMO-Angebot J3 (Geber AK8Z) abwarten; SICK Kamera bestellen (kein LFC-Testset: Sensortest macht BASF)
 - [ ] Mit Peter: Überfüll-Abschaltung (Klappe/Pumpe, F-SPS), Kammerwahl vor Ort oder Leitstelle

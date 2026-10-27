@@ -1,4 +1,4 @@
-# Projektstand Verladearm (Stand 15.10.2026)
+# Projektstand Verladearm (Stand 27.10.2026)
 
 Überblick über Entscheidungen, Lieferantenanfragen und offene Punkte. Details stehen in den
 verlinkten Dokumenten.
@@ -45,21 +45,34 @@ verlinkten Dokumenten.
 - BASF prüft intern Machbarkeit und **PLS-Anbindung**.
 - **Fotos und Maße H517 erhalten (22./23.10.)**: Mannloch Ø 0,5 m, Eintauchtiefe 2–3 cm unter Spiegel, Produkte Acronal/Lhydran/Lurapret, überdachte Halle mit mehreren Spuren – Auswertung `docs/kunde_basf_h517.md` (Fotos vertraulich, nicht im Repository).
 - Fahrzeugstatistik folgt (erbeten: Spanne Tiefe Domrand–Tankboden, Füllleistung).
-- **Termin 27.10.2026**, Themen vorab gesendet: Überfüllsicherung (von Hand weiter oder automatisch mit dem Arm andocken), Tanktiefen, Spülwanne an der Parkstellung.
+- **Gespräch 27.10.2026** (Details `docs/kunde_basf_h517.md`):
+  - Füllleistung 20–25 t/h (≈ 20–25 m³/h), Füllgrad normal 95 %, 50–60 Tankwagen pro Tag.
+  - Liquiphant heute: Schutzkorb 22 cm im Tank, Gabel 17 cm → Überfüll-Lanze kurz.
+  - Abschaltung heute über die SPS; Sicherheitskreis könnte die Pumpe stoppen.
+  - BASF favorisiert kapazitive Sensorik (Baumer) und testet selbst; Druckmessung als Idee.
+  - Halterung: Sorge, dass eine Gleithülse klemmt; möglichst kein Produktkontakt.
+  - Spülwanne an der Parkstellung bestätigt; Abtropfen heute mit Eimer, automatische Lösung gewünscht.
+  - Kammeraufteilung laut Notiz am Bedienpult vor Ort wählbar (mit „ohne Display“ abgleichen).
+  - Rohrisolierung über dem Arm könnte mit Servo J1 kollidieren – prüfen.
+  - HETA schickt Sensoroptionen und Skizze; BASF antwortet per Mail, nächster Termin in ca. 2 Wochen.
 
-### Fragen für den nächsten Termin
+### Offene Fragen an BASF
 
-1. Liquiphant heute: **Typ** (Typenschild/Foto), **Einhängelänge unter Domrand**, für alle Fahrzeuge gleich?
-2. Welches **Auswertegerät** bzw. welche Abschaltung (Relais, PLS)?
-3. Werden andere Hersteller (z. B. SICK LFV 200) als Überfüllsicherung akzeptiert? Bevorzugte Hersteller?
-4. ~~Eintauchtiefe~~ (2–3 cm, beantwortet); Mindestabstand zum Tankboden, Tiefe Domrand–Boden?
-5. Anbindung an das PLS: welche Signale?
+1. Tiefe Domrand–Tankboden (Spanne), Kammeraufteilung (Schwallwände/Mehrkammer).
+2. Überfüllsicherung: von Hand oder andocken; Bezug der 22 cm; zulässiges Fabrikat, Zulassung.
+3. Abschaltung: Klappe, Pumpe oder beides; SPS oder eigener Sicherheitskreis.
+4. Kammerwahl vor Ort oder aus der Leitstelle; Signale PLS.
+5. DN80-Reduzierung/Lanze; Abstand Rohrisolierung über J1.
 
 ## Nächste Schritte
 
-- [ ] Angebote SEW (J3-Motor, Umrichter), IMO, SICK (Kamera, LFV 200, LFP) einholen
-- [ ] Termin mit BASF, Fragen oben klären, Länge L der Überfüll-Lanze festlegen
-- [ ] Konstruktion: aufliegende Lanze mit Führung am Auslassrohr (Skizze), Platz für Messstab
+- [ ] Mail an BASF: Sensorvergleich und Skizze Halterung (Aufgabe aus dem Termin 27.10.)
+- [ ] Rohrisolierung über J1 gegen Motorlage prüfen – vor der SEW-Bestellung
+- [ ] SEW-Motoren J1/J2 bestellen; IMO-Angebot J3 (Geber AK8Z) abwarten; SICK Kamera + LFC-Testset bestellen
+- [ ] Mit Peter: Überfüll-Abschaltung (Klappe/Pumpe, F-SPS), Kammerwahl vor Ort oder Leitstelle
+- [ ] Konstruktion: aufliegende Lanze kurz (ca. 20 cm), Führung ohne klemmende Hülse; Halter
+  Grenzschalter; **Abtropfschale/-klappe**
+- [ ] Simulation: Füllleistung 20–25 m³/h, zwei Grenzschalter, Maximalhöhe 95 %
 - [ ] Kameratest an einem stehenden Tankwagen (Aufnahmen für die Software)
-- [ ] Software: Nachziehen (Schnittstelle Version 3), Füllstand aus Armhöhe, Simulation mit steigendem Füllstand
+- [x] Software: mehrere Dome (Schnittstelle Version 3), Konfigurator mit Verladestelle
 - [ ] Branch nach `main` übernehmen (Pull Request), damit Server und Prüfstand den aktuellen Stand haben

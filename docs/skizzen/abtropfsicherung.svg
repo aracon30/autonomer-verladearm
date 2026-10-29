@@ -1,0 +1,197 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1700 1480" width="1700" height="1480"
+     font-family="DejaVu Sans, Arial, sans-serif">
+  <!-- Pendelnde Abtropfsicherung, Rev. 3: Prinzip von P. Schreiber (Rev. 2, 28.10.2026)
+       mit Ergänzungen 1–6. Maßstab Seitenansicht ca. 380 px = 1 m (nur Prinzip). -->
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5b6875"/></marker>
+    <marker id="arO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#c8792a"/></marker>
+    <style>
+      .t{fill:#1d3a5a} .s{font-size:16px;fill:#1d3a5a} .b{font-weight:700}
+      .m{font-size:15px;fill:#5b6875} .o{fill:#c8792a} .bl{fill:#1a6fa8}
+      .pipe{fill:#eef2f5;stroke:#8a96a3;stroke-width:2}
+      .arm{stroke:#1a6fa8;stroke-width:9;stroke-linecap:round;fill:none}
+      .armP{stroke:#c8792a;stroke-width:6;stroke-dasharray:14 8;fill:none}
+      .jt{fill:#fff;stroke:#1a6fa8;stroke-width:3}
+      .jo{fill:#fff;stroke:#c8792a;stroke-width:3}
+      .tray{fill:#fff;stroke:#1a6fa8;stroke-width:4}
+      .trayP{fill:#fff;stroke:#c8792a;stroke-width:3;stroke-dasharray:10 6}
+      .lead{stroke:#5b6875;stroke-width:1.5;fill:none}
+      .dim{stroke:#5b6875;stroke-width:1.5;fill:none}
+      .new{fill:#d0451b} .newt{fill:#fff;font-size:15px;font-weight:700}
+    </style>
+  </defs>
+  <rect width="1700" height="1480" fill="#fff"/>
+
+  <!-- Titel -->
+  <text x="60" y="78" font-size="46" font-weight="700" class="t">Pendelnde Abtropfsicherung</text>
+  <text x="60" y="120" font-size="21" class="t">Unterspiegelbefüllung | Elektrisch betätigter Faltbügel mit pendelnder Tropfschale – mit Ergänzungen <tspan fill="#d0451b" font-weight="700">①–⑥</tspan></text>
+  <line x1="60" y1="148" x2="1640" y2="148" stroke="#1d3a5a" stroke-width="2"/>
+
+  <!-- ================= 01 SEITENANSICHT ================= -->
+  <text x="60" y="198" font-size="20" font-weight="700" class="t">01  SEITENANSICHT / BEWEGUNG</text>
+
+  <!-- Domrand bei max. Eintauchtiefe -->
+  <line x1="150" y1="502" x2="880" y2="502" stroke="#8a96a3" stroke-width="2" stroke-dasharray="10 6"/>
+  <text x="600" y="528" class="m">Domrand bei 1,1 m Eintauchtiefe</text>
+
+  <!-- Fallrohr / Auslassrohr -->
+  <rect x="428" y="230" width="44" height="690" class="pipe"/>
+  <line x1="410" y1="230" x2="490" y2="230" stroke="#8a96a3" stroke-width="4"/>
+  <!-- Referenzflansch 0,82 m über Rohrende -->
+  <rect x="408" y="602" width="84" height="12" fill="#cfd8e0" stroke="#1d3a5a" stroke-width="2"/>
+  <!-- Grenzschalter A/B am Rohrende -->
+  <rect x="472" y="895" width="12" height="9" fill="#1d3a5a"/>
+  <rect x="472" y="908" width="12" height="9" fill="#1d3a5a"/>
+
+  <!-- Eintauchbereich -->
+  <line x1="540" y1="502" x2="540" y2="918" class="dim" marker-start="url(#ar)" marker-end="url(#ar)"/>
+  <text x="560" y="800" class="m" transform="rotate(-90 560 800)">Eintauchbereich bis 1,1 m</text>
+
+  <!-- Konsole (schmal) mit Lager oben -->
+  <rect x="420" y="448" width="60" height="24" fill="#e6eef6" stroke="#1d3a5a" stroke-width="2"/>
+
+  <!-- Parkstellung (orange): Hebel 30° hochgeschwenkt, Schale hängt seitlich über dem Domrand -->
+  <line x1="450" y1="460" x2="615" y2="174" class="armP"/>
+  <line x1="615" y1="174" x2="615" y2="362" stroke="#c8792a" stroke-width="5" stroke-dasharray="10 6"/>
+  <circle cx="615" cy="174" r="11" class="jo"/>
+  <path d="M545 364 L685 364 L668 420 L562 420 Z" class="trayP"/>
+  <circle cx="615" cy="392" r="5" fill="#c8792a"/>
+  <path d="M520 420 A150 150 0 0 0 520 300" fill="none" stroke="#c8792a" stroke-width="2" marker-end="url(#arO)" transform="translate(-40 40)"/>
+  <!-- Freigang Schale – Domrand -->
+  <line x1="700" y1="420" x2="700" y2="502" class="dim" marker-start="url(#ar)" marker-end="url(#ar)"/>
+  <text x="712" y="460" class="s">Freigang</text>
+  <text x="712" y="480" class="m">≥ 0,2 m</text>
+
+  <text x="660" y="214" class="s o b">Parkstellung (beim Verladen)</text>
+  <text x="660" y="236" class="m">oberer Hebel hochgeschwenkt,</text>
+  <text x="660" y="256" class="m">Schale seitlich, nicht über dem Flansch</text>
+
+  <!-- Fangstellung (blau) -->
+  <line x1="450" y1="460" x2="450" y2="790" class="arm"/>
+  <line x1="450" y1="790" x2="450" y2="978" class="arm" style="stroke-width:7"/>
+  <circle cx="450" cy="460" r="13" class="jt"/>
+  <circle cx="450" cy="790" r="12" class="jt"/>
+  <!-- Dämpfer am freien Gelenk -->
+  <circle cx="450" cy="790" r="22" fill="none" stroke="#d0451b" stroke-width="3" stroke-dasharray="5 4"/>
+  <circle cx="450" cy="980" r="7" class="jt"/>
+  <path d="M370 990 L530 990 L512 1050 L388 1050 Z" class="tray"/>
+  <line x1="388" y1="992" x2="450" y2="980" stroke="#1a6fa8" stroke-width="2"/>
+  <line x1="512" y1="992" x2="450" y2="980" stroke="#1a6fa8" stroke-width="2"/>
+  <circle cx="450" cy="1022" r="5" fill="#1a6fa8"/>
+  <text x="548" y="1030" class="s bl b">Fangstellung</text>
+  <!-- Freigang Rohrende -->
+  <line x1="600" y1="922" x2="600" y2="988" class="dim" marker-start="url(#ar)" marker-end="url(#ar)"/>
+  <line x1="480" y1="920" x2="606" y2="920" class="lead"/>
+  <text x="612" y="958" class="m">Freigang zu Rohrende,</text>
+  <text x="612" y="976" class="m">Grenzschaltern, Lanze</text>
+
+  <!-- Beschriftungen links -->
+  <text x="60" y="300" class="s b">Obere Aufnahme</text>
+  <text x="60" y="320" class="m">schmale Konsole über dem</text>
+  <text x="60" y="338" class="m">Eintauchbereich</text>
+  <path d="M250 328 L418 455" class="lead"/>
+  <text x="60" y="410" class="s b">Auslassrohr</text>
+  <path d="M175 404 L426 404" class="lead"/>
+  <text x="60" y="600" class="s b">Referenzflansch Ø 220</text>
+  <text x="60" y="620" class="m">0,82 m über Rohrende,</text>
+  <text x="60" y="638" class="m">muss für die Kamera frei bleiben</text>
+  <path d="M262 596 L406 606" class="lead"/>
+  <text x="60" y="770" class="s b">Freies Pendelgelenk</text>
+  <text x="60" y="790" class="m">mit Dämpfer (Reibscheibe)</text>
+  <path d="M245 776 L426 790" class="lead"/>
+  <text x="60" y="900" class="s b">Grenzschalter A/B</text>
+  <text x="60" y="920" class="m">am Rohrende (Nachziehen)</text>
+  <path d="M240 904 L470 904" class="lead"/>
+  <text x="60" y="1010" class="s b">Freier Pendelzapfen</text>
+  <text x="60" y="1030" class="m">Schwerpunkt S unter der Achse</text>
+  <path d="M250 1006 L440 982" class="lead"/>
+
+  <!-- Ergänzungs-Marker Seitenansicht -->
+  <g><circle cx="505" cy="610" r="14" class="new"/><text x="505" y="616" text-anchor="middle" class="newt">1</text></g>
+  <g><circle cx="745" cy="420" r="14" class="new"/><text x="745" y="426" text-anchor="middle" class="newt">2</text></g>
+  <g><circle cx="490" cy="760" r="14" class="new"/><text x="490" y="766" text-anchor="middle" class="newt">3</text></g>
+  <g><circle cx="510" cy="900" r="14" class="new"/><text x="510" y="906" text-anchor="middle" class="newt">6</text></g>
+
+  <!-- ================= 02 VORDERANSICHT ================= -->
+  <text x="930" y="198" font-size="20" font-weight="700" class="t">02  VORDERANSICHT / FANGSTELLUNG</text>
+  <rect x="1028" y="250" width="44" height="670" class="pipe"/>
+  <rect x="1008" y="602" width="84" height="12" fill="#cfd8e0" stroke="#1d3a5a" stroke-width="2"/>
+  <!-- Konsole schmal, Welle durchgehend -->
+  <rect x="945" y="450" width="210" height="20" fill="#e6eef6" stroke="#1d3a5a" stroke-width="2"/>
+  <line x1="930" y1="460" x2="1170" y2="460" stroke="#1d3a5a" stroke-width="5"/>
+  <rect x="1172" y="430" width="74" height="60" fill="#e6eef6" stroke="#1d3a5a" stroke-width="2"/>
+  <text x="1209" y="470" text-anchor="middle" font-size="28" font-weight="700" class="t">M</text>
+  <!-- Endlagen -->
+  <rect x="1180" y="502" width="24" height="18" fill="#fff" stroke="#1d3a5a" stroke-width="2"/>
+  <text x="1192" y="516" text-anchor="middle" font-size="12" class="t b">S1</text>
+  <rect x="1214" y="502" width="24" height="18" fill="#fff" stroke="#1d3a5a" stroke-width="2"/>
+  <text x="1226" y="516" text-anchor="middle" font-size="12" class="t b">S2</text>
+  <text x="1258" y="452" class="s">Getriebemotor</text>
+  <text x="1258" y="472" class="m">mit Momentbegrenzung</text>
+  <text x="1258" y="512" class="m">S1 Park, S2 Fang → SPS</text>
+  <!-- Tragarme -->
+  <line x1="960" y1="460" x2="960" y2="790" class="arm"/>
+  <line x1="1140" y1="460" x2="1140" y2="790" class="arm"/>
+  <line x1="960" y1="790" x2="960" y2="985" class="arm" style="stroke-width:7"/>
+  <line x1="1140" y1="790" x2="1140" y2="985" class="arm" style="stroke-width:7"/>
+  <circle cx="960" cy="460" r="12" class="jt"/><circle cx="1140" cy="460" r="12" class="jt"/>
+  <circle cx="960" cy="790" r="12" class="jt"/><circle cx="1140" cy="790" r="12" class="jt"/>
+  <circle cx="960" cy="790" r="22" fill="none" stroke="#d0451b" stroke-width="3" stroke-dasharray="5 4"/>
+  <circle cx="1140" cy="790" r="22" fill="none" stroke="#d0451b" stroke-width="3" stroke-dasharray="5 4"/>
+  <line x1="972" y1="985" x2="1128" y2="985" stroke="#8a96a3" stroke-width="2" stroke-dasharray="8 6"/>
+  <circle cx="972" cy="985" r="7" class="jt"/><circle cx="1128" cy="985" r="7" class="jt"/>
+  <path d="M962 998 L1138 998 L1120 1062 L980 1062 Z" class="tray"/>
+  <line x1="972" y1="985" x2="980" y2="998" stroke="#1a6fa8" stroke-width="3"/>
+  <line x1="1128" y1="985" x2="1120" y2="998" stroke="#1a6fa8" stroke-width="3"/>
+  <circle cx="1050" cy="1032" r="6" fill="#1a6fa8"/><text x="1064" y="1040" class="s bl b">S</text>
+  <!-- Kippnase und Anschlag an der Spülwanne -->
+  <path d="M1138 1004 L1166 1004 L1166 1020 L1134 1020" fill="#1a6fa8"/>
+  <rect x="1192" y="992" width="16" height="70" fill="#8a96a3"/>
+  <path d="M1170 1012 L1190 1012" stroke="#d0451b" stroke-width="3" marker-end="url(#ar)"/>
+  <text x="1220" y="1004" class="s b">Kippnase</text>
+  <text x="1220" y="1024" class="m">trifft in der Parkstellung</text>
+  <text x="1220" y="1042" class="m">einen festen Anschlag an der</text>
+  <text x="1220" y="1060" class="m">Spülwanne → Schale kippt aus</text>
+  <!-- Grenzschalter am Rohrende -->
+  <rect x="1072" y="895" width="12" height="9" fill="#1d3a5a"/><rect x="1072" y="908" width="12" height="9" fill="#1d3a5a"/>
+  <text x="1100" y="270" class="m">Tragarme links und rechts,</text>
+  <text x="1100" y="290" class="m">ein Antrieb für beide</text>
+  <g><circle cx="1160" cy="530" r="14" class="new"/><text x="1160" y="536" text-anchor="middle" class="newt">5</text></g>
+  <g><circle cx="1180" cy="975" r="14" class="new"/><text x="1180" y="981" text-anchor="middle" class="newt">4</text></g>
+  <g><circle cx="925" cy="790" r="14" class="new"/><text x="925" y="796" text-anchor="middle" class="newt">3</text></g>
+
+  <!-- ================= 03 DRAUFSICHT ================= -->
+  <text x="1300" y="620" font-size="20" font-weight="700" class="t">03  KAMERASICHT VON OBEN</text>
+  <rect x="1300" y="636" width="340" height="250" fill="#f7f9fa" stroke="#d3d9e0"/>
+  <circle cx="1400" cy="760" r="42" fill="#cfd8e0" stroke="#1d3a5a" stroke-width="2"/>
+  <circle cx="1400" cy="760" r="22" fill="#eef2f5" stroke="#8a96a3" stroke-width="2"/>
+  <rect x="1312" y="753" width="176" height="14" fill="#e6eef6" stroke="#1d3a5a" stroke-width="2" opacity=".9"/>
+  <rect x="1500" y="730" width="120" height="60" class="trayP"/>
+  <text x="1560" y="812" text-anchor="middle" class="m">Schale (Park)</text>
+  <text x="1312" y="664" class="m">Flansch-Ring größtenteils sichtbar,</text>
+  <text x="1312" y="684" class="m">Konsole quer schmal (≤ 40 mm)</text>
+  <text x="1312" y="860" class="m">Schale in Park außerhalb des Rings</text>
+  <g><circle cx="1452" cy="720" r="14" class="new"/><text x="1452" y="726" text-anchor="middle" class="newt">1</text></g>
+
+  <!-- ================= Ablauf und Ergänzungen ================= -->
+  <line x1="60" y1="1092" x2="1640" y2="1092" stroke="#1d3a5a" stroke-width="2"/>
+  <text x="60" y="1128" font-size="19" font-weight="700" class="t">FUNKTIONSABLAUF</text>
+  <text x="60" y="1158" class="s">1. Verladen: Hebel hoch (S1), Schale hängt seitlich über dem Domrand. Eintauchen nur mit S1 = Park (SPS-Verriegelung).</text>
+  <text x="60" y="1182" class="s">2. Sollmenge bzw. Maximalhöhe → Klappe zu, Abtropfen im Dom. Dann senkrecht heraus, bis das Rohrende die Fanghöhe über Dom und Deckel hat.</text>
+  <text x="60" y="1206" class="s">3. Hebel langsam nach unten → Fangstellung (S2) an die SPS. Erst dann schwenken: nächste Kammer (Hebel hoch, eintauchen) oder Parkstellung.</text>
+  <text x="60" y="1230" class="s">4. Parkstellung über der Spülwanne: Kippnase trifft den Anschlag, Schale entleert sich; Spülen mit Schale in Fangstellung.</text>
+
+  <text x="60" y="1274" font-size="19" font-weight="700" fill="#d0451b">ERGÄNZUNGEN GEGENÜBER REV. 2</text>
+  <text x="60" y="1304" class="s"><tspan fill="#d0451b" font-weight="700">①</tspan> Referenzflansch frei: Konsole quer schmal, Schale in Park außerhalb des Flansch-Rings (Kamera findet den Auslass in Job 2).</text>
+  <text x="60" y="1328" class="s"><tspan fill="#d0451b" font-weight="700">②</tspan> Park-Höhe: Unterkante Schale ≥ 0,2 m über dem Domrand bei größter Eintauchtiefe (Domkasten, Deckel, Armaturen).</text>
+  <text x="60" y="1352" class="s"><tspan fill="#d0451b" font-weight="700">③</tspan> Dämpfer (Reibscheibe) an den freien Gelenken gegen Pendeln beim Schwenken des Arms.</text>
+  <text x="60" y="1376" class="s"><tspan fill="#d0451b" font-weight="700">④</tspan> Entleeren ohne Antrieb: Kippnase an der Schale, fester Anschlag an der Spülwanne.</text>
+  <text x="60" y="1400" class="s"><tspan fill="#d0451b" font-weight="700">⑤</tspan> Motor mit Momentbegrenzung (Quetschstelle, Risikobeurteilung), Endlagen S1/S2 an die SPS.</text>
+  <text x="60" y="1424" class="s"><tspan fill="#d0451b" font-weight="700">⑥</tspan> Freigang zu Grenzschaltern, Kabeln und Überfüll-Lanze; Schale und Bügel kommen ins Kollisionsmodell der Software.</text>
+
+  <line x1="60" y1="1446" x2="1640" y2="1446" stroke="#1d3a5a" stroke-width="1"/>
+  <text x="60" y="1470" font-size="14" class="m">PRINZIP – NICHT MASSSTÄBLICH | Eine Pendelachse für Bewegung in einer Ebene; bei Querneigung kardanisch lagern.</text>
+  <text x="1640" y="1470" font-size="14" text-anchor="end" class="m">Rev. 2: 28.10.2026 P. Schreiber | Rev. 3: 29.10.2026</text>
+</svg>

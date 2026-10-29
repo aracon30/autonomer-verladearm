@@ -13,7 +13,7 @@ Gespräch 27.10.2026: `docs/kunde_basf_h517.md`). Hintergrund und erste Idee: `d
 | Abschaltung | Überfüllsicherung schaltet die **Pumpe** ab | Ebene 3 wirkt auf die Pumpe (Signal an BASF bzw. Sicherheitskreis mit Peter festlegen) |
 | Sensor | BASF favorisiert **kapazitiv (Baumer)**, testet selbst; Druckmessung als Idee | Vergleich unten; Baumer CleverLevel als Alternative zum SICK LFC |
 | Halterung | möglichst kein Produktkontakt, spritzwassergeschützt; Gleithülse könnte bei Verschmutzung klemmen (Hinweis HETA) | Führung offen gestalten (z. B. Gabel statt Hülse), reinigbar; Skizze überarbeiten |
-| Abtropfen | heute Eimer, 1 min reicht nicht | einfahrbare Abtropfschale/-klappe am Arm vorsehen |
+| Abtropfen | heute Eimer, 1 min reicht nicht | **pendelnde Abtropfsicherung** (Faltbügel mit Tropfschale, ein Antrieb, Endlagen S1/S2 an die SPS): `docs/skizzen/Prinzipskizze_Abtropfsicherung_Rev3.pdf` |
 
 ## Sensorvergleich Nachziehen (27.10.2026)
 

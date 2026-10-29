@@ -1,7 +1,28 @@
 # Konzept: Füllstand, Nachziehen und Überfüllsicherung
 
-Stand 26.10.2026 – Entwurf zur Abstimmung mit dem Kunden (Anforderung BASF vom 15.10.2026).
-Hintergrund und erste Idee: `docs/ideenspeicher.md`.
+Stand 27.10.2026 – Entwurf zur Abstimmung mit dem Kunden (Anforderung BASF vom 15.10.2026,
+Gespräch 27.10.2026: `docs/kunde_basf_h517.md`). Hintergrund und erste Idee: `docs/ideenspeicher.md`.
+
+## Neu aus dem Gespräch mit BASF (27.10.2026)
+
+| Thema | Angabe BASF | Folge |
+|---|---|---|
+| Füllleistung | 20–25 t/h ≈ **20–25 m³/h** | Spiegel steigt ca. 7–8 cm/min (bei ca. 5 m²), Nachziehen etwa alle 15–20 s um 2 cm |
+| Füllgrad | normal **95 %** | = Maximalhöhe (Ebene 2), je Fahrzeug bzw. Kammer |
+| Überfüllsicherung heute | Schutzkorb **22 cm** im Tank, Gabel 17 cm | Schaltpunkt nur ca. 20 cm unter dem Rand → Lanze kurz, nicht 800 mm |
+| Abschaltung | Überfüllsicherung schaltet die **Pumpe** ab | Ebene 3 wirkt auf die Pumpe (Signal an BASF bzw. Sicherheitskreis mit Peter festlegen) |
+| Sensor | BASF favorisiert **kapazitiv (Baumer)**, testet selbst; Druckmessung als Idee | Vergleich unten; Baumer CleverLevel als Alternative zum SICK LFC |
+| Halterung | möglichst kein Produktkontakt, spritzwassergeschützt; Gleithülse könnte bei Verschmutzung klemmen (Hinweis HETA) | Führung offen gestalten (z. B. Gabel statt Hülse), reinigbar; Skizze überarbeiten |
+| Abtropfen | heute Eimer, 1 min reicht nicht | **pendelnde Abtropfsicherung** (Faltbügel mit Tropfschale, ein Antrieb, Endlagen S1/S2 an die SPS): `docs/skizzen/Prinzipskizze_Abtropfsicherung_Rev3.pdf` |
+
+## Sensorvergleich Nachziehen (27.10.2026)
+
+| Prinzip | Beispiele | Messwert | Schaum | Anhaftung (Dispersion) | Bewertung |
+|---|---|---|---|---|---|
+| **Kapazitiver Grenzschalter**, 2 Stück | Baumer CleverLevel, SICK LFC, ifm LMT | 2 Schaltpunkte (1 und 3 cm) | ausblendbar (Einstellung) | ausblendbar, kleine glatte Spitze, gut abzuspülen | **Favorit**, einfach, günstig; Test mit Produkt |
+| **Hydrostatischer Drucksensor**, frontbündig | z. B. Baumer, VEGA, E+H | durchgehend (Eintauchtiefe aus Druck) | unempfindlich (misst Flüssigkeitssäule) | frontbündig, wenig Verkleben | Option; nur wenige mbar bei 2–3 cm → Genauigkeit und Drift prüfen; nicht im Strahl des Auslasses montieren (Strömungsdruck) |
+| Geführte Mikrowelle (Messstab) | SICK LFP, ifm LR | durchgehend | leichter Schaum meist unkritisch | Stab bzw. Koaxrohr kann verkleben | Reserve |
+| Radar / Ultraschall | – | durchgehend | **gestört** | – | ungeeignet (Schaum, Rohr im Weg) |
 
 ## Festlegungen (Stand 26.10.2026)
 
@@ -116,12 +137,15 @@ Die Überfüllsicherung darf **nicht betriebsmäßig** zum Beenden der Füllung 
 |---|---|---|
 | 1 | **Sollmenge** über Durchflusssensor (Vorgabe Leitstelle) | beendet die Füllung |
 | 2 | **Maximalhöhe** aus Armhöhe + Grenzschaltern (Einstellwert je Anlage/Fahrzeug) | greift, wenn die Menge nicht passt → Klappe zu, Meldung |
-| 3 | **Überfüllsicherung** (Liquiphant bzw. aufliegende Lanze), direkt auf die Absperrklappe | greift nur, wenn 1 und 2 versagen → Klappe zu, Störung |
+| 3 | **Überfüllsicherung** (Liquiphant bzw. aufliegende Lanze), **schaltet die Pumpe ab** (festgelegt 27.10.) | greift nur, wenn 1 und 2 versagen → Klappe zu, Störung |
 
 Die Maximalhöhe (Ebene 2) muss einige Zentimeter **unter** dem Schaltpunkt der Überfüllsicherung
 liegen, damit Ebene 3 im Normalfall nie anspricht.
 
 ## Test Grenzschalter LFC für das Nachziehen (Entscheidung 26.10.2026)
+
+**Stand 27.10.2026:** Den Test mit Produkt und Schaum macht **BASF** (favorisiert Baumer
+kapazitiv); HETA testet nicht selbst. Der Ablauf unten dient als Vorschlag für den BASF-Test.
 
 Der **SICK LFC-XXSBTE** ist ein **kapazitiver Grenzschalter** (kompakt, G ½", PEEK-Spitze, IO-Link,
 2 × PNP), **kein Messstab**: er meldet nur „Produkt an der Spitze ja/nein“. Laut SICK kann er Schaum

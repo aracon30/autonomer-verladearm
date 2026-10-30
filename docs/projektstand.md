@@ -66,6 +66,8 @@ verlinkten Dokumenten.
 
 ## Nächste Schritte
 
+- [ ] Entwicklungsakte (`docs/entwicklung/`) an HETA-Vorlage anpassen, Reviews R0-1…R0-6 freigeben, Lastenheft V1.0 (Abweichungen im Anforderungsnachweis)
+
 - [x] Mail an BASF: Sensorvergleich, Füllende nie über die Überfüllsicherung, Fragen zur Zulassung (gesendet 27.10.)
 - [ ] Rohrisolierung über J1 gegen Motorlage prüfen – vor der SEW-Bestellung
 - [ ] SEW-Motoren J1/J2 bestellen; IMO-Angebot J3 (Geber AK8Z) abwarten; SICK Kamera bestellen (kein LFC-Testset: Sensortest macht BASF)

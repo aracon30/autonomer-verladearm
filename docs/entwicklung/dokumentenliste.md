@@ -25,6 +25,8 @@ Status: **E** = Entwurf · **P** = in Prüfung · **F** = freigegeben
 | Antriebsauslegung | `hardware/antriebe.md` | 26.10.2026 | E | [ ] |
 | Antriebsliste (für Schaltschrankbauer) | `hardware/antriebsliste.md`, `docs/extern/Antriebsliste_Verladearm.pdf` | 21.10.2026 | E | [ ] |
 | Stückliste | `hardware/stueckliste.csv` | 27.10.2026 | E | [ ] |
+| Stückliste Prototyp-Steuerung (Soft-SPS) | `hardware/stueckliste_prototyp_steuerung.md` | 02.11.2026 | E | [ ] |
+| SPS-Programm Prototyp (CODESYS, Entwurf) | `plc/codesys/` | 02.11.2026 | E (nicht übersetzt) | [ ] |
 | Kamera SICK | `docs/sensor_sick.md` | laufend | E | – |
 | Skizze Überfüll-Lanze | `docs/skizzen/ueberfuell_lanze.svg` | 15.10.2026 | E (überholt: Lanze kürzer, keine Gleithülse) | – |
 | Prinzipskizze Abtropfsicherung | `docs/skizzen/Prinzipskizze_Abtropfsicherung_Rev3.pdf` | Rev. 3, 29.10.2026 | E | [ ] |

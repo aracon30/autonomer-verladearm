@@ -4,3 +4,5 @@
 - Das TIA-Projekt selbst wird **nicht** im Repository versioniert (binär). Ablage als Projektarchiv
   (`.zap`) auf dem Netzlaufwerk, Dateiname mit Version, z. B. `Verladearm_V0.1.zap`.
 - Die `InterfaceVersion` im SPS-Programm muss zum Release-Tag des Vision-Dienstes passen.
+- `codesys/` – SPS-Programm für den **Prototyp** als Soft-SPS (CODESYS Control for Linux SL) in
+  Strukturiertem Text, Entwurf (`codesys/README.md`).

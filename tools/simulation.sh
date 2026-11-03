@@ -15,8 +15,9 @@
 #                                       (Ziel, Geschwindigkeit, Beschleunigung wie MOVIKIT
 #                                       Positioning Drive)
 #
-# Befüllen mit Nachziehen, Durchflussmenge und Überfüllsicherung: Abschnitt `filling` in
-# vision/config/anlagen/simulation.yaml (Produkt 1/2 = Unterspiegelbeladung).
+# Nur Lkw mit 1–3 Kammern; Befüllen von unten mit Nachziehen über zwei Grenzschalter, Füllende
+# über Sollmenge, Maximalhöhe, Überfüllsicherung: Abschnitte `source` und `filling` in
+# vision/config/anlagen/simulation.yaml.
 #
 # Der HETA-Prototyp fährt mit den Geschwindigkeiten und Rampen seiner Antriebe
 # (vision/config/anlagen/heta_prototyp.yaml, Abschnitt drives).
@@ -52,6 +53,10 @@ extends: ../vision/config/anlagen/$ANLAGE.yaml
 source:
   type: sim
   joint_error_deg: [0.3, -0.25, 0.2]
+  vehicles: [lkw]
+  domes: [offen]
+  openings: [1, 2, 3]
+  dome_pitch: 2.5
 plc:
   url: opc.tcp://127.0.0.1:4840/
 YAML

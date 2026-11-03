@@ -232,9 +232,23 @@ def make_multi(seed=0, openings=3, dome="offen"):
     cfg = load_config(BEISPIEL.with_name("simulation.yaml"))
     cfg["source"] = {"type": "sim", "seed": seed, "joint_error_deg": [0.3, -0.25, 0.2],
                      "openings": [openings], "domes": [dome]}
+    if dome == "armatur":  # kleine Füllöffnung: Referenzflansch muss über dem Rand bleiben
+        cfg["products"] = {"default": {"insertion_depth": 0.6}}
     cfg["recording"] = {"enabled": False}
     cfg["snapshot"] = {"path": None}
     return VisionService(cfg)
+
+
+def test_tief_eintauchen_nur_durch_offenes_mannloch():
+    """Lkw-Simulation: 2,1 m Eintauchtiefe geht durch das offene Mannloch; bei einer kleinen
+    Füllöffnung im Domdeckel passt der Referenzflansch nicht hindurch (Fehler 30)."""
+    for dome, ok in (("offen", True), ("armatur", False)):
+        s = make_multi(0, openings=1, dome=dome)
+        if dome == "armatur":
+            s.products = {"default": {"insertion_depth": 2.1}}
+        r = s(Request(job=1, actual_deg=park(s), axes_homed=True))
+        assert r.ok is ok, r.message
+        assert ok or r.error_code == 30
 
 
 def _truth_from_front(s):
@@ -284,3 +298,13 @@ def test_dom_nicht_vorhanden():
     r = s(Request(job=1, dome_no=3, actual_deg=park(s), axes_homed=True))
     assert not r.ok and r.error_code == 22 and r.dome_count == 2
     assert s.last is None
+
+
+def test_job1_aus_park_wiederholt_misst_dasselbe_fahrzeug():
+    """Dauertest Mehrkammer: erst DomeNo 0 (Kammern zählen), dann DomeNo 1 aus der Parkstellung –
+    der simulierte Sensor darf dazwischen kein neues Fahrzeug hinstellen."""
+    s = make_multi(0, openings=3)
+    r0 = s(Request(job=1, dome_no=0, actual_deg=park(s), axes_homed=True))
+    r1 = s(Request(job=1, dome_no=1, actual_deg=park(s), axes_homed=True))
+    assert r0.ok and r1.ok, (r0.message, r1.message)
+    assert r0.dome_count == r1.dome_count == 3

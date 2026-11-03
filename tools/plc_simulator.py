@@ -14,12 +14,14 @@ Drive: Die SPS gibt je Stützpunkt Zielposition, Geschwindigkeit und Beschleunig
 zum Weg vor (gleiche Ruckzeit), die langsamste Achse bestimmt die Fahrzeit (`--prozessdaten`
 zeigt die Vorgaben je Achse).
 
-Befüllen (Abschnitt `filling`, docs/fuellstand_ueberfuellsicherung.md): Absperrklappe auf, der
-Durchflusssensor zählt die Menge, der Spiegel steigt. Der Messstab an der Lanze meldet, wie tief
-der Auslass eingetaucht ist; ab der oberen Grenze zieht die SPS den Arm senkrecht nach (entlang
-der Eintauch-Stützpunkte aus Job 2). Sollmenge erreicht -> Klappe zu, Abtropfen, Rückfahrt.
-Die Überfüllsicherung an der aufliegenden Lanze (feste Länge unter dem Domrand) schließt die
-Klappe unabhängig davon (Test: Befehl `u`, Durchflusssensor fällt aus).
+Befüllen (Abschnitt `filling`, docs/fuellstand_ueberfuellsicherung.md): Der Auslass steht ca.
+20 cm über dem Tankboden. Absperrklappe auf, Pumpe ein, der Durchflusssensor zählt die Menge, der
+Spiegel steigt in der liegenden zylindrischen Kammer. Zwei Grenzschalter am Auslass (A 1 cm,
+B 3 cm über dem Ende): B nass -> die SPS hebt den Arm senkrecht (entlang der Eintauch-Stützpunkte
+aus Job 2), bis B wieder trocken ist; der Auslass bleibt 1–3 cm unter dem Spiegel.
+Füllende: 1. Sollmenge (95 % der Kammer) -> Klappe zu, Abtropfen, Rückfahrt; 2. Maximalhöhe aus
+Armhöhe und Grenzschaltern (Test: Befehl `u`, Durchflusssensor fällt aus); 3. Überfüllsicherung
+(Pumpe aus) nur, wenn beide versagen – immer eine Störung.
 
 Zwei Betriebsarten des Simulators:
 - Dauertest (Standard): Verladung auf Verladung ohne Bediener.
@@ -51,9 +53,9 @@ JOG_FACTOR = 0.2  # Tippen im Handbetrieb mit reduzierter Geschwindigkeit
 HAND_SPEED = 2.0  # °/s, Arm von Hand geschoben (Bremse gelüftet)
 FILL_STEP = 2.0  # s Befüllzeit je Rechenschritt
 # Befüllung, falls die Anlagendatei keinen Abschnitt `filling` hat (Werte siehe simulation.yaml)
-FILL_DEFAULTS = dict(flow=60.0, chamber_area=5.0, depth_below_rim=2.3, start_level=0.05,
-                     target_volume=8.5, immersion=(0.02, 0.05), overfill_below_rim=0.40,
-                     speedup=10.0)
+FILL_DEFAULTS = dict(flow=22.0, tank_diameter=2.2, chamber_length=2.5, depth_below_rim=2.32,
+                     start_level=0.03, fill_ratio=0.95, switches=(0.01, 0.03),
+                     max_below_rim=0.28, overfill_below_rim=0.22, speedup=40.0)
 
 HELP = """Befehle (Eingabe + Enter):
   n              neues Fahrzeug: fährt vor, Klapptreppe aus, Dom öffnen, Treppe zurück
@@ -65,7 +67,7 @@ HELP = """Befehle (Eingabe + Enter):
   f              „Fahrzeug bereit“ bestätigen
   s              Start „Automatisch beladen“
   e              Beladung vorzeitig beenden (Klappe zu) -> Arm fährt in die Parkstellung
-  u              Durchflusssensor fällt aus (Test Überfüllsicherung)
+  u              Durchflusssensor fällt aus (Test Maximalhöhe, Schutzebene 2)
   x              Stopp (Bewegung anhalten)
   h              Betriebsart Hand / Automatik umschalten
   j <achse> <°>  Hand: Achse tippen, z. B. j 3 +5
@@ -98,6 +100,7 @@ class PlcSim:
         self.flow_ok = True  # Durchflusssensor in Ordnung
         self.valve_open = False  # Absperrklappe
         self.volume = 0.0  # Menge laut Durchflusssensor [m³]
+        self.lifts = 0  # Nachziehschritte der laufenden Kammer
         self.rim_z = None  # Domrand aus Job 1 [m, Armbasis]
         self.table = None  # Eintauch-Stützpunkte aus Job 2 (Servo-Grad) und Höhe des Auslasses
         self.park = np.array([geom.joints[k].park for k in JOINTS], dtype=float)
@@ -217,20 +220,42 @@ class PlcSim:
             return None
         return np.array([np.interp(z, heights, wps[:, j]) for j in range(3)])
 
-    async def fill_tank(self, interactive: bool, target_volume: float | None = None):
-        """Befüllen mit Nachziehen; Ende über Sollmenge, Überfüllsicherung unabhängig davon."""
-        f = dict(self.fill)
-        if target_volume is not None:
-            f["target_volume"] = target_volume
-        rim = self.rim_z
-        base = rim - f["depth_below_rim"] + f["start_level"]  # Spiegel zu Beginn
-        lo, hi = f["immersion"]
-        switch = rim - f["overfill_below_rim"]  # Schaltpunkt der Überfüllsicherung
-        self.volume, self.valve_open = 0.0, True
-        print("  Absperrklappe AUF")
+    def chamber_volume(self, level: float, length: float) -> float:
+        """Volumen [m³] in einer liegenden zylindrischen Kammer bis zur Spiegelhöhe `level` über
+        dem Boden (Kreisabschnitt × Länge)."""
+        r = self.fill["tank_diameter"] / 2
+        h = min(max(level, 0.0), 2 * r)
+        return length * (r * r * np.arccos((r - h) / r) - (r - h) * np.sqrt(2 * r * h - h * h))
 
-        def level():
-            return base + self.volume / f["chamber_area"]
+    def level_for(self, volume: float, length: float) -> float:
+        """Spiegelhöhe über dem Boden zu einem Volumen (Umkehrung, Bisektion)."""
+        lo, hi = 0.0, self.fill["tank_diameter"]
+        for _ in range(40):
+            mid = (lo + hi) / 2
+            lo, hi = (mid, hi) if self.chamber_volume(mid, length) < volume else (lo, mid)
+        return (lo + hi) / 2
+
+    async def fill_tank(self, interactive: bool, chambers: int = 1):
+        """Befüllen einer Kammer (bzw. `chambers` verbundener Kammern) mit Nachziehen über die
+        Grenzschalter A/B. Füllende: 1. Sollmenge (Durchfluss), 2. Maximalhöhe aus Armhöhe und
+        Grenzschaltern, 3. Überfüllsicherung (Pumpe aus) – Ebene 3 ist immer eine Störung."""
+        f = self.fill
+        length = f["chamber_length"] * chambers
+        rim = self.rim_z
+        bottom = rim - f["depth_below_rim"]
+        full = self.chamber_volume(f["tank_diameter"], length)
+        v0 = self.chamber_volume(f["start_level"], length)  # Restmenge
+        target = f["fill_ratio"] * full - v0
+        sw_a, sw_b = f["switches"]
+        max_level = rim - f["max_below_rim"]  # Ebene 2
+        overfill = rim - f["overfill_below_rim"]  # Ebene 3
+        self.volume, self.valve_open = 0.0, True
+        was_wet = False
+        print(f"  Absperrklappe AUF, Pumpe EIN – Sollmenge {target:.1f} m³ "
+              f"({f['fill_ratio'] * 100:.0f} % von {full:.1f} m³)")
+
+        def spiegel():
+            return bottom + self.level_for(v0 + self.volume, length)
 
         try:
             while True:
@@ -240,31 +265,41 @@ class PlcSim:
                     print("  Beladung von Hand beendet")
                     break
                 self.volume += f["flow"] / 3600 * FILL_STEP
-                spiegel = level()
-                immersion = max(spiegel - self.tip_z(), 0.0)  # Messstab: benetzte Länge
-                if spiegel >= switch:
-                    raise Abort(f"Überfüllsicherung ausgelöst ({rim - spiegel:.2f} m unter "
-                                "Domrand) – Klappe zu")
-                if self.flow_ok and self.volume >= f["target_volume"]:
-                    print(f"  Sollmenge {f['target_volume']:g} m³ erreicht")
+                level, tip_z = spiegel(), self.tip_z()
+                a, b = level > tip_z + sw_a, level > tip_z + sw_b  # Grenzschalter nass
+                if level >= overfill:  # Ebene 3: nie im Normalbetrieb
+                    raise Abort(f"Überfüllsicherung ausgelöst ({rim - level:.2f} m unter "
+                                "Domrand) – Pumpe aus, Klappe zu")
+                if self.flow_ok and self.volume >= target:  # Ebene 1
+                    print(f"  Sollmenge {target:.1f} m³ erreicht")
                     break
-                if immersion > hi:  # nachziehen, Auslass bleibt knapp unter dem Spiegel
-                    target = self.table_at(spiegel - lo)
-                    if target is None:
+                if b and not a:
+                    raise Abort("Grenzschalter unplausibel (B nass, A trocken) – Klappe zu")
+                if was_wet and not a:
+                    raise Abort("Grenzschalter A trocken – Auslass zu weit gehoben, Klappe zu")
+                was_wet = was_wet or a
+                # Spiegel aus Armhöhe und Grenzschaltern: A nass -> mindestens Höhe A
+                if a and tip_z + (sw_a + sw_b) / 2 >= max_level:  # Ebene 2
+                    print(f"  Maximalhöhe erreicht ({rim - level:.2f} m unter Domrand) – "
+                          "Klappe zu (Meldung: Menge prüfen)")
+                    break
+                if b:  # zu tief: heben, bis B trocken (Auslass zwischen A und B)
+                    goal = self.table_at(level - (sw_a + sw_b) / 2)
+                    if goal is None:
                         raise Abort("Nachziehen am Anfahrpunkt angekommen – Klappe zu")
-                    z0 = self.tip_z()
-                    t = await self.move_to(target, slow=True)
+                    t = await self.move_to(goal, slow=True)
                     self.volume += f["flow"] / 3600 * t  # Klappe bleibt beim Nachziehen auf
-                    print(f"  Nachziehen um {(self.tip_z() - z0) * 1000:.0f} mm "
-                          f"(Spiegel {rim - level():.2f} m unter Domrand)")
-                self.phase = (f"Beladung läuft: {self.volume:.1f} / {f['target_volume']:g} m³, "
-                              f"Spiegel {rim - spiegel:.2f} m unter Domrand, Auslass "
-                              f"{immersion * 1000:.0f} mm eingetaucht"
+                    self.lifts += 1
+                state = ("A nass" if a else "A trocken") + (", B nass" if b else ", B trocken")
+                self.phase = (f"Beladung läuft: {self.volume:.1f} / {target:.1f} m³, Spiegel "
+                              f"{rim - level:.2f} m unter Domrand, Auslass {tip_z - bottom:.2f} m "
+                              f"über Boden, {state}"
                               + ("" if self.flow_ok else " – DURCHFLUSSSENSOR AUSGEFALLEN"))
                 await asyncio.sleep(FILL_STEP * self.time_scale / f["speedup"])
         finally:
             self.valve_open = False
-            print(f"  Absperrklappe ZU ({self.volume:.2f} m³)")
+            print(f"  Absperrklappe ZU, Pumpe AUS ({self.volume:.2f} m³, "
+                  f"{self.lifts} × nachgezogen, Auslass {self.tip_z() - bottom:.2f} m über Boden)")
 
     async def job(self, job: int):
         """Auftrag an den Vision-PC, Handshake nach docs/schnittstelle.md."""
@@ -379,7 +414,10 @@ class PlcSim:
                 self.loading_done.clear()
                 self.set_phase(f"{label}Beladung läuft"
                                + (" – vorzeitig beenden: e" if interactive else ""))
-                await self.fill_tank(interactive, self.fill["target_volume"] / len(steps))
+                self.lifts = 0
+                # Mehrkammer: je Schritt eine Kammer; DomeNo 0 = Kammern verbunden (ganzer Tank)
+                await self.fill_tank(interactive,
+                                     out["DomeCount"] if steps[k] == 0 else 1)
                 self.set_phase(f"{label}Abtropfen")
                 await asyncio.sleep(2.0 * self.time_scale)
                 k += 1

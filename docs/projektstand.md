@@ -74,7 +74,8 @@ verlinkten Dokumenten.
 - [ ] Mit Peter: Überfüll-Abschaltung (Klappe/Pumpe, F-SPS), Kammerwahl vor Ort oder Leitstelle
 - [ ] Konstruktion: aufliegende Lanze kurz (ca. 20 cm), Führung ohne klemmende Hülse; Halter
   Grenzschalter; **Abtropfsicherung** nach `docs/skizzen/Prinzipskizze_Abtropfsicherung_Rev3.pdf`
-- [ ] Simulation: Füllleistung 20–25 m³/h, zwei Grenzschalter, Maximalhöhe 95 %
+- [x] Simulation: nur Lkw (1–3 Kammern), Arm aus Konfigurator 03.11. (Auslass 3,7 m), 22 m³/h,
+  zwei Grenzschalter, Sollmenge 95 %, Maximalhöhe, Überfüllsicherung als letzte Ebene
 - [ ] Kameratest an einem stehenden Tankwagen (Aufnahmen für die Software)
 - [x] Software: mehrere Dome (Schnittstelle Version 3), Konfigurator mit Verladestelle
 - [ ] Branch nach `main` übernehmen (Pull Request), damit Server und Prüfstand den aktuellen Stand haben

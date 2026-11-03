@@ -11,19 +11,19 @@ extends: beispiel.yaml
 
 arm:
   # Höhenbezug: Oberkante Schnittstellenflansch am Eintritt J1 (Fallleitung von oben)
-  flange_height: 5.904    # Oberkante Flansch über Fahrbahn – vor Ort messen
+  flange_height: 7.34     # Oberkante Flansch über Fahrbahn (Konfigurator 03.11.2026) – vor Ort messen
   flange_offset: 0.404    # Oberkante Flansch bis Rohrmitte 3°-Rohr auf Achse J1 (Zeichnung)
-  base_height: 5.5        # berechnet: flange_height − flange_offset
+  base_height: 6.936      # berechnet: flange_height − flange_offset
   support: oben           # Zulauf als Fallleitung von oben durch J1 (keine Säule)
   feed_length: 1.5        # sichtbare Fallleitung über dem Flansch – vor Ort messen
   pipe_diameter: 0.114    # Rohr der Ausleger (DN100) – Zeichnung prüfen
   inner_length: 2.4       # Zeichnung: 2548 − 148
   incline_deg: 3          # nur innerer Ausleger; Winkel danach 87° -> Fallrohr/J2 senkrecht
-  drop: 0.43              # aus 961 − 404 − 2400·tan 3° (prüfen)
+  drop: 0.446             # Konfigurator 03.11.2026 (prüfen)
   offset_right: 0.563
   outer_length: 2.7
   offset_left: 0.447
-  outlet_length: 1.408
+  outlet_length: 3.7      # bis 20 cm über den Tankboden (Lkw, Konfigurator 03.11.2026)
   joints:
     # J1/J2: Zahnkranz mit Öffnung, verzahnt ca. 296° -> Bereich mit Abstand zur Lücke
     q1: {min: -120, max: 120, park: 70, zero: 0, direction: 1}
@@ -37,7 +37,7 @@ arm:
 # (DN 100, Ø 220 mm), von oben sichtbar. Nur für diesen Arm; andere Arme: Markierungsscheibe.
 outlet:
   marker_radius: 0.11     # halber Flanschdurchmesser [m]
-  marker_offset: 0.823    # Flanschoberkante bis unterster Punkt Auslass [m]
+  marker_offset: 0.823    # Flanschoberkante bis unterster Punkt Auslass [m] – am 3,7-m-Auslass prüfen
   pipe_radius: 0.057     # Auslassrohr Ø 114,3 mm (Rohrachse über dem Flansch als zweites Merkmal)
 
 # Antriebe je Achse, Werte am Gelenk (Details und Herleitung: hardware/antriebe.md)
@@ -87,6 +87,7 @@ drives:
     inverter: MOVITRAC advanced MCX91A-0025, MOVIKIT Positioning Drive (Level 1)
 
 commissioning:
-  workspace_min: [2.6, -0.6, -2.3]
-  workspace_max: [3.6, 0.6, -0.5]
+  # Lkw: Domrand 3,4–3,9 m über Fahrbahn (z = Höhe − 6,936 m)
+  workspace_min: [2.6, -0.6, -3.55]
+  workspace_max: [3.6, 0.6, -3.05]
   step: 0.2

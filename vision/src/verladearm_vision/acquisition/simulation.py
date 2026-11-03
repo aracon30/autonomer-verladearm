@@ -10,7 +10,8 @@ simuliert einen Auslass ohne Scheibe. Die Markierung wird von Rohrführung und D
 Sicht des Sensors teilweise verdeckt (wie am realen Arm); andere Verdeckungen werden nicht
 simuliert.
 `openings` (z. B. [1, 2, 3]): Zahl der offenen Dome je Fahrzeug, zufällig daraus gewählt
-(Mehrkammer-Tankwagen bzw. mehrere Dome je Tank).
+(Mehrkammer-Tankwagen bzw. mehrere Dome je Tank), `dome_pitch` ihr Abstand (Kammerlänge).
+`vehicles`: Fahrzeugtypen im Wechsel (z. B. nur [lkw]), `domes`: Dombauarten (offen, armatur).
 `backlash_deg` simuliert das Getriebespiel je Achse (aus dem Abschnitt `drives` der
 Anlagendatei): Das Gelenk bleibt je nach letzter Fahrtrichtung um die halbe Spielweite zurück,
 Hubachsen (`backlash_preload`) hängen immer um die halbe Spielweite tiefer.
@@ -24,7 +25,7 @@ from verladearm_vision.kinematics import JOINTS, ArmGeometry, fixed_parts, forwa
 from verladearm_vision.synthetic import VEHICLES, make_tank_vehicle
 
 # Höhe Oberkante Domkragen über Fahrbahn [m]
-RIM_HEIGHT = {"lkw": (3.35, 3.6), "kesselwagen": (4.35, 4.55)}
+RIM_HEIGHT = {"lkw": (3.4, 3.9), "kesselwagen": (4.35, 4.55)}
 
 
 def _segment_distance(p, s, a, b) -> np.ndarray:
@@ -47,7 +48,7 @@ class SimulatedScene:
                  marker_offset=0.8, empty=False, sensor_matrix=None, lid=True,
                  backlash_deg=(0.0, 0.0, 0.0), backlash_preload=(False, False, True),
                  pipe_radius=0.06, domes=("offen", "armatur"), walkways=0.5, foreign=0.0,
-                 openings=(1,), seed=None):
+                 openings=(1,), dome_pitch=None, seed=None):
         self.geom, self.transform = geom, transform
         self.vehicles = list(vehicles)
         self.joint_error = np.radians(np.asarray(joint_error_deg, dtype=float))
@@ -70,20 +71,26 @@ class SimulatedScene:
         self.domes = list(domes)  # Dombauarten, zufällig je Fahrzeug
         self.walkways = walkways  # Anteil Fahrzeuge mit Laufstegen am Dom
         self.openings = [int(n) for n in openings]  # Zahl offener Dome, zufällig je Fahrzeug
+        self.dome_pitch = dome_pitch  # Abstand der Dome (Kammerlänge); None = Fahrzeugtyp
         self.truth = None  # Sollwerte der Öffnung (Armbasis): center, diameter, dome, centers
         self.foreign = foreign  # Anteil Fahrzeuge mit Fremdkörper daneben (Leiter, Pfosten …)
         self.objects = []  # Fremdkörper als Quader (min, max) in Armbasis-Koordinaten
         self.tank = None
         self.q_true = None
         self.count = 0
+        self.away = True  # Arm war seit dem letzten Fahrzeug aus der Parkstellung heraus
 
     def prepare(self, job: int, servo_deg=None):
         """Vom Vision-Dienst vor jeder Aufnahme aufgerufen. Neues Fahrzeug nur bei Job 0/1 aus der
-        Parkstellung – Job 1 vom vorigen Dom aus (nächste Kammer) misst dasselbe Fahrzeug."""
+        Parkstellung, wenn der Arm seit dem letzten Fahrzeug unterwegs war – Job 1 vom vorigen Dom
+        aus (nächste Kammer) und ein wiederholter Job 1 aus Park messen dasselbe Fahrzeug."""
         at_park = servo_deg is None or max(
             abs(v - self.geom.joints[k].park) for k, v in zip(JOINTS, servo_deg, strict=True)) < 0.5
-        if (job in (0, 1) and at_park) or self.tank is None:
+        if (job in (0, 1) and at_park and self.away) or self.tank is None:
             self._new_vehicle()
+            self.away = servo_deg is None  # ohne Istwerte: jedes Mal ein neues Fahrzeug
+        elif not at_park:
+            self.away = True
         if servo_deg is not None:
             q = np.array([self.geom.joints[k].to_model(v) for k, v in zip(JOINTS, servo_deg,
                                                                             strict=True)])
@@ -102,13 +109,13 @@ class SimulatedScene:
         n = self.openings[0]
         if len(set(self.openings)) > 1:
             n = self.openings[int(self.rng.integers(len(self.openings)))]
-        pitch = VEHICLES[kind]["dome_pitch"]
+        pitch = self.dome_pitch or VEHICLES[kind]["dome_pitch"]
         dy += (n - 1) * pitch / 2  # Dome mittig unter dem Sensor, entlang der Tankachse
         tank_s, info = make_tank_vehicle(kind, center_xy=(dx, dy), height=sensor_z - rim_z,
                                          size=4.0 + (n - 1) * pitch, openings=n,
                                          lid_azimuth_deg=lid_az,
                                          lid_open_deg=float(self.rng.uniform(95, 115)),
-                                         dome=dome, walkways=walk,
+                                         dome=dome, walkways=walk, dome_pitch=pitch,
                                          seed=int(self.rng.integers(1 << 30)), return_info=True)
         self.tank = tank_s  # Sensorkoordinaten; Sollwert über die tatsächliche Sensorlage
         c = self.true_t[:3, :3] @ info["center"] + self.true_t[:3, 3]

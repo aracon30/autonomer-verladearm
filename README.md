@@ -45,21 +45,26 @@ Rampen, Getriebespiel; Fahrten im Zeitraffer, `ZEITRAFFER=1` für Echtzeit). Liv
 Logs unter `data/logs/`, Beenden mit Strg+C. Eine im Konfigurator angelegte Anlage simulieren:
 `tools/simulation.sh --netz --anlage <name>` (Datei `vision/config/anlagen/<name>.yaml`).
 
-Die Simulation bildet den aktuellen Stand ab (`hardware/antriebe.md`,
+Die Simulation bildet den aktuellen Stand ab (03.11.2026, `hardware/antriebe.md`,
 `docs/fuellstand_ueberfuellsicherung.md`):
+- **Arm** mit den Maßen aus dem Konfigurator (Flansch 7,34 m über Fahrbahn, Auslass 3,7 m) und
+  den SEW-Antrieben.
+- **Nur Lkw-Tankwagen** (Tank Ø 2,2 m, Domrand 3,4–3,9 m über Fahrbahn, Mannloch offen) mit
+  1–3 Kammern, je ein Dom, Abstand 2,5 m (`source` in `simulation.yaml`).
 - **Antriebe wie MOVIKIT Positioning Drive:** Die SPS gibt jeder Achse Ziel, Geschwindigkeit und
   Beschleunigung im Verhältnis zu ihrem Weg vor (gleiche Ruckzeit), alle kommen gleichzeitig an.
   `PROZESSDATEN=1 tools/simulation.sh` schreibt die Vorgaben je Fahrt ins SPS-Log.
-- **Befüllen mit Nachziehen:** Absperrklappe auf, Durchflusssensor zählt die Menge, der Spiegel
-  steigt; die Eintauchtiefe wird gemessen (Anlage: zwei Grenzschalter am Auslassrohr), ab 5 cm zieht die SPS den Arm auf 2 cm nach (BASF: 2–3 cm).
-  Sollmenge erreicht → Klappe zu, Abtropfen, Rückfahrt. Produkt 1/2 = Unterspiegelbeladung
-  (Annahmen im Abschnitt `filling` von `simulation.yaml`).
-- **Überfüllsicherung:** Schaltpunkt mit fester Länge unter dem Domrand (aufliegende Lanze),
-  schließt die Klappe unabhängig von der Mengenmessung (Test: Befehl `u`).
-- **Tankwagen mit mehreren Domen** (1–3 offene, `openings` in `simulation.yaml`): Der Dauertest
-  wechselt ab zwischen „Kammern verbunden“ (ein Dom, automatisch der nächste) und „Mehrkammer“
-  (alle offenen Dome von vorn nacheinander, ohne Umweg über die Parkstellung). Schnittstelle:
-  `DomeNo`, `DomeCount`, `DomeSelected` (`docs/schnittstelle.md`).
+- **Befüllen von unten mit Nachziehen:** Der Auslass taucht bis ca. 20 cm über den Tankboden ein
+  (Eintauchtiefe 2,1 m). Absperrklappe auf, Pumpe ein, 22 m³/h; der Spiegel steigt in der
+  liegenden zylindrischen Kammer. Zwei Grenzschalter am Auslass (A 1 cm, B 3 cm über dem Ende):
+  B nass → J3 hebt, bis B trocken ist; der Auslass bleibt 1–3 cm unter dem Spiegel.
+- **Füllende in drei Ebenen:** 1. Sollmenge 95 % der Kammer (Durchfluss) → Klappe zu, Abtropfen,
+  Rückfahrt; 2. Maximalhöhe aus Armhöhe + Grenzschaltern (Test: Befehl `u`, Durchflusssensor
+  fällt aus); 3. Überfüllsicherung (Pumpe aus) nur, wenn beide versagen – immer Störung.
+- **Mehrkammer:** Der Dauertest wechselt ab zwischen „Kammern verbunden“ (ein Dom, automatisch der
+  nächste, ganzer Tank) und „Mehrkammer“ (alle offenen Dome von vorn nacheinander, je Kammer
+  eine Füllung, ohne Umweg über die Parkstellung). Schnittstelle: `DomeNo`, `DomeCount`,
+  `DomeSelected` (`docs/schnittstelle.md`).
 
 Selbst bedienen wie an der Anlage statt Dauertest: `tools/simulation.sh --netz --bedienen`.
 Befehle im Terminal (`?` zeigt alle):
@@ -70,7 +75,7 @@ Befehle im Terminal (`?` zeigt alle):
 | `p 1`, `f`, `s` | Produkt wählen, „Fahrzeug bereit“ bestätigen, „Automatisch beladen“ starten |
 | `k 0`, `k 1 2 3` | Auftrag: Kammern verbunden (ein Dom, automatisch) bzw. Mehrkammer, Dome von vorn nacheinander |
 | `e` | Beladung vorzeitig beenden (Klappe zu) → Rückfahrt in die Parkstellung; sonst endet sie bei Sollmenge |
-| `u` | Durchflusssensor fällt aus → Spiegel steigt bis zur Überfüllsicherung (Klappe zu, Störung) |
+| `u` | Durchflusssensor fällt aus → Füllende über die Maximalhöhe (Schutzebene 2, Meldung) |
 | `l`, `t` | Lichtschranke / Klapptreppe umschalten (Verriegelungen testen) |
 | `x` | Stopp |
 | `h` | Handbetrieb: `j 3 +5` tippen, `b 2 -20` Bremse lüften und von Hand schieben (nur J1/J2, J3 gesperrt), `d` Arm wie von Hand in einen Dom führen |

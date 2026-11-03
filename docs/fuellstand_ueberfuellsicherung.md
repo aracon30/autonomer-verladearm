@@ -107,7 +107,9 @@ sie die heutige Sonde weiterverwendet.
 - **SPS (Peter):** Nachziehregelung, Füllventil, Auswertung Überfüllsicherung (direkt, nicht über PC).
 - **Vision-PC:** Bodenhöhe/Tankgeometrie für die maximale Eintauchtiefe, Nachzieh-Tabelle
   (Schnittstelle Version 3), Erkennung einer eingelegten Sonde (Variante C).
-- **Simulation:** steigender Füllstand, Nachziehen, Abschaltung.
+- **Simulation (umgesetzt 03.11.2026):** Lkw-Kammer als liegender Zylinder, 22 m³/h, Nachziehen
+  über Grenzschalter A/B, Füllende über Sollmenge 95 %, Maximalhöhe und Überfüllsicherung
+  (`tools/plc_simulator.py`, Abschnitt `filling` in `simulation.yaml`).
 
 ## Nachziehen mit zwei Grenzschaltern (26.10.2026)
 

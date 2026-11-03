@@ -1,16 +1,20 @@
 # Simulation ohne Hardware: HETA-Prototyp mit seinen Antrieben (Geschwindigkeiten, Rampen,
-# Getriebespiel), simulierter Sensor (Lkw/Kesselwagen mit offenem Deckel) und SPS-Simulator
-# auf demselben Rechner. Start: tools/simulation.sh
+# Getriebespiel), simulierter Sensor und SPS-Simulator auf demselben Rechner.
+# Stand 03.11.2026: nur Lkw-Tankwagen, ein bis drei Kammern mit offenem Mannloch, Auslass bis
+# 20 cm über den Tankboden, Nachziehen mit zwei Grenzschaltern. Start: tools/simulation.sh
 extends: heta_prototyp.yaml
 
 source:
   type: sim
   joint_error_deg: [0.3, -0.25, 0.2]   # Durchbiegung/Modellfehler, wird in Job 2 nachgemessen
-  openings: [1, 1, 2, 3]               # offene Dome je Fahrzeug (Mehrkammer), zufällig
+  vehicles: [lkw]                      # erst einmal nur Lkw (Kesselwagen: [lkw, kesselwagen])
+  domes: [offen]                       # Mannloch ganz offen, Deckel aufgeklappt
+  openings: [1, 2, 3]                  # Kammern je Fahrzeug (je ein Dom), zufällig
+  dome_pitch: 2.5                      # m Abstand der Dome = Kammerlänge (ca. 9,5 m³ je Kammer)
 
 detection:                             # Arbeitsraum für bis zu 3 Dome hintereinander
-  roi_min: [-2.0, -2.8, 0.5]
-  roi_max: [2.0, 2.8, 8.0]
+  roi_min: [-2.0, -3.3, 0.5]
+  roi_max: [2.0, 3.3, 8.0]
 
 vehicle:
   front: [0.0, 1.0]                    # Richtung zur Fahrzeugfront (Armbasis): Dom 1 = vorderster
@@ -20,22 +24,25 @@ vehicle:
 plc:
   url: opc.tcp://127.0.0.1:4840/       # tools/plc_simulator.py
 
-# Befüllung mit Nachziehen und Überfüllsicherung (docs/fuellstand_ueberfuellsicherung.md).
-# Annahmen für den SPS-Simulator; an der Anlage liegen diese Werte in der SPS bzw. kommen vom PLS.
+# Befüllung mit Nachziehen (docs/fuellstand_ueberfuellsicherung.md). Annahmen für den
+# SPS-Simulator; an der Anlage liegen diese Werte in der SPS bzw. kommen von der Leitstelle.
+# Füllende: 1. Sollmenge (Durchfluss) – 2. Maximalhöhe (Armhöhe + Grenzschalter) –
+# 3. Überfüllsicherung (schaltet die Pumpe ab, nur als letzte Ebene).
 filling:
-  flow: 60                # m³/h Durchfluss (Durchflusssensor)
-  chamber_area: 5.0       # m² mittlere Spiegelfläche der Tankkammer (Annahme)
-  depth_below_rim: 2.3    # m Tankboden unter Domrand
-  start_level: 0.05       # m Restmenge über dem Boden
-  target_volume: 8.5      # m³ Sollmenge -> Absperrklappe zu
-  immersion: [0.02, 0.05] # m Auslass unter dem Spiegel: ab 5 cm auf 2 cm nachziehen (BASF: 2–3 cm)
-  overfill_below_rim: 0.40  # m Schaltpunkt Überfüllsicherung (Länge L der aufliegenden Lanze)
-  speedup: 10             # Simulation: Befüllung zusätzlich zum Zeitraffer schneller zeigen
+  flow: 22                # m³/h Durchfluss (BASF: 20–25 m³/h)
+  tank_diameter: 2.2      # m Lkw-Tank (liegender Zylinder)
+  chamber_length: 2.5     # m je Kammer (wie source.dome_pitch); verbundene Kammern: × Domzahl
+  depth_below_rim: 2.32   # m Tankboden unter Domrand (Tank + Domkragen 0,12 m)
+  start_level: 0.03       # m Restmenge über dem Boden
+  fill_ratio: 0.95        # Sollmenge = 95 % des Kammervolumens (BASF)
+  switches: [0.01, 0.03]  # m Grenzschalter A und B über dem Auslassende
+  max_below_rim: 0.28     # m Maximalhöhe Spiegel (Ebene 2) unter Domrand (Sollmenge ≈ 0,34 m)
+  overfill_below_rim: 0.22  # m Schaltpunkt Überfüllsicherung (Ebene 3) unter Domrand
+  speedup: 40             # Simulation: Befüllung zusätzlich zum Zeitraffer schneller zeigen
 
 products:
-  # Eintauchtiefe unter Domrand je ProductId; Unterspiegelbeladung = tief eintauchen (Annahme,
-  # Vorgabe BASF offen). Grenze heute: Referenzflansch 0,82 m über dem Auslassende passt nicht
-  # durch kleine Öffnungen (Ø < ca. 300 mm) – tiefer nur bei großen Domen (Produkt 1)
-  default: {insertion_depth: 0.4}
-  1: {name: Unterspiegel tief, insertion_depth: 1.1}
-  2: {name: Unterspiegel, insertion_depth: 0.75}
+  # Eintauchtiefe unter Domrand je ProductId: Auslass ca. 20 cm über dem Tankboden
+  # (2,32 m − 0,2 m). Der Referenzflansch (Ø 220) passt durch das offene Mannloch.
+  default: {insertion_depth: 2.1}
+  1: {name: Dispersion A, insertion_depth: 2.1}
+  2: {name: Dispersion B, insertion_depth: 2.1}

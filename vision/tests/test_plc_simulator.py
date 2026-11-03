@@ -95,15 +95,17 @@ def test_bewegung_stoppt_bei_verriegelung():
 
 
 def make_filling_sim(**fill):
-    """Arm steht eingetaucht im Dom; Nachzieh-Tabelle senkrecht über dem Eintauchpunkt."""
+    """Arm steht im Dom eines Lkw, Auslass ca. 20 cm über dem Tankboden; Nachzieh-Tabelle
+    senkrecht über dem Eintauchpunkt."""
     from verladearm_vision.kinematics import plan_motion
 
     cfg = load_config(ROOT / "vision" / "config" / "anlagen" / "simulation.yaml")
     geom = ArmGeometry(**cfg["arm"])
     var = {n: FakeNode() for n in sim_mod.VARIABLES}
-    rim = -1.6
-    plan = plan_motion(geom, [3100, 0, rim * 1000], [0, 0, 1], insertion_depth=1.1)
-    assert plan["ok"]
+    rim = 3.6 - geom.base_height  # Domrand 3,6 m über Fahrbahn
+    depth = cfg["products"]["default"]["insertion_depth"]
+    plan = plan_motion(geom, [3000, 0, rim * 1000], [0, 0, 1], insertion_depth=depth)
+    assert plan["ok"], plan["reason"]
     wps = [geom.to_servo(np.array(q)) for q in plan["q_insert"]]
     sim = sim_mod.PlcSim(None, var, geom, 25.0, 0.0, time_scale=0.0,
                          fill={**cfg["filling"], **fill})
@@ -114,25 +116,46 @@ def make_filling_sim(**fill):
     return sim
 
 
+def _spiegel(sim, chambers=1):
+    f = sim.fill
+    length = f["chamber_length"] * chambers
+    v0 = sim.chamber_volume(f["start_level"], length)
+    return sim.rim_z - f["depth_below_rim"] + sim.level_for(v0 + sim.volume, length)
+
+
+def test_kammervolumen_liegender_zylinder():
+    sim = make_filling_sim()
+    full = sim.chamber_volume(2.2, 2.5)
+    assert full == pytest.approx(np.pi * 1.1**2 * 2.5)
+    assert sim.chamber_volume(1.1, 2.5) == pytest.approx(full / 2)
+    assert sim.level_for(full / 2, 2.5) == pytest.approx(1.1, abs=1e-6)
+
+
 def test_befuellen_mit_nachziehen_bis_sollmenge(capsys):
     sim = make_filling_sim()
-    z0 = sim.tip_z()
+    bottom = sim.rim_z - sim.fill["depth_below_rim"]
+    assert sim.tip_z() - bottom == pytest.approx(0.22, abs=0.03)  # ca. 20 cm über dem Boden
     run(sim.fill_tank(interactive=False))
     out = capsys.readouterr().out
-    assert "Sollmenge" in out and "Nachziehen um" in out and not sim.valve_open
-    f = sim.fill
-    spiegel = sim.rim_z - f["depth_below_rim"] + f["start_level"] + sim.volume / f["chamber_area"]
-    eingetaucht = spiegel - sim.tip_z()
-    assert sim.tip_z() > z0 + 0.3  # Arm wurde nachgezogen
-    assert f["immersion"][0] - 0.02 <= eingetaucht <= f["immersion"][1]  # knapp unter Spiegel
+    assert "Sollmenge" in out and not sim.valve_open
+    assert sim.lifts > 20  # in kleinen Schritten nachgezogen
+    a, b = sim.fill["switches"]
+    eingetaucht = _spiegel(sim) - sim.tip_z()
+    assert a - 0.005 <= eingetaucht <= b + 0.005  # Auslass 1–3 cm unter dem Spiegel
+    assert _spiegel(sim) < sim.rim_z - sim.fill["max_below_rim"]  # Ebene 2 nicht nötig
 
 
-def test_ueberfuellsicherung_bei_ausgefallenem_durchflusssensor():
+def test_maximalhoehe_bei_ausgefallenem_durchflusssensor(capsys):
     sim = make_filling_sim()
     sim.flow_ok = False
-    with pytest.raises(sim_mod.Abort, match="Überfüllsicherung"):
+    run(sim.fill_tank(interactive=False))  # keine Störung: Ebene 2 beendet die Füllung
+    assert "Maximalhöhe erreicht" in capsys.readouterr().out and not sim.valve_open
+    assert _spiegel(sim) < sim.rim_z - sim.fill["overfill_below_rim"]  # Ebene 3 spricht nicht an
+
+
+def test_ueberfuellsicherung_als_letzte_ebene():
+    sim = make_filling_sim(max_below_rim=0.1)  # Maximalhöhe falsch eingestellt
+    sim.flow_ok = False
+    with pytest.raises(sim_mod.Abort, match="Überfüllsicherung.*Pumpe aus"):
         run(sim.fill_tank(interactive=False))
     assert not sim.valve_open
-    f = sim.fill
-    spiegel = sim.rim_z - f["depth_below_rim"] + f["start_level"] + sim.volume / f["chamber_area"]
-    assert spiegel >= sim.rim_z - f["overfill_below_rim"]

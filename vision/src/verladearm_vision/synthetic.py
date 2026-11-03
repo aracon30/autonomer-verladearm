@@ -56,6 +56,7 @@ def make_tank_vehicle(
     lid_open_deg=105.0,
     dome="offen",
     walkways=False,
+    dome_pitch=None,
     seed=0,
     return_info=False,
 ):
@@ -72,6 +73,7 @@ def make_tank_vehicle(
       eine kleinere, seitlich versetzte Füllöffnung mit aufgeklappter Füllklappe sowie Armaturen
       (Be-/Entlüftung, Hebel). Maße zufällig in üblichen Grenzen.
     `walkways`: Laufstege (Gitterroste) links und rechts neben dem Dom, etwas über dem Dach.
+    `dome_pitch`: Abstand der Dome entlang der Tankachse (None = Wert des Fahrzeugtyps).
     `return_info`: zusätzlich Sollwerte (Mitte und Durchmesser der Füllöffnung, Sensor-Koordinaten).
     """
     v = VEHICLES[kind]
@@ -79,7 +81,8 @@ def make_tank_vehicle(
     r_tank = v["radius"]
     apex = height + v["collar_height"]  # Tankscheitel, weiter vom Sensor entfernt als der Kragen
     cx, cy = center_xy
-    domes = [(cx, cy - i * v["dome_pitch"]) for i in range(openings)]
+    pitch = v["dome_pitch"] if dome_pitch is None else dome_pitch
+    domes = [(cx, cy - i * pitch) for i in range(openings)]
     if dome == "armatur":
         r_in = rng.uniform(0.25, 0.32)  # Domring innen
     else:

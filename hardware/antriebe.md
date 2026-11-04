@@ -90,6 +90,13 @@ In der Simulation hinterlegt: `vision/config/anlagen/heta_prototyp.yaml`, Abschn
   Inbetriebnahme mit gefülltem Ausleger.
 - **Lebensdauer:** 480 h Schwenkzeit; bei ca. 1 min J3-Bewegung je Verladung ≈ 29 000
   Verladungen. Mit der geplanten Verladezahl pro Jahr abgleichen.
+- **IMO-Angebot 20023835 (04.11.2026):** Kit mit Motor AK8Z, Motorvariante **400 V Stern, 50 Hz**
+  (1,75 A, passt zu MCX91A-0025; 230 V Dreieck/87 Hz bräuchte 3,05 A und bringt keine nutzbare
+  Mehrdrehzahl, da IMO max. 1 1/min). **Achtung Auslass 3,7 m (03.11.):** Moment an J3 steigt über
+  die bisherige Lastannahme 3,52 kNm (grob 3,5–4,5 kNm statisch, Massen aus der Konstruktion
+  nachrechnen) → Lastfall bei IMO aktualisieren, Antrieb (215 Nm × 34 × η) und Bremse prüfen.
+  BASF-Betrieb (50–60 Lkw/Tag) ≈ 300–500 h Schwenkzeit pro Jahr → 480 h reichen nur für den
+  Prototyp; Lebensdauer für den Serienbetrieb bei IMO anfragen.
 - **Ex-Schutz:** IP55 ohne Ex-Kennzeichnung. Liegt der Arm in einer Ex-Zone, ist ein Motor in
   ATEX-Ausführung nötig (Zoneneinteilung klären, Lastenheft N-06).
 

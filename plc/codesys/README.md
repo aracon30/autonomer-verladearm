@@ -13,7 +13,7 @@ BASF lässt sich der Code weitgehend nach TIA Portal (SCL) übertragen.
 | Datei | CODESYS-Objekt | Aufgabe |
 |---|---|---|
 | `GVL_Vision.st` | Globale Variablenliste | Schnittstelle zum Vision-PC (wie `DB_Vision`), per OPC UA freigeben |
-| `GVL_IO.st` | Globale Variablenliste | Taster, Leuchten, Sensoren, Klappe, Abtropfsicherung, Leitstelle |
+| `GVL_IO.st` | Globale Variablenliste | Taster, Leuchten, Sensoren, Klappe, Leitstelle |
 | `GVL_Achsen.st` | Globale Variablenliste | Prozessdaten der 3 MOVITRAC, Fahrbefehle, Istwerte |
 | `GVL_Param.st` | Globale Variablenliste | Achsgrenzen, Geschwindigkeiten, Park, Eintauchtiefen, Zeiten |
 | `DUT_Pd.st` | Datentyp (DUT) | Prozessdaten MOVIKIT Positioning Drive (8 PA / 8 PE) |

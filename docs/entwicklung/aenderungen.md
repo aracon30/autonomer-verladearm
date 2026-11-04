@@ -17,6 +17,7 @@ Freigabe. Kleine Änderungen an Software und Dokumenten sind in der Git-Historie
 | Ä-07 | 27.10.2026 | Schnittstelle Vision-PC ↔ SPS **Version 3**: `DomeNo`, `DomeCount`, `DomeSelected`, Fehler 22 | Mehrkammer-Fahrzeuge | `plc/DB_Vision.db`, SPS-Programm, Lastenheft F-05 (Abweichung) | **Peter (Freigabe nötig)** | [ ] |
 | Ä-08 | 27.10.2026 | Überfüllsicherung schaltet die Pumpe ab | Gespräch BASF 27.10. | Signal an BASF/PLS bzw. Sicherheitskreis | BASF, Peter | [ ] |
 | Ä-09 | 27.10.2026 | Sensortest mit Produkt durch BASF, kein eigenes LFC-Testset | BASF testet selbst | Bestellung SICK reduziert | BASF | [ ] |
+| Ä-12 | 04.11.2026 | Abtropfsicherung rein mechanisch statt Antrieb mit Endlagen S1/S2 (ersetzt Ä-10 in der Ansteuerung) | Kosten, weniger E/A und Verdrahtung | Konstruktion, SPS (Schritte entfallen), Stückliste, Schaltschrank | Konstruktion | [ ] |
 | Ä-10 | 28.–29.10.2026 | Abtropfsicherung als pendelnde Tropfschale, Motorwelle versetzt (Rev. 2 → Rev. 3) | Nachtropfen (BASF: Eimer, 1 min reicht nicht) | Konstruktion, SPS (Antrieb, Endlagen S1/S2), Kollisionsmodell | Konstruktion, Peter | [ ] |
 | Ä-11 | 29.10.2026 | Konfigurator: Verladestelle (Fahrtrichtung, eigene Spur), Domsuche nur in der eigenen Spur | Mehrkammer-Zählung, Nachbarspuren H517 | Anlagendatei Abschnitt `vehicle`, Inbetriebnahme | – | [ ] |
 

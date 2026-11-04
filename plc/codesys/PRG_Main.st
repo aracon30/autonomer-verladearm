@@ -1,7 +1,7 @@
 (* Automatischer Verladeablauf – entspricht tools/plc_simulator.py (sequence, fill_tank).
-   Je Füllschritt (Kammer): Job 1 -> über den Dom -> Job 2 -> Abtropfsicherung hoch ->
-   eintauchen -> befüllen mit Nachziehen (2 Grenzschalter) -> Klappe zu, abtropfen -> heraus ->
-   Abtropfsicherung in Fangstellung -> nächste Kammer (Job 1 vom Dom aus) oder Job 3 -> Park.
+   Je Füllschritt (Kammer): Job 1 -> über den Dom -> Job 2 -> eintauchen -> befüllen mit
+   Nachziehen (2 Grenzschalter) -> Klappe zu, abtropfen -> heraus -> nächste Kammer (Job 1 vom
+   Dom aus) oder Job 3 -> Park. Die Abtropfsicherung arbeitet rein mechanisch (keine Signale).
 
    Füllende (docs/fuellstand_ueberfuellsicherung.md, Schutzebenen):
    1. Menge je Füllschritt (Durchfluss), 2. Maximalhöhe aus Armhöhe + Grenzschalter B,
@@ -108,19 +108,9 @@ CASE iSchritt OF
             FOR i := 1 TO 3 DO aTab[iWp, i] := fbJob.aWp[iWp, i]; END_FOR
         END_FOR
         rTiefe := GVL_Param.aEintauchtiefe[LIMIT(0, GVL_IO.iPlsProdukt, 9)];
-        tWarte := T#20S; xWarten := TRUE;
-        iSchritt := 35;
+        iWp := 1; iSchritt := 40;
     ELSIF fbJob.xError THEN
         xJobStart := FALSE; sMeldung := CONCAT('Job 2: ', fbJob.sFehler); iSchritt := 80;
-    END_IF
-
-(* --- Abtropfsicherung hoch (S1), sonst kein Eintauchen ------------------------------------ *)
-35: GVL_IO.xAbtropfAuf := TRUE; GVL_IO.xAbtropfZu := FALSE;
-    IF GVL_IO.xAbtropfS1Park THEN
-        GVL_IO.xAbtropfAuf := FALSE; xWarten := FALSE; iWp := 1; iSchritt := 40;
-    ELSIF tonWarte.Q THEN
-        GVL_IO.xAbtropfAuf := FALSE; xWarten := FALSE;
-        sMeldung := 'Abtropfsicherung nicht in Parkstellung (S1)'; iSchritt := 80;
     END_IF
 
 (* --- Eintauchen: Anfahrpunkt normal, danach langsam --------------------------------------- *)
@@ -188,24 +178,16 @@ CASE iSchritt OF
     FOR i := 1 TO 3 DO aZiel[i] := aTab[1, i]; END_FOR
     rFaktor := GVL_Param.FAKTOR_LANGSAM; xMoveStart := TRUE; iSchritt := 66;
 66: IF fbMove.xDone THEN
-        xMoveStart := FALSE; GVL_Vision.ArmState := 2;
-        tWarte := T#20S; xWarten := TRUE; iSchritt := 70;
+        xMoveStart := FALSE; GVL_Vision.ArmState := 2; iSchritt := 70;
     ELSIF fbMove.xError THEN
         xMoveStart := FALSE; sMeldung := fbMove.sFehler; iSchritt := 900;
     END_IF
 
-(* --- Abtropfsicherung in Fangstellung (S2), dann nächste Kammer oder Rückfahrt ------------- *)
-70: GVL_IO.xAbtropfZu := TRUE; GVL_IO.xAbtropfAuf := FALSE;
-    IF GVL_IO.xAbtropfS2Fang THEN
-        GVL_IO.xAbtropfZu := FALSE; xWarten := FALSE;
-        IF iKammer < GVL_IO.iPlsSchritte THEN
-            iKammer := iKammer + 1; iSchritt := 10;
-        ELSE
-            iSchritt := 80;
-        END_IF
-    ELSIF tonWarte.Q THEN
-        GVL_IO.xAbtropfZu := FALSE; xWarten := FALSE;
-        sMeldung := 'Abtropfsicherung nicht in Fangstellung (S2)'; iSchritt := 900;
+(* --- nächste Kammer oder Rückfahrt ------------------------------------------------------- *)
+70: IF iKammer < GVL_IO.iPlsSchritte THEN
+        iKammer := iKammer + 1; iSchritt := 10;
+    ELSE
+        iSchritt := 80;
     END_IF
 
 (* --- Job 3: Rückfahrt in die Parkstellung ------------------------------------------------- *)
@@ -235,7 +217,6 @@ CASE iSchritt OF
 (* --- Störung ------------------------------------------------------------------------------ *)
 900: GVL_Achsen.xCmdStop := TRUE;
     GVL_IO.xKlappeOeffnen := FALSE; GVL_IO.xPumpeFreigabe := FALSE;
-    GVL_IO.xAbtropfAuf := FALSE; GVL_IO.xAbtropfZu := FALSE;
     GVL_Vision.ArmState := 9;
     xJobStart := FALSE; xMoveStart := FALSE; xWarten := FALSE;
     GVL_Achsen.xCmdReset := GVL_IO.xQuittTaster;

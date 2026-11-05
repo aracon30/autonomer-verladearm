@@ -74,7 +74,7 @@ verlinkten Dokumenten.
 - [ ] SEW-Motoren J1/J2 bestellen; IMO-Angebot J3 (Geber AK8Z) abwarten; SICK Kamera bestellen (kein LFC-Testset: Sensortest macht BASF)
 - [ ] Mit Peter: Überfüll-Abschaltung (Klappe/Pumpe, F-SPS), Kammerwahl vor Ort oder Leitstelle
 - [ ] Konstruktion: aufliegende Lanze kurz (ca. 20 cm), Führung ohne klemmende Hülse; Halter
-  Grenzschalter; **Abtropfsicherung rein mechanisch** nach `docs/skizzen/Prinzipskizze_Abtropfsicherung_Rev4.pdf` (Dom-Abdeckung mit Überfüllsicherung, Tastring öffnet zwei Klappen)
+  Grenzschalter; **Abtropfsicherung rein mechanisch** nach `docs/skizzen/Prinzipskizze_Abtropfsicherung_Rev5.pdf` (Dom-Abdeckung mit Überfüllsicherung, Tastring schwenkt eine Wanne über eine Koppel)
 - [x] Simulation: nur Lkw (1–3 Kammern), Arm aus Konfigurator 03.11. (Auslass 3,7 m), 22 m³/h,
   zwei Grenzschalter, Sollmenge 95 %, Maximalhöhe, Überfüllsicherung als letzte Ebene
 - [ ] Kameratest an einem stehenden Tankwagen (Aufnahmen für die Software)

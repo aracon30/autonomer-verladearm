@@ -29,7 +29,7 @@ Status: **E** = Entwurf · **P** = in Prüfung · **F** = freigegeben
 | SPS-Programm Prototyp (CODESYS, Entwurf) | `plc/codesys/` | 02.11.2026 | E (nicht übersetzt) | [ ] |
 | Kamera SICK | `docs/sensor_sick.md` | laufend | E | – |
 | Skizze Überfüll-Lanze | `docs/skizzen/ueberfuell_lanze.svg` | 15.10.2026 | E (überholt: Lanze kürzer, keine Gleithülse) | – |
-| Prinzipskizze Abtropfsicherung | `docs/skizzen/Prinzipskizze_Abtropfsicherung_Rev4.pdf` | Rev. 4, 06.11.2026 (rein mechanisch, Tastring an der Dom-Abdeckung; Rev. 3 überholt) | E | [ ] |
+| Prinzipskizze Abtropfsicherung | `docs/skizzen/Prinzipskizze_Abtropfsicherung_Rev5.pdf` | Rev. 5, 06.11.2026 (einteilige Wanne, ein Mechanismus über Tastring; Rev. 3/4 überholt) | E | [ ] |
 | Konstruktionszeichnungen | [HETA Konstruktion] | – | offen | [ ] |
 | Stromlaufplan, Schaltschrank | [Peter] | – | offen | [ ] |
 | Risikobeurteilung (EN ISO 12100), Sicherheitsfunktionen (EN ISO 13849) | – | – | **offen** | [ ] |

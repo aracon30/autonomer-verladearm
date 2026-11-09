@@ -15,13 +15,13 @@ zum Weg vor (gleiche Ruckzeit), die langsamste Achse bestimmt die Fahrzeit (`--p
 zeigt die Vorgaben je Achse).
 
 Befüllen (Abschnitt `filling`, docs/fuellstand_ueberfuellsicherung.md): Der Auslass steht ca.
-20 cm über dem Tankboden. Absperrklappe auf, Pumpe ein, der Durchflusssensor zählt die Menge, der
-Spiegel steigt in der liegenden zylindrischen Kammer. Zwei Grenzschalter am Auslass (A 1 cm,
-B 3 cm über dem Ende): B nass -> die SPS hebt den Arm senkrecht (entlang der Eintauch-Stützpunkte
-aus Job 2), bis B wieder trocken ist; der Auslass bleibt 1–3 cm unter dem Spiegel.
-Füllende: 1. Sollmenge (95 % der Kammer) -> Klappe zu, Abtropfen, Rückfahrt; 2. Maximalhöhe aus
-Armhöhe und Grenzschaltern (Test: Befehl `u`, Durchflusssensor fällt aus); 3. Überfüllsicherung
-(Pumpe aus) nur, wenn beide versagen – immer eine Störung.
+20 cm über dem Tankboden. Die SPS öffnet die Absperrklappe und meldet „Arm bereit“; Menge, Pumpe
+und Füllende steuert die Leitstelle. Ein Grenzschalter sitzt ca. 12 cm über dem Auslassende;
+wird er nass, hebt J3 den Auslass um 5 cm (Auslass bleibt ca. 7–12 cm unter dem Spiegel). Danach
+muss er trocken sein, sonst Störung (Test: Befehl `g`). Ende: 1. Leitstelle „Befüllung Ende“;
+2. Maximalhöhe bzw. Arm am Ende -> „Befüllung stoppen“ (Test: Befehl `u`, Leitstelle beendet
+nicht); 3. Überfüllsicherung schaltet die Pumpe direkt ab (Störung). Immer erst Pumpe aus, dann
+Klappe zu.
 
 Zwei Betriebsarten des Simulators:
 - Dauertest (Standard): Verladung auf Verladung ohne Bediener.
@@ -54,8 +54,8 @@ HAND_SPEED = 2.0  # °/s, Arm von Hand geschoben (Bremse gelüftet)
 FILL_STEP = 2.0  # s Befüllzeit je Rechenschritt
 # Befüllung, falls die Anlagendatei keinen Abschnitt `filling` hat (Werte siehe simulation.yaml)
 FILL_DEFAULTS = dict(flow=22.0, tank_diameter=2.2, chamber_length=2.5, depth_below_rim=2.32,
-                     start_level=0.03, fill_ratio=0.95, switches=(0.01, 0.03),
-                     max_below_rim=0.28, overfill_below_rim=0.22, speedup=40.0)
+                     start_level=0.03, fill_ratio=0.95, sensor_height=0.12, lift_step=0.05,
+                     pump_rundown=3.0, max_below_rim=0.28, overfill_below_rim=0.22, speedup=40.0)
 
 HELP = """Befehle (Eingabe + Enter):
   n              neues Fahrzeug: fährt vor, Klapptreppe aus, Dom öffnen, Treppe zurück
@@ -66,8 +66,9 @@ HELP = """Befehle (Eingabe + Enter):
                  k 1 2 3 = Mehrkammer, Dome von vorn nacheinander (Menge je Kammer gleich)
   f              „Fahrzeug bereit“ bestätigen
   s              Start „Automatisch beladen“
-  e              Beladung vorzeitig beenden (Klappe zu) -> Arm fährt in die Parkstellung
-  u              Durchflusssensor fällt aus (Test Maximalhöhe, Schutzebene 2)
+  e              Leitstelle meldet „Befüllung Ende“ (vorzeitig) -> Klappe zu, Parkstellung
+  u              Leitstelle beendet nicht (Mengenfehler) -> Test Maximalhöhe (Schutzebene 2)
+  g              Grenzschalter bleibt nass (Belag/Defekt) -> Test Überwachung
   x              Stopp (Bewegung anhalten)
   h              Betriebsart Hand / Automatik umschalten
   j <achse> <°>  Hand: Achse tippen, z. B. j 3 +5
@@ -97,7 +98,10 @@ class PlcSim:
         self.moved = 0.0  # Fahrzeit der laufenden Verladung [s, Echtzeit der Antriebe]
         self.show_pd = show_pd  # Vorgaben an die Umrichter je Fahrt ausgeben
         self.fill = {**FILL_DEFAULTS, **(fill or {})}
-        self.flow_ok = True  # Durchflusssensor in Ordnung
+        self.plant_ok = True  # Leitstelle beendet bei ihrer Menge (Test: Befehl u)
+        self.sensor_stuck = False  # Grenzschalter bleibt nass (Test: Befehl g)
+        self.pump_on = False  # Pumpe der Leitstelle
+        self.end_reason = None
         self.valve_open = False  # Absperrklappe
         self.volume = 0.0  # Menge laut Durchflusssensor [m³]
         self.lifts = 0  # Nachziehschritte der laufenden Kammer
@@ -236,70 +240,88 @@ class PlcSim:
         return (lo + hi) / 2
 
     async def fill_tank(self, interactive: bool, chambers: int = 1):
-        """Befüllen einer Kammer (bzw. `chambers` verbundener Kammern) mit Nachziehen über die
-        Grenzschalter A/B. Füllende: 1. Sollmenge (Durchfluss), 2. Maximalhöhe aus Armhöhe und
-        Grenzschaltern, 3. Überfüllsicherung (Pumpe aus) – Ebene 3 ist immer eine Störung."""
+        """Befüllen einer Kammer (bzw. `chambers` verbundener Kammern).
+
+        Menge, Pumpe und Füllende steuert die Leitstelle (BASF). Die SPS öffnet die Absperrklappe,
+        meldet „Arm bereit“, und zieht über **einen** Grenzschalter nach: Er sitzt `sensor_height`
+        über dem Auslassende; wird er nass, hebt J3 den Auslass um `lift_step`. Danach muss er
+        trocken sein, sonst Störung. Ende: 1. Leitstelle meldet „Befüllung Ende“ (Pumpe aus);
+        2. Maximalhöhe bzw. Arm kann nicht weiter nachziehen -> SPS meldet „Befüllung stoppen“;
+        3. Überfüllsicherung schaltet die Pumpe direkt ab (Störung). Immer erst Pumpe aus, dann
+        Klappe zu."""
         f = self.fill
         length = f["chamber_length"] * chambers
         rim = self.rim_z
         bottom = rim - f["depth_below_rim"]
         full = self.chamber_volume(f["tank_diameter"], length)
         v0 = self.chamber_volume(f["start_level"], length)  # Restmenge
-        target = f["fill_ratio"] * full - v0
-        sw_a, sw_b = f["switches"]
+        target = f["fill_ratio"] * full - v0  # Menge der Leitstelle (der SPS unbekannt)
+        hs, step = f["sensor_height"], f["lift_step"]
         max_level = rim - f["max_below_rim"]  # Ebene 2
         overfill = rim - f["overfill_below_rim"]  # Ebene 3
-        self.volume, self.valve_open = 0.0, True
-        was_wet = False
-        print(f"  Absperrklappe AUF, Pumpe EIN – Sollmenge {target:.1f} m³ "
-              f"({f['fill_ratio'] * 100:.0f} % von {full:.1f} m³)")
+        self.volume, self.valve_open, self.pump_on = 0.0, True, True
+        self.end_reason = None
+        print("  Absperrklappe AUF, „Arm bereit“ an die Leitstelle -> Pumpe EIN")
 
         def spiegel():
             return bottom + self.level_for(v0 + self.volume, length)
+
+        def nass(level, tip_z):
+            return self.sensor_stuck or level >= tip_z + hs
 
         try:
             while True:
                 if self.stop:
                     raise Abort("Stopp gedrückt")
                 if interactive and self.loading_done.is_set():
-                    print("  Beladung von Hand beendet")
+                    print("  Leitstelle: „Befüllung Ende“ (vorzeitig) – Pumpe aus")
+                    self.pump_on, self.end_reason = False, "Leitstelle"
                     break
                 self.volume += f["flow"] / 3600 * FILL_STEP
                 level, tip_z = spiegel(), self.tip_z()
-                a, b = level > tip_z + sw_a, level > tip_z + sw_b  # Grenzschalter nass
                 if level >= overfill:  # Ebene 3: nie im Normalbetrieb
+                    self.pump_on = False  # schaltet die Pumpe direkt ab
                     raise Abort(f"Überfüllsicherung ausgelöst ({rim - level:.2f} m unter "
                                 "Domrand) – Pumpe aus, Klappe zu")
-                if self.flow_ok and self.volume >= target:  # Ebene 1
-                    print(f"  Sollmenge {target:.1f} m³ erreicht")
+                if self.plant_ok and self.volume >= target:  # Ebene 1 (Leitstelle)
+                    print(f"  Leitstelle: Menge erreicht ({self.volume:.1f} m³), Pumpe aus, "
+                          "„Befüllung Ende“")
+                    self.pump_on, self.end_reason = False, "Leitstelle"
                     break
-                if b and not a:
-                    raise Abort("Grenzschalter unplausibel (B nass, A trocken) – Klappe zu")
-                if was_wet and not a:
-                    raise Abort("Grenzschalter A trocken – Auslass zu weit gehoben, Klappe zu")
-                was_wet = was_wet or a
-                # Spiegel aus Armhöhe und Grenzschaltern: A nass -> mindestens Höhe A
-                if a and tip_z + (sw_a + sw_b) / 2 >= max_level:  # Ebene 2
-                    print(f"  Maximalhöhe erreicht ({rim - level:.2f} m unter Domrand) – "
-                          "Klappe zu (Meldung: Menge prüfen)")
-                    break
-                if b:  # zu tief: heben, bis B trocken (Auslass zwischen A und B)
-                    goal = self.table_at(level - (sw_a + sw_b) / 2)
+                if nass(level, tip_z):
+                    if tip_z + hs >= max_level:  # Ebene 2: Spiegel steht auf Sensorhöhe
+                        print(f"  Maximalhöhe erreicht ({rim - level:.2f} m unter Domrand) – "
+                              "„Befüllung stoppen“ an die Leitstelle")
+                        self.end_reason = "Maximalhöhe"
+                        break
+                    goal = self.table_at(tip_z + step)
                     if goal is None:
-                        raise Abort("Nachziehen am Anfahrpunkt angekommen – Klappe zu")
+                        print("  Arm kann nicht weiter nachziehen – „Befüllung stoppen“")
+                        self.end_reason = "Nachziehen am Ende"
+                        break
                     t = await self.move_to(goal, slow=True)
-                    self.volume += f["flow"] / 3600 * t  # Klappe bleibt beim Nachziehen auf
+                    self.volume += f["flow"] / 3600 * t  # Pumpe läuft beim Nachziehen weiter
                     self.lifts += 1
-                state = ("A nass" if a else "A trocken") + (", B nass" if b else ", B trocken")
-                self.phase = (f"Beladung läuft: {self.volume:.1f} / {target:.1f} m³, Spiegel "
-                              f"{rim - level:.2f} m unter Domrand, Auslass {tip_z - bottom:.2f} m "
-                              f"über Boden, {state}"
-                              + ("" if self.flow_ok else " – DURCHFLUSSSENSOR AUSGEFALLEN"))
+                    level, tip_z = spiegel(), self.tip_z()
+                    if nass(level, tip_z):
+                        raise Abort("Grenzschalter nach dem Nachziehen weiter nass "
+                                    "(Belag/Defekt) – Befüllung stoppen, Klappe zu")
+                self.phase = (f"Beladung läuft: {self.volume:.1f} m³, Spiegel {rim - level:.2f} m "
+                              f"unter Domrand, Auslass {tip_z - bottom:.2f} m über Boden und "
+                              f"{(level - tip_z) * 100:.0f} cm eingetaucht, {self.lifts} × "
+                              "nachgezogen"
+                              + ("" if self.plant_ok else " – LEITSTELLE BEENDET NICHT"))
                 await asyncio.sleep(FILL_STEP * self.time_scale / f["speedup"])
         finally:
+            if self.pump_on:  # SPS-Stopp: erst Pumpe aus (Auslaufzeit), dann Klappe zu
+                print(f"  „Befüllung stoppen“ -> Leitstelle schaltet die Pumpe ab "
+                      f"(Auslauf {f['pump_rundown']:g} s)")
+                self.volume += f["flow"] / 3600 * f["pump_rundown"]
+                await asyncio.sleep(f["pump_rundown"] * self.time_scale / f["speedup"])
+                self.pump_on = False
             self.valve_open = False
-            print(f"  Absperrklappe ZU, Pumpe AUS ({self.volume:.2f} m³, "
-                  f"{self.lifts} × nachgezogen, Auslass {self.tip_z() - bottom:.2f} m über Boden)")
+            print(f"  Absperrklappe ZU ({self.volume:.2f} m³, {self.lifts} × nachgezogen, "
+                  f"Auslass {self.tip_z() - bottom:.2f} m über Boden)")
 
     async def job(self, job: int):
         """Auftrag an den Vision-PC, Handshake nach docs/schnittstelle.md."""
@@ -526,9 +548,13 @@ class PlcSim:
             else:
                 print("Keine Beladung aktiv")
         elif cmd == "u":
-            self.flow_ok = not self.flow_ok
-            print("Durchflusssensor " + ("in Ordnung" if self.flow_ok else
-                                         "AUSGEFALLEN – Sollmenge wird nicht erkannt"))
+            self.plant_ok = not self.plant_ok
+            print("Leitstelle " + ("in Ordnung" if self.plant_ok else
+                                   "BEENDET NICHT – Ende über Maximalhöhe erwartet"))
+        elif cmd == "g":
+            self.sensor_stuck = not self.sensor_stuck
+            print("Grenzschalter " + ("in Ordnung" if not self.sensor_stuck else
+                                      "BLEIBT NASS – Störung nach dem nächsten Hub erwartet"))
         elif cmd == "l":
             self.light_barrier = not self.light_barrier
             print(f"Lichtschranke {'belegt' if self.light_barrier else 'frei'}")

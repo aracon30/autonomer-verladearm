@@ -131,31 +131,45 @@ def test_kammervolumen_liegender_zylinder():
     assert sim.level_for(full / 2, 2.5) == pytest.approx(1.1, abs=1e-6)
 
 
-def test_befuellen_mit_nachziehen_bis_sollmenge(capsys):
+def test_befuellen_mit_einem_grenzschalter_bis_ende_leitstelle(capsys):
     sim = make_filling_sim()
     bottom = sim.rim_z - sim.fill["depth_below_rim"]
     assert sim.tip_z() - bottom == pytest.approx(0.22, abs=0.03)  # ca. 20 cm über dem Boden
     run(sim.fill_tank(interactive=False))
     out = capsys.readouterr().out
-    assert "Sollmenge" in out and not sim.valve_open
-    assert sim.lifts > 20  # in kleinen Schritten nachgezogen
-    a, b = sim.fill["switches"]
+    assert "Leitstelle: Menge erreicht" in out and sim.end_reason == "Leitstelle"
+    assert not sim.valve_open and not sim.pump_on
+    assert 25 <= sim.lifts <= 45  # Hub 5 cm über ca. 1,7 m Füllhöhe
+    hs, step = sim.fill["sensor_height"], sim.fill["lift_step"]
     eingetaucht = _spiegel(sim) - sim.tip_z()
-    assert a - 0.005 <= eingetaucht <= b + 0.005  # Auslass 1–3 cm unter dem Spiegel
+    assert hs - step - 0.01 <= eingetaucht <= hs + 0.005  # Auslass ca. 7–12 cm unter dem Spiegel
     assert _spiegel(sim) < sim.rim_z - sim.fill["max_below_rim"]  # Ebene 2 nicht nötig
 
 
-def test_maximalhoehe_bei_ausgefallenem_durchflusssensor(capsys):
+def test_maximalhoehe_wenn_leitstelle_nicht_beendet(capsys):
     sim = make_filling_sim()
-    sim.flow_ok = False
+    sim.plant_ok = False
     run(sim.fill_tank(interactive=False))  # keine Störung: Ebene 2 beendet die Füllung
-    assert "Maximalhöhe erreicht" in capsys.readouterr().out and not sim.valve_open
+    out = capsys.readouterr().out
+    assert "Maximalhöhe erreicht" in out and "Befüllung stoppen" in out
+    assert out.index("Pumpe ab") < out.index("Absperrklappe ZU")  # erst Pumpe aus, dann Klappe
+    assert not sim.valve_open and not sim.pump_on
     assert _spiegel(sim) < sim.rim_z - sim.fill["overfill_below_rim"]  # Ebene 3 spricht nicht an
+
+
+def test_grenzschalter_bleibt_nass_ist_stoerung(capsys):
+    sim = make_filling_sim()
+    sim.sensor_stuck = True
+    with pytest.raises(sim_mod.Abort, match="weiter nass"):
+        run(sim.fill_tank(interactive=False))
+    out = capsys.readouterr().out
+    assert sim.lifts == 1 and not sim.valve_open and not sim.pump_on
+    assert out.index("Pumpe ab") < out.index("Absperrklappe ZU")
 
 
 def test_ueberfuellsicherung_als_letzte_ebene():
     sim = make_filling_sim(max_below_rim=0.1)  # Maximalhöhe falsch eingestellt
-    sim.flow_ok = False
+    sim.plant_ok = False
     with pytest.raises(sim_mod.Abort, match="Überfüllsicherung.*Pumpe aus"):
         run(sim.fill_tank(interactive=False))
-    assert not sim.valve_open
+    assert not sim.valve_open and not sim.pump_on

@@ -24,19 +24,20 @@ vehicle:
 plc:
   url: opc.tcp://127.0.0.1:4840/       # tools/plc_simulator.py
 
-# Befüllung mit Nachziehen (docs/fuellstand_ueberfuellsicherung.md). Annahmen für den
-# SPS-Simulator; an der Anlage liegen diese Werte in der SPS bzw. kommen von der Leitstelle.
-# Füllende: 1. Sollmenge (Durchfluss) – 2. Maximalhöhe (Armhöhe + Grenzschalter) –
-# 3. Überfüllsicherung (schaltet die Pumpe ab, nur als letzte Ebene).
+# Befüllung mit Nachziehen (docs/fuellstand_ueberfuellsicherung.md, Stand 09.11.2026). Menge, Pumpe
+# und Füllende steuert die Leitstelle; die SPS öffnet die Klappe, zieht über einen Grenzschalter
+# nach und meldet bei Störung oder Maximalhöhe „Befüllung stoppen“ (erst Pumpe aus, dann Klappe zu).
 filling:
-  flow: 22                # m³/h Durchfluss (BASF: 20–25 m³/h)
+  flow: 22                # m³/h Pumpe der Leitstelle (BASF: 20–25 m³/h)
   tank_diameter: 2.2      # m Lkw-Tank (liegender Zylinder)
   chamber_length: 2.5     # m je Kammer (wie source.dome_pitch); verbundene Kammern: × Domzahl
   depth_below_rim: 2.32   # m Tankboden unter Domrand (Tank + Domkragen 0,12 m)
   start_level: 0.03       # m Restmenge über dem Boden
-  fill_ratio: 0.95        # Sollmenge = 95 % des Kammervolumens (BASF)
-  switches: [0.01, 0.03]  # m Grenzschalter A und B über dem Auslassende
-  max_below_rim: 0.28     # m Maximalhöhe Spiegel (Ebene 2) unter Domrand (Sollmenge ≈ 0,34 m)
+  fill_ratio: 0.95        # Menge der Leitstelle: 95 % des Kammervolumens (der SPS unbekannt)
+  sensor_height: 0.12     # m Grenzschalter über dem Auslassende (10–15 cm)
+  lift_step: 0.05         # m Hub je Schaltvorgang -> Auslass ca. 7–12 cm unter dem Spiegel
+  pump_rundown: 3         # s Auslaufzeit der Pumpe, erst danach Klappe zu
+  max_below_rim: 0.28     # m Maximalhöhe Spiegel (Ebene 2) unter Domrand (Füllende 95 % ≈ 0,34 m)
   overfill_below_rim: 0.22  # m Schaltpunkt Überfüllsicherung (Ebene 3) unter Domrand
   speedup: 40             # Simulation: Befüllung zusätzlich zum Zeitraffer schneller zeigen
 

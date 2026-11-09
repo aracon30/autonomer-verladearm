@@ -29,6 +29,7 @@ from verladearm_vision.config import _merge, load_config
 from verladearm_vision.drives import Drives
 from verladearm_vision.einrichtung import ANLAGEN, DIMENSIONS, render, with_flange
 from verladearm_vision.kinematics import JOINTS, ArmGeometry, forward, validate
+from verladearm_vision.konsole import quickedit_aus
 from verladearm_vision.viewer.__main__ import obstacles_for_view, structure_for_view
 
 log = logging.getLogger("verladearm.konfigurator")
@@ -338,6 +339,7 @@ def make_handler(folder: Path = ANLAGEN, backup: Path = BACKUP):
 
 
 def main():
+    quickedit_aus()  # Windows: Klick ins Fenster soll das Programm nicht anhalten
     p = argparse.ArgumentParser(description="Konfigurator Verladearm (Browser)")
     p.add_argument("--host", default="127.0.0.1", help="0.0.0.0 = im Netzwerk (ohne Anmeldung!)")
     p.add_argument("--port", type=int, default=8090)

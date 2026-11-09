@@ -45,6 +45,7 @@ from asyncua import Server, ua
 from verladearm_vision.config import load_config
 from verladearm_vision.drives import Drives, profile
 from verladearm_vision.kinematics import JOINTS, ArmGeometry, pick, plan_motion, tip
+from verladearm_vision.konsole import quickedit_aus
 from verladearm_vision.plc import VARIABLES
 
 NS_URI = "http://www.siemens.com/simatic-s7-opcua"
@@ -700,6 +701,7 @@ async def main(args):
 
 
 if __name__ == "__main__":
+    quickedit_aus()  # Windows: Klick ins Fenster soll den Simulator nicht anhalten
     p = argparse.ArgumentParser()
     p.add_argument("--config", help="Anlagendatei (Achsgrenzen, Parkstellung)")
     p.add_argument("--interval", type=float, default=3.0, help="Pause zwischen Verladungen [s]")

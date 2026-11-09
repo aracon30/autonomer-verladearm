@@ -42,6 +42,7 @@ from verladearm_vision.kinematics import (
     tip,
 )
 from verladearm_vision.kinematics import tip as model_tip  # in Job 2 ist `tip` ein Messwert
+from verladearm_vision.konsole import quickedit_aus
 from verladearm_vision.plc import (
     JOB_CORRECT,
     JOB_MEASURE_PLAN,
@@ -516,6 +517,7 @@ class VisionService:
 
 
 def main():
+    quickedit_aus()  # Windows: Klick ins Fenster soll das Programm nicht anhalten
     parser = argparse.ArgumentParser(description="Verladearm Vision-Dienst")
     parser.add_argument("--config", default="vision/config/default.yaml")
     parser.add_argument("--once", action="store_true",

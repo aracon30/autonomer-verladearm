@@ -12,6 +12,8 @@ simuliert.
 `openings` (z. B. [1, 2, 3]): Zahl der offenen Dome je Fahrzeug, zufällig daraus gewählt
 (Mehrkammer-Tankwagen bzw. mehrere Dome je Tank), `dome_pitch` ihr Abstand (Kammerlänge).
 `vehicles`: Fahrzeugtypen im Wechsel (z. B. nur [lkw]), `domes`: Dombauarten (offen, armatur).
+`front` (aus `vehicle.front` der Anlagendatei): Fahrzeugfront; dort steht die Zugmaschine mit
+Führerhaus vor dem vordersten Dom (Dom 1).
 `backlash_deg` simuliert das Getriebespiel je Achse (aus dem Abschnitt `drives` der
 Anlagendatei): Das Gelenk bleibt je nach letzter Fahrtrichtung um die halbe Spielweite zurück,
 Hubachsen (`backlash_preload`) hängen immer um die halbe Spielweite tiefer.
@@ -48,7 +50,7 @@ class SimulatedScene:
                  marker_offset=0.8, empty=False, sensor_matrix=None, lid=True,
                  backlash_deg=(0.0, 0.0, 0.0), backlash_preload=(False, False, True),
                  pipe_radius=0.06, domes=("offen", "armatur"), walkways=0.5, foreign=0.0,
-                 openings=(1,), dome_pitch=None, seed=None):
+                 openings=(1,), dome_pitch=None, front=None, seed=None):
         self.geom, self.transform = geom, transform
         self.vehicles = list(vehicles)
         self.joint_error = np.radians(np.asarray(joint_error_deg, dtype=float))
@@ -72,6 +74,8 @@ class SimulatedScene:
         self.walkways = walkways  # Anteil Fahrzeuge mit Laufstegen am Dom
         self.openings = [int(n) for n in openings]  # Zahl offener Dome, zufällig je Fahrzeug
         self.dome_pitch = dome_pitch  # Abstand der Dome (Kammerlänge); None = Fahrzeugtyp
+        # Fahrzeugfront (Armbasis, x/y): Zugmaschine auf dieser Seite; None = ohne Zugmaschine
+        self.front = None if front is None else np.asarray(front, float)[:2]
         self.truth = None  # Sollwerte der Öffnung (Armbasis): center, diameter, dome, centers
         self.foreign = foreign  # Anteil Fahrzeuge mit Fremdkörper daneben (Leiter, Pfosten …)
         self.objects = []  # Fremdkörper als Quader (min, max) in Armbasis-Koordinaten
@@ -116,6 +120,7 @@ class SimulatedScene:
                                          lid_azimuth_deg=lid_az,
                                          lid_open_deg=float(self.rng.uniform(95, 115)),
                                          dome=dome, walkways=walk, dome_pitch=pitch,
+                                         cab_side=self._cab_side(),
                                          seed=int(self.rng.integers(1 << 30)), return_info=True)
         self.tank = tank_s  # Sensorkoordinaten; Sollwert über die tatsächliche Sensorlage
         c = self.true_t[:3, :3] @ info["center"] + self.true_t[:3, 3]
@@ -123,10 +128,20 @@ class SimulatedScene:
                       "diameter": info["diameter"], "dome": dome, "walkways": walk,
                       "centers": [self.true_t[:3, :3] @ p + self.true_t[:3, 3]
                                   for p, _ in info["domes"]]}
+        if "cab" in info:  # Führerhaus als Quader in Armbasis-Koordinaten
+            c = np.array([self.true_t[:3, :3] @ p + self.true_t[:3, 3] for p in info["cab"]])
+            self.truth["cab"] = (c.min(axis=0), c.max(axis=0))
         self.kind = kind
         self.objects = []
         if self.foreign and self.rng.uniform() < self.foreign:
             self.place_object()
+
+    def _cab_side(self):
+        """Seite der Zugmaschine entlang der Tankachse (Sensor-y): +1, −1 oder None."""
+        if self.front is None:
+            return None
+        d = self.true_t[:3, :3].T @ np.array([self.front[0], self.front[1], 0.0])
+        return 1 if d[1] >= 0 else -1
 
     def _arm_points(self, q, spacing=0.012):
         pts = forward(self.geom, q)

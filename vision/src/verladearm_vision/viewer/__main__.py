@@ -26,7 +26,6 @@ from verladearm_vision.detection import (
     DetectionError,
     DetectorConfig,
     OutletConfig,
-    detect_opening,
     detect_outlet,
 )
 from verladearm_vision.kinematics import (
@@ -47,7 +46,7 @@ from verladearm_vision.kinematics import (
 from verladearm_vision.kinematics import tip as model_tip
 from verladearm_vision.plc import VARIABLES
 from verladearm_vision.scene import SceneConfig, build_obstacles
-from verladearm_vision.service.main import build_source
+from verladearm_vision.service.main import build_source, find_domes, vehicle_settings
 
 log = logging.getLogger("verladearm.viewer")
 
@@ -69,6 +68,7 @@ class FrameProducer:
         self.outlet_cfg = OutletConfig(**cfg.get("outlet", {}))
         self.scene_cfg = SceneConfig(**cfg.get("scene", {}))
         self.products = cfg.get("products")
+        self.front, self.lane = vehicle_settings(cfg)
         self.max_points = max_points
         self.rng = np.random.default_rng()
         self.frame_id = 0
@@ -84,9 +84,11 @@ class FrameProducer:
             frame_id = self.frame_id
 
         t0 = time.perf_counter()
-        op = None
-        try:
-            op = detect_opening(points, self.det_cfg)
+        op, ops = None, []
+        try:  # alle offenen Dome von vorn; gezeigt wird Dom 1 (wie DomeNo 1)
+            ops = find_domes(points, self.transform, self.geom, self.det_cfg, self.scene_cfg,
+                             self.front, self.lane, self.geom.park)
+            op = ops[0]
             result = {
                 "ok": True,
                 "error_code": 0,
@@ -108,6 +110,8 @@ class FrameProducer:
         arm = arm_for_view(geom, result, 0, self.products, self.outlet_cfg)
         frame.update(id=frame_id, detect_ms=round(detect_ms, 1), result=result, scene=scene,
                      arm=arm, vehicle=vehicle_for_view(op, self.transform),
+                     front=self.front.round(4).tolist(),
+                     domes=domes_for_view(ops, self.transform),
                      relief=dome_relief(points, self.transform, op, self.geom, q_park),
                      passage=passage_for_view(op, self.transform, scene, arm))
         if sim and frame["arm"].get("ok"):
@@ -237,6 +241,11 @@ def passage_for_view(op, transform: SensorToArm, scene: dict | None, arm: dict) 
             "depth": arm.get("insertion_depth", 0.4)}
 
 
+def domes_for_view(ops, transform: SensorToArm) -> list:
+    """Domränder (Armbasis, m) von vorn nach hinten wie im Vision-Dienst: Index 0 = Dom 1."""
+    return [transform.point(op.center).round(3).tolist() for op in ops]
+
+
 def vehicle_for_view(op, transform: SensorToArm) -> dict | None:
     """Tankform für die Anzeige (Armbasis, m). Fahrzeugart grob aus dem Tankradius geschätzt."""
     if op is None:
@@ -326,6 +335,7 @@ class PlcMonitor:
         self.det_cfg = DetectorConfig(**cfg.get("detection", {}))
         self.outlet_cfg = OutletConfig(**cfg.get("outlet", {}))
         self.scene_cfg = SceneConfig(**cfg.get("scene", {}))
+        self.front, self.lane = vehicle_settings(cfg)
         self.max_points = max_points
         self.rng = np.random.default_rng()
         self.lock = threading.Lock()
@@ -420,10 +430,15 @@ class PlcMonitor:
             )
         job = int(v.get("Job") or 0)
         points = np.load(self.snapshot) if self.snapshot and self.snapshot.exists() else None
-        op = None
+        op, ops = None, []
+        q_act = self._model([v["ActualJ1"], v["ActualJ2"], v["ActualJ3"]])
         if points is not None and ok and job != 3:  # Tankform und Hindernisse für die Anzeige
-            try:
-                op = detect_opening(points, self.det_cfg)
+            try:  # alle Dome wie im Vision-Dienst; gezeigt wird der von der SPS gewählte
+                ops = find_domes(points, self.transform, self.geom, self.det_cfg,
+                                 self.scene_cfg, self.front, self.lane, q_act)
+                target = np.asarray(result["target_mm"]) / 1000.0
+                op = min(ops, key=lambda o: np.linalg.norm(self.transform.point(o.center)
+                                                           - target))
             except DetectionError:
                 pass
         geom, scene = scene_geom(self.geom, op, self.transform, points, self.outlet_cfg,
@@ -439,9 +454,10 @@ class PlcMonitor:
             frame["servo_target"] = [round(float(v[k][n - 1]), 2)
                                      for k in ("WaypointsJ1", "WaypointsJ2", "WaypointsJ3")]
         if points is not None:
-            q_act = self._model([v["ActualJ1"], v["ActualJ2"], v["ActualJ3"]])
             frame.update(points_for_view(points, self.transform, self.max_points, self.rng,
                                          self.geom, q_act))
+            frame["front"] = self.front.round(4).tolist()
+            frame["domes"] = domes_for_view(ops, self.transform)
             if op is not None:
                 frame["vehicle"] = vehicle_for_view(op, self.transform)
                 frame["relief"] = dome_relief(points, self.transform, op, self.geom, q_act)

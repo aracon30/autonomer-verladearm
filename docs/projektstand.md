@@ -1,4 +1,6 @@
-# Projektstand Verladearm (Stand 27.10.2026)
+# Projektstand Verladearm (Stand 09.11.2026)
+
+**Auftragsnummer HETA: K-04896/26** (intern; nicht in Unterlagen für Lieferanten bzw. Peter).
 
 Überblick über Entscheidungen, Lieferantenanfragen und offene Punkte. Details stehen in den
 verlinkten Dokumenten.

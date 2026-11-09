@@ -4,11 +4,13 @@ rem Live-Ansicht in je einem eigenen Fenster.
 rem
 rem   tools\simulation.bat              Dauertest (Verladung auf Verladung)
 rem   tools\simulation.bat bedienen     selbst bedienen im Fenster "SPS-Simulator" (? = Hilfe)
+rem   tools\simulation.bat echtzeit     alles in echter Zeit (Befuellung je Kammer ca. 25 min)
+rem   tools\simulation.bat bedienen echtzeit   beides
 rem
 rem Voraussetzung: Python ab 3.10 von python.org (beim Installieren "Add python.exe to PATH").
 rem Beim ersten Start wird .venv angelegt und alles installiert (Internet noetig, ca. 2 min).
 rem Beenden: die drei Fenster schliessen.
-setlocal
+setlocal EnableDelayedExpansion
 cd /d "%~dp0\.."
 set CONFIG=vision\config\anlagen\simulation.yaml
 set PORT=8000
@@ -28,7 +30,11 @@ set PY=%CD%\.venv\Scripts\python.exe
 if not exist data\logs mkdir data\logs
 
 set SPS_ARGS=tools\plc_simulator.py --config %CONFIG% --zeitraffer 0.25
-if /i "%1"=="bedienen" set SPS_ARGS=%SPS_ARGS% --bedienen
+set BEDIENEN=
+for %%A in (%*) do (
+  if /i "%%A"=="bedienen" set BEDIENEN=1& set SPS_ARGS=!SPS_ARGS! --bedienen
+  if /i "%%A"=="echtzeit" set SPS_ARGS=!SPS_ARGS! --echtzeit
+)
 
 start "SPS-Simulator" cmd /k ""%PY%" -u %SPS_ARGS%"
 timeout /t 3 /nobreak >nul
@@ -40,5 +46,5 @@ start "" http://127.0.0.1:%PORT%
 echo.
 echo Simulation laeuft in drei Fenstern: SPS-Simulator, Vision-Dienst, Live-Ansicht.
 echo Live-Ansicht: http://127.0.0.1:%PORT%  (oeffnet sich im Browser)
-if /i "%1"=="bedienen" echo Bedienung: Befehle im Fenster "SPS-Simulator" eingeben (? = Hilfe).
+if defined BEDIENEN echo Bedienung: Befehle im Fenster "SPS-Simulator" eingeben (? = Hilfe).
 echo Beenden: die drei Fenster schliessen.

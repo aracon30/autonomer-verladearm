@@ -78,7 +78,8 @@ verlinkten Dokumenten.
 - [x] SICK-Kamera bestellt (Einkauf, 09.11., Laboraktion 900 €)
 - [x] Mail an SEW (Herr Lay) gesendet 10.11.: Positioning Drive über EtherCAT an TwinCAT 3, ESI-Datei, STO festverdrahtet über CSO, Auslegung Bremswiderstände – **Antwort offen**; danach Umrichter bestellen (Angebot 426368452D; 426533683 überholt)
 - [x] Mail an BASF (Silas) gesendet 09.11.: Sensortest, ein Grenzschalter (10–15 cm, Hub 5 cm, Auslass 5–15 cm unter Spiegel), eigene Überfüllsicherung baugleich (Typ, Auswertung, Schaltpunkt, Zulassung), Signale Leitstelle/Pumpe – **Antwort offen**
-- [ ] SEW-Servos J1/J2 bestellen (Pos. 01/02 aus 426368452D, frei); Umrichter erst nach Antwort SEW (EtherCAT oder PROFINET); IMO-Antwort J3 abwarten
+- [x] SEW-Servos J1/J2 bestellt über Einkauf (Udo, 10.11., Pos. 01/02 aus 426368452D, 4.202,68 €, Lieferzeit 4–6 Wochen)
+- [ ] Umrichter erst nach Antwort SEW (EtherCAT oder PROFINET); IMO-Antwort J3 abwarten
 - [ ] Mit Peter: Überfüll-Abschaltung (Klappe/Pumpe, F-SPS), Kammerwahl vor Ort oder Leitstelle
 - [ ] Konstruktion: aufliegende Lanze kurz (ca. 20 cm), Führung ohne klemmende Hülse; Halter
   Grenzschalter; **Abtropfsicherung rein mechanisch** nach `docs/skizzen/Prinzipskizze_Abtropfsicherung_Rev6.pdf` (Dom-Abdeckung mit Überfüllsicherung, Pendelwanne vom Rohrende aufgedrückt, Feder schließt; Alternative Rev. 5)

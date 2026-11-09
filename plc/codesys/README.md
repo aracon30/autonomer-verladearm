@@ -1,6 +1,11 @@
 # SPS-Programm Prototyp in CODESYS (Entwurf)
 
-Stand 02.11.2026 · **Entwurf, nicht übersetzt und nicht getestet.** Strukturierter Text
+Stand 02.11.2026 · **Entwurf, nicht übersetzt und nicht getestet.**
+
+> **09.11.2026: Entschieden ist TwinCAT 3 auf dem Beckhoff-IPC (Peter).** TwinCAT basiert auf CODESYS;
+> der Strukturierte Text hier lässt sich weitgehend übernehmen (GVL, DUT, FB, PRG). Abweichungen:
+> E/A-Zuordnung im TwinCAT-Projekt, OPC UA über TF6100, Achsen über EtherCAT bzw. PROFINET je nach
+> Feldbusentscheidung. Strukturierter Text
 (IEC 61131-3) nach bestem Wissen. Beim Anlegen in CODESYS zeigt der Compiler Tippfehler und
 fehlende Typumwandlungen an.
 

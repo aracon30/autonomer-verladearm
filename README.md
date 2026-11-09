@@ -1,21 +1,35 @@
 # Autonomer Verladearm
 
-Erkennung der Domöffnung von Tankwagen per 3D-Sensorik und Übergabe der Zielkoordinate an die SPS
-für einen autonomen Verladearm (Obenbefüllung).
+Autonomer Obenbefüllarm für Lkw-Tankwagen (Prototyp HETA, Erprobung an einer Verladestelle für
+Polymerdispersionen): Eine 3D-Kamera erkennt die offenen Dome, der Vision-PC plant eine
+kollisionsfreie Bahn, die SPS fährt den Arm ein, zieht beim Befüllen nach und fährt zurück in die
+Parkstellung.
 
 ## Architektur
 
 ```
-3D-Sensor ──► Vision-PC (dieses Repo) ──OPC UA──► SPS ──► Antriebe Verladearm
-                                                   │
-Füllstand / Überfüllsicherung ────────────────────►┤
-Sicherheitssensorik ──► Sicherheits-SPS ──────────►┘──► PLS
+3D-Kamera (SICK Visionary-T Mini CX)
+      │ Ethernet
+      ▼
+Vision-Software (dieses Repo) ──OPC UA──► SPS: Beckhoff-IPC, TwinCAT 3 ──PROFINET/EtherCAT──► 3 × SEW MOVITRAC
+                                            │  TwinSAFE: Not-Halt, Zustimmung, STO (festverdrahtet)
+Grenzschalter Nachziehen (IO-Link) ────────►┤
+Absperrklappe (auf/zu, Endlagen) ◄─────────►┤
+Leitstelle/Pumpe BASF ◄────────────────────►┘  „Befüllung Start/Ende“, „Arm bereit“, „Befüllung stoppen“
+Überfüllsicherung (Liquiphant) ──────────────► schaltet die Pumpe direkt ab (Meldung an die SPS)
 ```
 
 Der Vision-PC misst Domöffnung, Tank und offenen Deckel und liefert eine **kollisionsgeprüfte Bahn
 als Stützpunkte in Servo-Grad**. Die SPS prüft sie und fährt; Ablauf und Sicherheit liegen in der
 SPS (siehe [ADR 0001](docs/adr/0001-architektur.md), [ADR 0002](docs/adr/0002-gelenkwinkel-vom-pc.md),
 [Schnittstelle](docs/schnittstelle.md), [Kinematik und Bahnplanung](docs/kinematik.md)).
+
+**Aufgabenteilung bei der Befüllung:** Menge, Pumpe und Füllende steuert die Leitstelle. Der Arm
+positioniert den Auslass, öffnet die Absperrklappe erst, wenn er im Tank steht, und zieht über
+**einen Grenzschalter** (ca. 10–15 cm über dem Auslass, Hub ca. 5 cm) nach. Bei Störung oder
+Maximalhöhe meldet er „Befüllung stoppen“: erst Pumpe aus, dann Klappe zu. Die Überfüllsicherung
+sitzt auf einer Dom-Abdeckung, die mit dem Arm auf den Domkasten gesetzt wird; eine mechanische
+Pendelwanne fängt das Nachtropfen ([Skizze Rev. 6](docs/skizzen/Prinzipskizze_Abtropfsicherung_Rev6.pdf)).
 
 ## Schnellstart
 
@@ -45,8 +59,10 @@ Rampen, Getriebespiel; Fahrten im Zeitraffer, `ZEITRAFFER=1` für Echtzeit). Liv
 Logs unter `data/logs/`, Beenden mit Strg+C. Eine im Konfigurator angelegte Anlage simulieren:
 `tools/simulation.sh --netz --anlage <name>` (Datei `vision/config/anlagen/<name>.yaml`).
 
-Die Simulation bildet den aktuellen Stand ab (03.11.2026, `hardware/antriebe.md`,
-`docs/fuellstand_ueberfuellsicherung.md`):
+Die Simulation bildet den Stand vom 03.11.2026 ab (`hardware/antriebe.md`,
+`docs/fuellstand_ueberfuellsicherung.md`). **Noch nicht nachgezogen** sind die Entscheidungen vom
+09.11.: ein Grenzschalter statt zwei, Füllende über die Leitstelle statt über die Sollmenge,
+Dom-Abdeckung mit Pendelwanne.
 - **Arm** mit den Maßen aus dem Konfigurator (Flansch 7,34 m über Fahrbahn, Auslass 3,7 m) und
   den SEW-Antrieben.
 - **Nur Lkw-Tankwagen** (Tank Ø 2,2 m, Domrand 3,4–3,9 m über Fahrbahn, Mannloch offen) mit
@@ -145,9 +161,13 @@ Siehe [Kalibrierung](docs/kalibrierung.md) und [Betrieb](docs/betrieb.md).
 
 | Ordner | Inhalt |
 |---|---|
-| `docs/` | **[Projektstand](docs/projektstand.md)** (Entscheidungen, Anfragen, offene Punkte), Lastenheft, Schnittstelle, Kinematik, Inbetriebnahme, Kalibrierung, Betrieb, Architekturentscheidungen, [Ideenspeicher](docs/ideenspeicher.md) (Open-Source-Bausteine, zurückgestellte Erweiterungen), [Füllstand und Überfüllsicherung](docs/fuellstand_ueberfuellsicherung.md) |
-| `hardware/` | Stückliste, Halterungen, Elektro (Sensor: [docs/sensor_sick.md](docs/sensor_sick.md)) |
-| `plc/` | Schnittstellen-DB für TIA Portal |
+| `docs/` | **[Projektstand](docs/projektstand.md)** (Entscheidungen, Anfragen, Bestellungen, offene Punkte), Lastenheft, Schnittstelle, Kinematik, Inbetriebnahme, Kalibrierung, Betrieb, Architekturentscheidungen, [Ideenspeicher](docs/ideenspeicher.md), [Füllstand und Überfüllsicherung](docs/fuellstand_ueberfuellsicherung.md), [Kunde](docs/kunde_basf_h517.md) |
+| `docs/skizzen/` | Prinzipskizzen (Abtropfsicherung Rev. 6, Überfüll-Lanze) |
+| `docs/entwicklung/` | Entwicklungsakte nach ISO 9001 Kap. 8.3 (Plan, Anforderungsnachweis, Reviews, Änderungen, Dokumentenliste) |
+| `docs/foerderung/` | Entwurf BSFZ-Antrag Forschungszulage |
+| `docs/extern/` | Unterlagen für Kunde und Lieferanten (Betriebsanleitung, Softwaredokumentation, Antriebsliste) |
+| `hardware/` | [Antriebe](hardware/antriebe.md) (SEW, IMO), Stückliste, [Stückliste Prototyp-Steuerung](hardware/stueckliste_prototyp_steuerung.md), Anfragen; Kamera: [docs/sensor_sick.md](docs/sensor_sick.md) |
+| `plc/` | Schnittstellen-DB, SPS-Programm-Entwurf in Strukturiertem Text (`plc/codesys/`, Basis für TwinCAT 3) |
 | `vision/src/verladearm_vision/` | acquisition, detection, calibration, kinematics, plc, service, viewer |
 | `vision/config/` | Konfiguration: `default.yaml`, Anlagendateien unter `anlagen/` |
 | `vision/tests/` | Tests |
@@ -161,8 +181,20 @@ Siehe [Kalibrierung](docs/kalibrierung.md) und [Betrieb](docs/betrieb.md).
 - Releases taggen (`v0.1.0` …); `InterfaceVersion` mit der SPS abstimmen.
 - Messdaten nicht einchecken, siehe [data/README.md](data/README.md).
 
-## Status
+## Status (10.11.2026)
 
-Prototyp. Erkennung für ebene und runde Tanks (Lkw, Kesselwagen) mit Domkragen auf synthetischen
-Daten getestet. Treiber für den SICK Visionary-T Mini CX vorhanden, am echten Gerät noch nicht
-erprobt; Kalibrierung und Messungen an echten Fahrzeugen folgen.
+Prototyp in Entwicklung.
+
+- **Software:** Erkennung (auch mehrere Dome, Schnittstelle Version 3), Bahnplanung, Simulation und
+  Konfigurator auf synthetischen Daten getestet. Treiber für die SICK-Kamera vorhanden, am echten
+  Gerät noch nicht erprobt.
+- **Bestellt:** SICK Visionary-T Mini CX, SEW-Servos J1/J2.
+- **Entschieden:** Steuerung TwinCAT 3 auf Beckhoff-IPC (Schaltschrank und Grundsoftware über
+  Automatisierungspartner), Befüllung über die Leitstelle, ein Grenzschalter, mechanische
+  Abtropfsicherung.
+- **Offen:** Feldbus der Umrichter (Antwort SEW), J3-Schwenktrieb (Lastfall mit langem Auslass,
+  IMO), Sensoren und Überfüllsicherung (Antwort Kunde), Angebot Schaltschrank/Software.
+- **Nächste Schritte:** Aufnahmen an echten Tankwagen mit der Kamera, Simulation und SPS-Entwurf
+  auf den Stand vom 09.11. bringen, Konstruktion Dom-Abdeckung.
+
+Details: [Projektstand](docs/projektstand.md).

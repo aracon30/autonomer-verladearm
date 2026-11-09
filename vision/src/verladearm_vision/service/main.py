@@ -144,6 +144,10 @@ class VisionService:
         self.move_waypoints = int(planning.get("move_waypoints", 3))
         self.insert_waypoints = int(planning.get("insert_waypoints", 5))
         self.plan_time_limit = float(planning.get("time_limit_s", 3.5))
+        # Antwort spätestens nach job_budget_s (Zeitüberwachung SPS 5 s): die Suche nach Umwegen
+        # bekommt nur die Zeit, die nach Aufnahme und Erkennung noch übrig ist
+        self.job_budget = float(planning.get("job_budget_s", 4.5))
+        self._t_job = None
         snapshot = (cfg.get("snapshot") or {}).get("path")
         self.snapshot = Path(snapshot) if snapshot else None
         self.last = None  # Ziel aus Job 1: target_mm, normal, depth, diameter, confidence
@@ -154,6 +158,14 @@ class VisionService:
         self._info = {}
 
     # --- Hilfen ---------------------------------------------------------------------------
+    def _plan_time(self) -> float:
+        """Zeit für die Bahnsuche: höchstens time_limit_s und nur so viel, dass der Auftrag
+        innerhalb von job_budget_s beantwortet ist (mindestens 0,3 s)."""
+        if self._t_job is None:
+            return self.plan_time_limit
+        left = self.job_budget - (time.perf_counter() - self._t_job)
+        return max(0.3, min(self.plan_time_limit, left))
+
     def _grab(self, req: Request) -> np.ndarray:
         if hasattr(self.source, "prepare"):  # Simulation: Stellung des Arms mitgeben
             self.source.prepare(req.job, req.actual_deg if req.axes_homed else None)
@@ -225,7 +237,7 @@ class VisionService:
     # --- Aufträge -------------------------------------------------------------------------
     def __call__(self, req: Request) -> MeasureResult:
         self._points, self._info = None, {}
-        t0 = time.perf_counter()
+        t0 = self._t_job = time.perf_counter()
         result = self._dispatch(req)
         self._info["gesamt_ms"] = round((time.perf_counter() - t0) * 1000, 1)
         self.recorder.save(req, result, self._points, self._info)
@@ -372,7 +384,7 @@ class VisionService:
             if q_lift is not None:
                 q_start, lift = np.asarray(q_lift[-1]), [q_act, q_lift[-1]]
         plan = plan_motion(scene_geom, res.target_mm, res.normal, insertion_depth=depth,
-                           q_start=q_start, time_limit=self.plan_time_limit)
+                           q_start=q_start, time_limit=self._plan_time())
         self._info.update(eintauchtiefe_m=depth, szene=scene_info,
                           umweg=len(plan.get("move_vias") or []) > 1)
         if not plan["ok"]:
@@ -476,7 +488,7 @@ class VisionService:
             lift = self.geom.approach_height + self.geom.approach_lift + max(depths)
         plan = plan_retract(scene, q_act, lift,
                             fallback=(self.last or {}).get("approach"),
-                            time_limit=self.plan_time_limit)
+                            time_limit=self._plan_time())
         self._info["rueckfahrt_rueckwaerts"] = bool(plan.get("reversed"))
         if not plan["ok"]:
             return self._fail(plan["code"], plan["reason"])

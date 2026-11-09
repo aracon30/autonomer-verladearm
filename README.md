@@ -119,6 +119,7 @@ herunterladen oder klonen, dann im Ordner doppelklicken bzw. starten:
 ```bat
 tools\simulation.bat            :: Dauertest
 tools\simulation.bat bedienen   :: selbst bedienen im Fenster „SPS-Simulator“ (? = Hilfe)
+tools\konfigurator.bat          :: Konfigurator, http://127.0.0.1:8090
 ```
 
 Es öffnen sich drei Fenster (SPS-Simulator, Vision-Dienst, Live-Ansicht) und der Browser mit

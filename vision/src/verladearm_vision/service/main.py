@@ -76,6 +76,37 @@ def _params_for(cls, cfg: dict) -> dict:
     return {k: v for k, v in cfg.items() if k in accepted}
 
 
+def vehicle_settings(cfg: dict):
+    """Richtung zur Fahrzeugfront (Armbasis, waagerecht, Einheitsvektor) und eigene Spur
+    (Mitte, Breite) oder None aus dem Abschnitt `vehicle`."""
+    vehicle = cfg.get("vehicle") or {}
+    front = np.asarray(vehicle.get("front", (0.0, 1.0)), float)[:2]
+    lane = None
+    if vehicle.get("lane_center") is not None and vehicle.get("lane_width"):
+        lane = (np.asarray(vehicle["lane_center"], float)[:2], float(vehicle["lane_width"]))
+    return front / np.linalg.norm(front), lane
+
+
+def find_domes(points, transform: SensorToArm, geom: ArmGeometry, det_cfg, scene_cfg,
+               front, lane=None, q_act=None):
+    """Alle offenen Dome einer Aufnahme, von vorn (Fahrzeugfront) nach hinten sortiert.
+
+    Steht der Arm noch über einem Dom (nächste Kammer), werden seine Punkte über dem Auslassende
+    entfernt, damit dieser Dom weiter mitzählt. Mit `lane` zählt nur die eigene Spur.
+    Löst DetectionError aus, wenn keine Öffnung gefunden wird."""
+    arm = points @ transform.T[:3, :3].T + transform.T[:3, 3]
+    keep = np.ones(len(points), bool)
+    if q_act is not None:
+        keep = (not_arm(arm, geom, q_act, scene_cfg)
+                | (arm[:, 2] < tip(geom, q_act)[2] - 0.1))
+    if lane is not None:  # quer zur Fahrtrichtung höchstens halbe Spurbreite
+        center, width = lane
+        cross = np.array([-front[1], front[0]])
+        keep &= np.abs((arm[:, :2] - center) @ cross) <= width / 2
+    openings = detect_openings(points[keep], det_cfg)
+    return sorted(openings, key=lambda op: -(transform.point(op.center)[:2] @ front))
+
+
 def build_source(cfg: dict, full_cfg: dict | None = None):
     kind = cfg["type"]
     if kind == "file":
@@ -89,6 +120,9 @@ def build_source(cfg: dict, full_cfg: dict | None = None):
         for key in ("marker_radius", "marker_offset", "pipe_radius"):
             if key in outlet and key not in params:
                 params[key] = outlet[key]
+        front = (full_cfg.get("vehicle") or {}).get("front")
+        if front is not None and "front" not in params:  # Zugmaschine auf der Frontseite
+            params["front"] = front
         drives = Drives.from_config(full_cfg.get("drives"))
         if drives.configured and "backlash_deg" not in params:  # Getriebespiel der Antriebe
             params.update(backlash_deg=drives.backlash().tolist(),
@@ -131,15 +165,8 @@ class VisionService:
         self.outlet_cfg = OutletConfig(**cfg.get("outlet", {}))
         self.scene_cfg = SceneConfig(**cfg.get("scene", {}))
         self.products = cfg.get("products")
-        # Richtung zur Fahrzeugfront (Armbasis, waagerecht): Dom 1 ist der vorderste
-        vehicle = cfg.get("vehicle") or {}
-        front = np.asarray(vehicle.get("front", (0.0, 1.0)), float)[:2]
-        self.front = front / np.linalg.norm(front)
-        # eigene Spur (Mitte, Breite): Dome nur dort suchen – Nachbarspur und -arme ausblenden
-        self.lane = None
-        if vehicle.get("lane_center") is not None and vehicle.get("lane_width"):
-            self.lane = (np.asarray(vehicle["lane_center"], float)[:2],
-                         float(vehicle["lane_width"]))
+        # Richtung zur Fahrzeugfront (Dom 1 = vorderster) und eigene Spur (Dome nur dort suchen)
+        self.front, self.lane = vehicle_settings(cfg)
         planning = cfg.get("planning", {})
         self.move_waypoints = int(planning.get("move_waypoints", 3))
         self.insert_waypoints = int(planning.get("insert_waypoints", 5))
@@ -266,18 +293,9 @@ class VisionService:
         Mit `vehicle.lane_*` zählt nur die eigene Spur. Hindernisse kommen weiter aus der ganzen
         Aufnahme (auch Nachbarspur)."""
         points = self._grab(req)
-        arm = self._arm_points(points)
-        keep = np.ones(len(points), bool)
-        if q_act is not None:
-            keep = (not_arm(arm, self.geom, q_act, self.scene_cfg)
-                    | (arm[:, 2] < tip(self.geom, q_act)[2] - 0.1))
-        if self.lane is not None:  # quer zur Fahrtrichtung höchstens halbe Spurbreite
-            center, width = self.lane
-            cross = np.array([-self.front[1], self.front[0]])
-            keep &= np.abs((arm[:, :2] - center) @ cross) <= width / 2
-        points = points[keep]
         try:
-            openings = detect_openings(points, self.det_cfg)
+            openings = find_domes(points, self.transform, self.geom, self.det_cfg,
+                                  self.scene_cfg, self.front, self.lane, q_act)
         except DetectionError as e:
             return self._fail(e.code, str(e)), []
         domes = []
@@ -291,7 +309,6 @@ class VisionService:
                 dome_count=len(openings),
             )
             domes.append((res, op))
-        domes.sort(key=lambda d: -(np.asarray(d[0].target_mm[:2]) @ self.front))
         for i, (res, _) in enumerate(domes):
             res.dome_selected = i + 1
         self._info["dome"] = [d[0].target_mm for d in domes]

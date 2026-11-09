@@ -84,6 +84,10 @@ Referenzflansch.
   eine Füllung, ohne Umweg über die Parkstellung). Schnittstelle: `DomeNo`, `DomeCount`,
   `DomeSelected` (`docs/schnittstelle.md`).
 
+Der simulierte Lkw hat seine **Zugmaschine auf der Frontseite** (`vehicle.front`, im Konfigurator
+„Fahrtrichtung“); die Live-Ansicht zeigt einen Pfeil „Front“ und über den offenen Domen die
+Nummern, wie sie die SPS als `DomeNo` verwendet (1 = vorderster offener Dom).
+
 Mehrere Kammern gezielt: `tools/simulation.sh --kammern 3` (jedes Fahrzeug mit 3 Kammern; der
 Dauertest wechselt weiter zwischen „verbunden“ und „Mehrkammer“). Im Bedienmodus wählt `k 1 2 3`
 die Kammern des Auftrags.

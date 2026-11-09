@@ -308,3 +308,24 @@ def test_job1_aus_park_wiederholt_misst_dasselbe_fahrzeug():
     r1 = s(Request(job=1, dome_no=1, actual_deg=park(s), axes_homed=True))
     assert r0.ok and r1.ok, (r0.message, r1.message)
     assert r0.dome_count == r1.dome_count == 3
+
+
+@pytest.mark.parametrize("front", [(0.0, 1.0), (0.0, -1.0)])
+def test_zugmaschine_vorn_und_dom1_daneben(front):
+    """Simulierter Lkw mit Zugmaschine auf der Frontseite (vehicle.front): Dom 1 ist der Dom
+    direkt hinter dem Führerhaus und bleibt trotz des Führerhauses anfahrbar."""
+    cfg = load_config(BEISPIEL.with_name("simulation.yaml"))
+    cfg["vehicle"] = dict(cfg["vehicle"], front=list(front))
+    cfg["source"] = {"type": "sim", "seed": 1, "joint_error_deg": [0.3, -0.25, 0.2],
+                     "openings": [3], "domes": ["offen"]}
+    cfg["recording"] = {"enabled": False}
+    cfg["snapshot"] = {"path": None}
+    s = VisionService(cfg)
+    r = s(Request(job=1, dome_no=1, actual_deg=park(s), axes_homed=True))
+    assert r.ok, r.message
+    lo, hi = s.source.truth["cab"]
+    cab_y = (lo[1] + hi[1]) / 2
+    y = [c[1] for c in s.source.truth["centers"]]
+    assert np.sign(cab_y - np.mean(y)) == np.sign(front[1])  # Führerhaus vorn
+    nearest = min(y, key=lambda v: abs(v - cab_y))
+    assert abs(r.target_mm[1] / 1000 - nearest) < 0.05  # Dom 1 = Dom am Führerhaus

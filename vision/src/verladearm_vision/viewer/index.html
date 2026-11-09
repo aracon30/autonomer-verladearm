@@ -372,11 +372,52 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     m.position.set(x, y, z);
     parent.add(m);
   }
-  function buildVehicle(v) {
+  // Text als Schild (Dom-Nummern, Fahrtrichtung)
+  function label(text, color, size = 0.5) {
+    const c = document.createElement("canvas");
+    c.width = 256; c.height = 128;
+    const k = c.getContext("2d");
+    k.fillStyle = "rgba(0,0,0,0.55)";
+    k.beginPath(); k.roundRect(8, 8, 240, 112, 24); k.fill();
+    k.fillStyle = color; k.font = "bold 72px sans-serif";
+    k.textAlign = "center"; k.textBaseline = "middle";
+    k.fillText(text, 128, 68);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false }));
+    sp.scale.set(size * 2, size, 1);
+    sp.renderOrder = 10;
+    return sp;
+  }
+  // Fahrtrichtung (Pfeil am Boden) und Nummern der offenen Dome (1 = vorderster, wie DomeNo)
+  const dirGroup = new THREE.Group();
+  scene.add(dirGroup);
+  function drawDirection(front, domes) {
+    dirGroup.clear();
+    if (!front) return;
+    const f = toView(front[0], front[1], 0); f.y = 0; f.normalize();
+    const list = domes || [];
+    const ref = list.length ? toView(...list[0]) : toView(3, 0, 0);
+    const side = new THREE.Vector3(-f.z, 0, f.x);                 // quer zur Fahrtrichtung
+    const start = ref.clone().addScaledVector(side, 1.9).addScaledVector(f, -1.5);
+    start.y = groundY + 0.05;
+    dirGroup.add(new THREE.ArrowHelper(f, start, 3.0, 0xf2b705, 0.6, 0.35));
+    const t = label("Front", "#f2b705", 0.3);
+    t.position.copy(start).addScaledVector(f, 3.5); t.position.y = groundY + 0.4;
+    dirGroup.add(t);
+    list.forEach((d, i) => {
+      const p = toView(...d);
+      const s = label(String(i + 1), "#ffffff", 0.28);
+      s.position.set(p.x, p.y + 0.7, p.z);
+      dirGroup.add(s);
+    });
+  }
+
+  function buildVehicle(v, front, domes) {
     vehicleGroup.clear();
     if (!v || v.kind === "eben" || !v.radius) return false;
     const R = v.radius, apex = toView(...v.apex), rim = toView(...v.rim);
     const ax = toView(...v.axis); ax.y = 0; ax.normalize();
+    // Tankachse zur Fahrzeugfront drehen: Zugmaschine steht vorn (Dom 1)
+    if (front) { const f = toView(front[0], front[1], 0); if (f.x * ax.x + f.z * ax.z < 0) ax.negate(); }
     // lokales System: x entlang der Tankachse, Ursprung auf der Achse unter dem Dom
     const g = new THREE.Group();
     g.position.set(apex.x, apex.y - R, apex.z);
@@ -384,7 +425,12 @@ ul.legend li{display:flex;align-items:center;gap:8px}
     vehicleGroup.add(g);
     const ground = groundY - (apex.y - R);
     const rail = v.kind === "kesselwagen";
-    const L = rail ? 12.0 : 8.5, off = rail ? 0 : -0.9;
+    let L = rail ? 12.0 : 8.5, off = rail ? 0 : -0.9;
+    if (!rail && domes && domes.length) {                               // Auflieger über alle Dome
+      const along = domes.map(d => { const p = toView(...d); return (p.x - rim.x) * ax.x + (p.z - rim.z) * ax.z; });
+      const fwd = Math.max(...along) + 0.9, back = Math.min(...along) - 1.5;
+      L = Math.max(L, fwd - back); off = fwd - L / 2;
+    }
 
     const shell = new THREE.Mesh(new THREE.CylinderGeometry(R - 0.03, R - 0.03, L, 48, 1, true), tankMat);
     shell.rotation.z = Math.PI / 2;
@@ -419,7 +465,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
       box(g, frameMat, L + 0.6, 0.25, 1.1, off, deck, 0);                // Rahmen Auflieger
       for (const x of [2.1, 3.45, 4.8]) for (const wz of [-0.95, 0.95]) wheel(g, 0.5, off - x + 1.0, ground + 0.5, wz);
       if (deck - 0.12 > ground + 1.0) box(g, frameMat, 0.35, deck - ground - 1.0, 0.35, off + L / 2 - 1.2, (deck + ground + 1.0) / 2, 0);
-      const cx = off + L / 2 + 1.7;                                        // Zugmaschine am fernen Ende
+      const cx = off + L / 2 + 1.7;                                        // Zugmaschine vorn (Fahrzeugfront)
       box(g, frameMat, 4.6, 0.3, 1.0, cx - 0.7, ground + 1.0, 0);
       box(g, cabMat, 2.1, 2.7, 2.45, cx + 0.4, ground + 1.2 + 1.35, 0);
       for (const x of [0.8, -1.6, -2.9]) for (const wz of [-0.95, 0.95]) wheel(g, 0.5, cx + x, ground + 0.5, wz);
@@ -782,6 +828,7 @@ ul.legend li{display:flex;align-items:center;gap:8px}
       loadFrame(f);
       ring.visible = normalArrow.visible = tank.visible = false;
       vehicleGroup.clear();
+      dirGroup.clear();
       beam.visible = pts.length > 0;
       enter("scan");
     } catch (e) {
@@ -889,7 +936,8 @@ ul.legend li{display:flex;align-items:center;gap:8px}
       if (!shown) {
         shown = true;
         const r = current.result;
-        buildVehicle(r.ok ? current.vehicle : null);
+        buildVehicle(r.ok ? current.vehicle : null, current.front, current.domes);
+        drawDirection(current.front, current.domes);
         colorPoints(true);
         showResult(current);
         if (r.ok) {

@@ -57,6 +57,7 @@ def make_tank_vehicle(
     dome="offen",
     walkways=False,
     dome_pitch=None,
+    cab_side=None,
     seed=0,
     return_info=False,
 ):
@@ -74,6 +75,9 @@ def make_tank_vehicle(
       (Be-/Entlüftung, Hebel). Maße zufällig in üblichen Grenzen.
     `walkways`: Laufstege (Gitterroste) links und rechts neben dem Dom, etwas über dem Dach.
     `dome_pitch`: Abstand der Dome entlang der Tankachse (None = Wert des Fahrzeugtyps).
+    `cab_side`: +1/−1 = Fahrzeugfront in Richtung Sensor +y/−y: dort endet der Auflieger ca. 0,9 m
+    vor dem vordersten Dom, davor steht die Zugmaschine (Führerhaus als Quader, Dach knapp unter
+    dem Domrand). None = Tank ohne Zugmaschine.
     `return_info`: zusätzlich Sollwerte (Mitte und Durchmesser der Füllöffnung, Sensor-Koordinaten).
     """
     v = VEHICLES[kind]
@@ -96,6 +100,9 @@ def make_tank_vehicle(
     x, y = np.meshgrid(ax, ax)
     x, y = x.ravel(), y.ravel()
     on_tank = np.abs(x - cx) < r_tank * 0.97
+    if cab_side:  # Auflieger endet kurz vor dem vordersten Dom
+        y_front = max(d[1] * cab_side for d in domes) * cab_side
+        on_tank &= cab_side * (y - y_front) < 0.9
     x, y = x[on_tank], y[on_tank]
     z = roof(x)
     keep = np.ones(len(x), dtype=bool)
@@ -180,6 +187,18 @@ def make_tank_vehicle(
             ok = (np.abs(mx - cx) < r_tank * 0.9) & (rng.uniform(0, 1, mx.size) > 0.45)
             mz = roof(mx[ok]) - rng.uniform(0.05, 0.12)
             parts.append(np.column_stack([mx[ok], my[ok], mz]))
+    if cab_side:  # Zugmaschine vor dem Auflieger
+        y_front = max(d[1] * cab_side for d in domes) * cab_side
+        y0, y1 = sorted((y_front + cab_side * 1.4, y_front + cab_side * 3.7))
+        top = height + rng.uniform(0.05, 0.35)  # Dach knapp unter dem Domrand
+        x0, x1 = cx - 1.25, cx + 1.25
+        gx, gy = np.meshgrid(np.arange(x0, x1, spacing * 1.5), np.arange(y0, y1, spacing * 1.5))
+        parts.append(np.column_stack([gx.ravel(), gy.ravel(), np.full(gx.size, top)]))
+        zs = np.arange(top, top + 1.6, spacing * 2)
+        for ya in (y0, y1):  # Front- und Rückwand
+            mz, mx = np.meshgrid(zs, np.arange(x0, x1, spacing * 2))
+            parts.append(np.column_stack([mx.ravel(), np.full(mx.size, ya), mz.ravel()]))
+        info["cab"] = (np.array([x0, y0, top]), np.array([x1, y1, top + 1.6]))
     pts = np.vstack(parts)
     pts += rng.normal(0, noise, pts.shape)
     clutter = rng.uniform([-1.5, -1.5, 1.0], [1.5, 1.5, height - 0.8], (300, 3))

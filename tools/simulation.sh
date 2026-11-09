@@ -6,6 +6,8 @@
 #   tools/simulation.sh --netz          Live-Ansicht im Netzwerk erreichbar (0.0.0.0)
 #   tools/simulation.sh --anlage NAME   Anlagendatei vision/config/anlagen/NAME.yaml simulieren
 #                                       (z. B. im Konfigurator angelegt; Standard: heta_prototyp)
+#   tools/simulation.sh --kammern 3     jedes Fahrzeug mit genau 3 Kammern (1–3; Standard: zufällig
+#                                       1, 2 oder 3)
 #   tools/simulation.sh --bedienen      selbst bedienen wie an der Anlage (Fahrzeug, Produkt,
 #                                       Start, Beladung beendet, Handbetrieb; ? = Hilfe)
 #                                       statt Dauertest (Verladung auf Verladung)
@@ -15,8 +17,8 @@
 #                                       (Ziel, Geschwindigkeit, Beschleunigung wie MOVIKIT
 #                                       Positioning Drive)
 #
-# Nur Lkw mit 1–3 Kammern; Befüllen von unten mit Nachziehen über zwei Grenzschalter, Füllende
-# über Sollmenge, Maximalhöhe, Überfüllsicherung: Abschnitte `source` und `filling` in
+# Nur Lkw mit 1–3 Kammern; Befüllen von unten mit Nachziehen über einen Grenzschalter, Füllende
+# über die Leitstelle, Maximalhöhe, Überfüllsicherung: Abschnitte `source` und `filling` in
 # vision/config/anlagen/simulation.yaml.
 #
 # Der HETA-Prototyp fährt mit den Geschwindigkeiten und Rampen seiner Antriebe
@@ -34,11 +36,13 @@ ZEITRAFFER="${ZEITRAFFER:-0.25}"
 HOST=127.0.0.1
 ANLAGE=""
 BEDIENEN=0
+KAMMERN=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --netz) HOST=0.0.0.0 ;;
     --bedienen) BEDIENEN=1 ;;
     --anlage) ANLAGE="${2:?Name der Anlagendatei fehlt}"; shift ;;
+    --kammern) KAMMERN="${2:?Zahl der Kammern fehlt}"; shift ;;
     *) echo "Unbekannte Option: $1"; exit 1 ;;
   esac
   shift
@@ -59,6 +63,18 @@ source:
   dome_pitch: 2.5
 plc:
   url: opc.tcp://127.0.0.1:4840/
+YAML
+fi
+if [[ -n "$KAMMERN" ]]; then
+  [[ "$KAMMERN" =~ ^[1-3]$ ]] || { echo "--kammern: 1, 2 oder 3"; exit 1; }
+  mkdir -p data
+  BASE="$CONFIG"; [[ "$BASE" == data/* ]] && BASE="${BASE#data/}" || BASE="../$BASE"
+  CONFIG="data/simulation_kammern.yaml"
+  cat > "$CONFIG" <<YAML
+# erzeugt von tools/simulation.sh – jedes Fahrzeug mit $KAMMERN Kammer(n)
+extends: $BASE
+source:
+  openings: [$KAMMERN]
 YAML
 fi
 

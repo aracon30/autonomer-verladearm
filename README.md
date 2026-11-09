@@ -84,6 +84,10 @@ Referenzflansch.
   eine Füllung, ohne Umweg über die Parkstellung). Schnittstelle: `DomeNo`, `DomeCount`,
   `DomeSelected` (`docs/schnittstelle.md`).
 
+Mehrere Kammern gezielt: `tools/simulation.sh --kammern 3` (jedes Fahrzeug mit 3 Kammern; der
+Dauertest wechselt weiter zwischen „verbunden“ und „Mehrkammer“). Im Bedienmodus wählt `k 1 2 3`
+die Kammern des Auftrags.
+
 Selbst bedienen wie an der Anlage statt Dauertest: `tools/simulation.sh --netz --bedienen`.
 Befehle im Terminal (`?` zeigt alle):
 

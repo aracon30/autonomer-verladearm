@@ -32,7 +32,7 @@ Stand:
 | F-12 | Füllstand **kontinuierlich**, zuverlässig bei Schaum | Muss | **Zwei Grenzschalter statt kontinuierlicher Messung**; Füllstand an jedem Schaltpunkt aus Armhöhe | Sensortest BASF; P | ⚠️ |
 | F-13 | Überfüllsicherung erkennt Flüssigkeit und Schaum, unabhängig | Muss | eigener zugelassener Grenzschalter (Schaltpunkt ca. 20 cm unter Rand), schaltet die Pumpe ab; nie betriebsmäßig | Zulassung (WHG/SIL) nach BASF; P; A | 🔶 |
 | F-14 | Sensorik beständig gegen klebrige Medien | Muss | glatte kapazitive Spitzen, Ausblenden von Anhaftung, Spülen | Sensortest BASF | 🔶 |
-| F-20 | Nachtropfen beim Herausfahren auffangen | Muss | pendelnde Abtropfsicherung (`docs/skizzen/Prinzipskizze_Abtropfsicherung_Rev3.pdf`) | Konstruktion; P | 🔶 |
+| F-20 | Nachtropfen beim Herausfahren auffangen | Muss | rein mechanische Abtropfsicherung (in Arbeit; Vorstufe Skizze Rev. 3) | Konstruktion; P | 🔶 |
 | F-21 | Auffang entleeren/reinigen ohne Betreten | Soll | Kippnase und Anschlag an der Spülwanne, Spülen in der Parkstellung | P | 🔶 |
 | F-22 | selbstständig in die Parkstellung | Muss | Job 3 (Rückfahrt aus jeder Lage, auch ohne vorige Messung) | T `test_rueckfahrt_*`; S | ✅ |
 | F-30 | Start am **Touchscreen** und über das PLS | Muss | **kein Display** (Entscheidung 19.10.): Leuchttaster „Beladen starten“, Freigabe aus dem PLS | S `test_start_nur_mit_allen_freigaben` | ⚠️ |

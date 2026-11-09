@@ -37,11 +37,7 @@ VAR_GLOBAL
     xKlappeOeffnen    : BOOL;   (* Ausgang Absperrklappe *)
     xPumpeFreigabe    : BOOL;   (* Freigabe Pumpe an PLS / Pumpensteuerung *)
 
-    (* Abtropfsicherung (Skizze Rev. 3) *)
-    xAbtropfS1Park    : BOOL;   (* Hebel hoch, Schale seitlich *)
-    xAbtropfS2Fang    : BOOL;   (* Schale unter dem Rohr *)
-    xAbtropfAuf       : BOOL;   (* Ausgang Motor: in Parkstellung schwenken *)
-    xAbtropfZu        : BOOL;   (* Ausgang Motor: in Fangstellung schwenken *)
+    (* Abtropfsicherung: rein mechanisch, keine Signale (Entscheidung 04.11.2026) *)
 
     (* Leitstelle (PLS) – Signale mit BASF abstimmen *)
     xPlsFreigabe      : BOOL;

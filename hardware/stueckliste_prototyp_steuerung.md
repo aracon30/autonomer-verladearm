@@ -51,7 +51,7 @@ Status: **B** = Beistellung HETA (bereits angeboten/festgelegt) · **N** = neu a
 | 4.2 | Überfüllsicherung | zugelassen nach BASF-Vorgabe, Schaltpunkt ca. 20 cm unter Rand, wirkt direkt auf Pumpe/Klappe; Meldung an SPS | 1 | 500–1.500 | N (nach BASF) |
 | 4.3 | Absperrklappe DN 100 | mit Antrieb (pneumatisch oder elektrisch) und Endlagen auf/zu | 1 | 800–2.000 | N |
 | 4.4 | Durchflussmesser | IO-Link oder Impuls; in der Werkstatt Menge simuliert | 1 | 0–1.500 | O |
-| 4.5 | Abtropfsicherung Antrieb | Getriebemotor 24 V mit Momentbegrenzung, 2 Endschalter S1/S2 (`docs/skizzen/Prinzipskizze_Abtropfsicherung_Rev3.pdf`) | 1 | 300–600 | N |
+| 4.5 | Abtropfsicherung | **rein mechanisch** (Entscheidung 04.11.2026), kein Antrieb, keine Signale an die Steuerung | – | – | – |
 | 4.6 | 3D-Kamera | SICK Visionary-T Mini CX mit Halter und Kabeln (Angebot 33503320) | 1 | – | B (SICK) |
 | 4.7 | Motoren J1–J3 | SEW, mit Hybridkabeln und Kabelschlepps | 3 | – | B (SEW) |
 
@@ -81,8 +81,8 @@ Status: **B** = Beistellung HETA (bereits angeboten/festgelegt) · **N** = neu a
 | Rechner (1.1–1.2) | 2.500–4.800 |
 | Schaltschrank (2.1–2.7) | 3.850–7.100 |
 | Bedienung und Sicherheit (3.1–3.7) | 1.210–2.330 |
-| Prozess (4.1–4.5) | 2.000–6.200 |
-| **Gesamt Material** | **ca. 9.500–20.400** |
+| Prozess (4.1–4.4) | 1.700–5.600 |
+| **Gesamt Material** | **ca. 9.200–19.800** |
 
 Zusätzlich: EPLAN, Aufbau und Verdrahtung des Schranks, Konfiguration und Validierung der
 Sicherheitssteuerung (Schaltschrankbauer/Elektriker), Inbetriebnahme. SPS-Programm: HETA

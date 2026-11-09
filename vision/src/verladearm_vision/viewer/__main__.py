@@ -44,6 +44,7 @@ from verladearm_vision.kinematics import (
     shift_obstacle,
 )
 from verladearm_vision.kinematics import tip as model_tip
+from verladearm_vision.konsole import quickedit_aus
 from verladearm_vision.plc import VARIABLES
 from verladearm_vision.scene import SceneConfig, build_obstacles
 from verladearm_vision.service.main import build_source, find_domes, vehicle_settings
@@ -502,6 +503,7 @@ def make_handler(producer):
 
 
 def main():
+    quickedit_aus()  # Windows: Klick ins Fenster soll das Programm nicht anhalten
     parser = argparse.ArgumentParser(description="Live-Ansicht Verladearm")
     parser.add_argument("--config", default="vision/config/default.yaml")
     parser.add_argument("--host", default="127.0.0.1", help="0.0.0.0 = im Netzwerk erreichbar")

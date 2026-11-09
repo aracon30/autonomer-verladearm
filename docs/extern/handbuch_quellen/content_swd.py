@@ -1,16 +1,16 @@
-"""HETA-Softwaredokumentation SWD-4793: Schnittstelle SPS ↔ Vision-PC, Inbetriebnahme,
-Kalibrierung. Mitgeltende Unterlage zur Betriebsanleitung OMIM-4793."""
+"""HETA-Softwaredokumentation SWD-4896: Schnittstelle SPS ↔ Vision-PC, Inbetriebnahme,
+Kalibrierung. Mitgeltende Unterlage zur Betriebsanleitung OMIM-4896."""
 
 FRONT = [
     (1, ">BETRIEBS-, WARTUNGS- UND INSTALLATIONSHANDBUCH<", ">SOFTWAREDOKUMENTATION<"),
     (2, "Obenverladearm mit elektrischem Antrieb (Heben / Senken)",
      "Autonomer Obenverladearm – Schnittstelle SPS ↔ Vision-PC, Inbetriebnahme, Kalibrierung"),
     (3, ">Obenverladearm, elektrisch<", ">Autonomer Obenverladearm, Software<"),
-    (3, ">OMIM-4793<", ">SWD-4793<"),
+    (3, ">OMIM-4896<", ">SWD-4896<"),
 ]
 HEADER = [("Betriebs-, Wartungs- und Installationshandbuch – Obenverladearm elektrisch",
            "Softwaredokumentation – autonomer Obenverladearm")]
-FOOTER = [("OMIM-4793", "SWD-4793")]
+FOOTER = [("OMIM-4896", "SWD-4896")]
 
 W2 = [3600, 6038]
 W2b = [2900, 6738]
@@ -20,10 +20,10 @@ BLOCKS = [
     # 1 ---------------------------------------------------------------------------------------
     ("h1", "1. ZWECK UND GELTUNGSBEREICH"),
     ("p", "Diese Dokumentation beschreibt die Software des autonomen Obenverladearms "
-          "(Auftrag K-04793/26, Fabrik-Nr. 4793-01): die Aufgabenteilung zwischen SPS und "
+          "(Auftrag K-04896/26, Fabrik-Nr. 4896-01): die Aufgabenteilung zwischen SPS und "
           "Vision-PC, die Schnittstelle zwischen beiden, Installation und Betrieb des Vision-PCs, "
           "die Inbetriebnahme mit der Anlagendatei und die Kalibrierung von Kamera und Arm."),
-    ("p", "Sie ist mitgeltende Unterlage zur Betriebsanleitung **OMIM-4793** und richtet sich an "
+    ("p", "Sie ist mitgeltende Unterlage zur Betriebsanleitung **OMIM-4896** und richtet sich an "
           "den Programmierer der SPS, das Inbetriebnahmepersonal von HETA und die "
           "Instandhaltung des Betreibers. Bedienung und Sicherheitshinweise stehen in der "
           "Betriebsanleitung."),
@@ -374,7 +374,7 @@ BLOCKS = [
 
     # 8 ---------------------------------------------------------------------------------------
     ("h1", "8. MITGELTENDE UNTERLAGEN"),
-    ("li", "Betriebsanleitung OMIM-4793."),
+    ("li", "Betriebsanleitung OMIM-4896."),
     ("li", "SPS-Datenbaustein DB_Vision (Quelle zur Schnittstelle)."),
     ("li", "Stromlauf- und Klemmenplan [Nummer folgt]."),
     ("li", "SEW: Handbuch MOVIKIT Positioning Drive (33350930), MOVITRAC advanced."),

@@ -1,4 +1,4 @@
-# Betriebsanleitung OMIM-4793: Änderungen für den autonomen Verladearm
+# Betriebsanleitung OMIM-4896: Änderungen für den autonomen Verladearm
 
 Grundlage: `OMIM_Obenverladearm_elektrisch.docx` (Stand Oktober 2026). Die Anleitung beschreibt den
 Arm mit **einer** elektrischen Achse (Heben/Senken), Tippbetrieb per Hängetaster, MOVITRAC

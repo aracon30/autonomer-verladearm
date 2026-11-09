@@ -1,6 +1,6 @@
 # Projektstand Verladearm (Stand 09.11.2026)
 
-**Auftragsnummer HETA: K-04896/26** (intern; nicht in Unterlagen für Lieferanten bzw. Peter).
+**Auftragsnummer HETA: K-04896/26** (interner Entwicklungsauftrag, ersetzt K-04793/26; Fabrik-Nr. 4896-01, Unterlagen OMIM-4896 / SWD-4896). Nicht in Unterlagen für Lieferanten bzw. Peter.
 
 Überblick über Entscheidungen, Lieferantenanfragen und offene Punkte. Details stehen in den
 verlinkten Dokumenten.

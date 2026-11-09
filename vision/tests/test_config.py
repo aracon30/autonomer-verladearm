@@ -33,4 +33,4 @@ def test_pruefung_meldet_falsche_parameter():
     cfg["arm"]["joints"]["q3"]["park"] = 90
     out = io.StringIO()
     assert not check(cfg, "beispiel", out)
-    assert "q3: Parkstellung" in out.getvalue()
+    assert "J3: Parkstellung" in out.getvalue()

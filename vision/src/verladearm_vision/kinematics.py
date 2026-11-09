@@ -376,12 +376,14 @@ def validate(geom: ArmGeometry) -> list[str]:
         if j is None:
             problems.append(f"Achse {k} fehlt")
             continue
+        a = f"J{k[1:]}"  # Achse wie am Arm beschriftet (q3 = J3)
         if j.min >= j.max:
-            problems.append(f"{k}: min muss kleiner max sein")
+            problems.append(f"{a}: min ({j.min:g}°) muss kleiner als max ({j.max:g}°) sein")
         if not j.min <= j.park <= j.max:
-            problems.append(f"{k}: Parkstellung {j.park}° außerhalb {j.min}…{j.max}°")
+            problems.append(f"{a}: Parkstellung {j.park:g}° liegt außerhalb min…max "
+                            f"({j.min:g}…{j.max:g}°)")
         if j.direction not in (1, -1):
-            problems.append(f"{k}: direction muss 1 oder -1 sein")
+            problems.append(f"{a}: direction muss 1 oder -1 sein")
     for o in geom.obstacles:
         if isinstance(o, Obstacle) and np.any(np.asarray(o.min) >= np.asarray(o.max)):
             problems.append(f"Hindernis {o.name}: min muss in allen Achsen kleiner max sein")

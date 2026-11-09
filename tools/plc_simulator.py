@@ -694,8 +694,12 @@ async def main(args):
                                         ua.Variant("", ua.VariantType.String))
     async with server:
         print(f"SPS-Simulator läuft auf opc.tcp://127.0.0.1:{args.port}/ (Strg+C beendet)")
-        sim = PlcSim(server, var, geom, args.speed, args.interval, drives, args.zeitraffer,
-                     fill=cfg.get("filling"), show_pd=args.prozessdaten)
+        fill = dict(cfg.get("filling") or {})
+        scale = args.zeitraffer
+        if args.echtzeit:  # Fahrten und Befüllung in echter Zeit (Befüllung je Kammer ca. 25 min)
+            scale, fill["speedup"] = 1.0, 1.0
+        sim = PlcSim(server, var, geom, args.speed, args.interval, drives, scale,
+                     fill=fill, show_pd=args.prozessdaten)
         sim.status_node = status
         await sim.run(interactive=args.bedienen)
 
@@ -709,6 +713,8 @@ if __name__ == "__main__":
                    help="Achsgeschwindigkeit ohne Antriebsdaten (drives) [°/s]")
     p.add_argument("--zeitraffer", type=float, default=1.0,
                    help="Fahrten schneller zeigen, z. B. 0.25 = vierfach (Fahrzeit bleibt echt)")
+    p.add_argument("--echtzeit", action="store_true",
+                   help="Fahrten und Befüllung in echter Zeit (statt Zeitraffer)")
     p.add_argument("--port", type=int, default=4840)
     p.add_argument("--prozessdaten", action="store_true",
                    help="Vorgaben an die Umrichter (Ziel, v, a) je Fahrt ausgeben")

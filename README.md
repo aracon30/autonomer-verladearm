@@ -119,6 +119,9 @@ herunterladen oder klonen, dann im Ordner doppelklicken bzw. starten:
 ```bat
 tools\simulation.bat            :: Dauertest
 tools\simulation.bat bedienen   :: selbst bedienen im Fenster „SPS-Simulator“ (? = Hilfe)
+tools\simulation.bat bedienen echtzeit   :: dazu alles in echter Zeit (Befüllung je Kammer ca. 25 min)
+tools\simulation.bat bedienen anlage BASF_Verladearm port 8080 netz   :: eigene Anlagendatei, Port, im Netz
+tools\simulation.bat kammern 3  :: jedes Fahrzeug mit 3 Kammern
 tools\konfigurator.bat          :: Konfigurator, http://127.0.0.1:8090
 tools\kameratest.bat           :: echte SICK-Kamera live (Anleitung docs/kameratest.md)
 tools\kameratest.bat aufnahme  :: Punktwolken speichern (Tankwagen)

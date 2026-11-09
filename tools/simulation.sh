@@ -13,6 +13,7 @@
 #                                       statt Dauertest (Verladung auf Verladung)
 #   PORT=8080 tools/simulation.sh       anderer Port für die Live-Ansicht
 #   ZEITRAFFER=1 tools/simulation.sh    Achsen in Echtzeit (Standard 0.25 = vierfach schneller)
+#   tools/simulation.sh --echtzeit      alles in Echtzeit: Fahrten und Befüllung (je Kammer ca. 25 min)
 #   PROZESSDATEN=1 tools/simulation.sh  Vorgaben an die Umrichter je Fahrt im SPS-Log
 #                                       (Ziel, Geschwindigkeit, Beschleunigung wie MOVIKIT
 #                                       Positioning Drive)
@@ -37,10 +38,12 @@ HOST=127.0.0.1
 ANLAGE=""
 BEDIENEN=0
 KAMMERN=""
+ECHTZEIT=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --netz) HOST=0.0.0.0 ;;
     --bedienen) BEDIENEN=1 ;;
+    --echtzeit) ECHTZEIT=1 ;;
     --anlage) ANLAGE="${2:?Name der Anlagendatei fehlt}"; shift ;;
     --kammern) KAMMERN="${2:?Zahl der Kammern fehlt}"; shift ;;
     *) echo "Unbekannte Option: $1"; exit 1 ;;
@@ -107,6 +110,7 @@ trap cleanup EXIT INT TERM
 
 SPS_ARGS=(tools/plc_simulator.py --config "$CONFIG" --zeitraffer "$ZEITRAFFER")
 [[ "${PROZESSDATEN:-0}" == 1 ]] && SPS_ARGS+=(--prozessdaten)
+[[ $ECHTZEIT == 1 ]] && SPS_ARGS+=(--echtzeit)
 if [[ $BEDIENEN == 0 ]]; then
   $PY "${SPS_ARGS[@]}" > data/logs/sps.log 2>&1 & pids+=($!)
   sleep 2

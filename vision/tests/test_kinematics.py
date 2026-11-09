@@ -97,7 +97,7 @@ def test_parameterpruefung():
         "q3": {"min": -35, "max": 35, "park": 0, "direction": 2},
     })
     problems = " | ".join(validate(bad))
-    for text in ("outer_length", "q1: min", "q2: Parkstellung", "q3: direction"):
+    for text in ("outer_length", "J1: min", "J2: Parkstellung", "J3: direction"):
         assert text in problems
 
 

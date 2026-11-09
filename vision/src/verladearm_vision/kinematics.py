@@ -383,7 +383,7 @@ def validate(geom: ArmGeometry) -> list[str]:
             problems.append(f"{a}: Parkstellung {j.park:g}° liegt außerhalb min…max "
                             f"({j.min:g}…{j.max:g}°)")
         if j.direction not in (1, -1):
-            problems.append(f"{k}: direction muss 1 oder -1 sein")
+            problems.append(f"{a}: direction muss 1 oder -1 sein")
     for o in geom.obstacles:
         if isinstance(o, Obstacle) and np.any(np.asarray(o.min) >= np.asarray(o.max)):
             problems.append(f"Hindernis {o.name}: min muss in allen Achsen kleiner max sein")

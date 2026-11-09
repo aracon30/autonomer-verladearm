@@ -59,10 +59,10 @@ Rampen, Getriebespiel; Fahrten im Zeitraffer, `ZEITRAFFER=1` für Echtzeit). Liv
 Logs unter `data/logs/`, Beenden mit Strg+C. Eine im Konfigurator angelegte Anlage simulieren:
 `tools/simulation.sh --netz --anlage <name>` (Datei `vision/config/anlagen/<name>.yaml`).
 
-Die Simulation bildet den Stand vom 03.11.2026 ab (`hardware/antriebe.md`,
-`docs/fuellstand_ueberfuellsicherung.md`). **Noch nicht nachgezogen** sind die Entscheidungen vom
-09.11.: ein Grenzschalter statt zwei, Füllende über die Leitstelle statt über die Sollmenge,
-Dom-Abdeckung mit Pendelwanne.
+Die Simulation bildet den Stand vom 10.11.2026 ab (`hardware/antriebe.md`,
+`docs/fuellstand_ueberfuellsicherung.md`). **Noch nicht nachgezogen** ist die Dom-Abdeckung mit
+Pendelwanne (wartet auf die Konstruktion); nachgemessen wird bis dahin noch über den
+Referenzflansch.
 - **Arm** mit den Maßen aus dem Konfigurator (Flansch 7,34 m über Fahrbahn, Auslass 3,7 m) und
   den SEW-Antrieben.
 - **Nur Lkw-Tankwagen** (Tank Ø 2,2 m, Domrand 3,4–3,9 m über Fahrbahn, Mannloch offen) mit
@@ -71,12 +71,14 @@ Dom-Abdeckung mit Pendelwanne.
   Beschleunigung im Verhältnis zu ihrem Weg vor (gleiche Ruckzeit), alle kommen gleichzeitig an.
   `PROZESSDATEN=1 tools/simulation.sh` schreibt die Vorgaben je Fahrt ins SPS-Log.
 - **Befüllen von unten mit Nachziehen:** Der Auslass taucht bis ca. 20 cm über den Tankboden ein
-  (Eintauchtiefe 2,1 m). Absperrklappe auf, Pumpe ein, 22 m³/h; der Spiegel steigt in der
-  liegenden zylindrischen Kammer. Zwei Grenzschalter am Auslass (A 1 cm, B 3 cm über dem Ende):
-  B nass → J3 hebt, bis B trocken ist; der Auslass bleibt 1–3 cm unter dem Spiegel.
-- **Füllende in drei Ebenen:** 1. Sollmenge 95 % der Kammer (Durchfluss) → Klappe zu, Abtropfen,
-  Rückfahrt; 2. Maximalhöhe aus Armhöhe + Grenzschaltern (Test: Befehl `u`, Durchflusssensor
-  fällt aus); 3. Überfüllsicherung (Pumpe aus) nur, wenn beide versagen – immer Störung.
+  (Eintauchtiefe 2,1 m). Die SPS öffnet die Absperrklappe und meldet „Arm bereit“; die Leitstelle
+  startet die Pumpe (22 m³/h), der Spiegel steigt in der liegenden zylindrischen Kammer. **Ein**
+  Grenzschalter sitzt 12 cm über dem Auslassende: nass → J3 hebt um 5 cm (ca. 35 Hübe je Kammer),
+  danach muss er trocken sein, sonst Störung. Der Auslass bleibt ca. 7–12 cm unter dem Spiegel.
+- **Füllende in drei Ebenen:** 1. Leitstelle meldet „Befüllung Ende“ (ihre Menge, hier 95 % der
+  Kammer) → Klappe zu, Abtropfen, Rückfahrt; 2. Maximalhöhe bzw. Arm am Ende → „Befüllung
+  stoppen“ (Test: Befehl `u`); 3. Überfüllsicherung schaltet die Pumpe direkt ab – immer
+  Störung. Die SPS schließt die Klappe immer erst, wenn die Pumpe aus ist (Auslaufzeit 3 s).
 - **Mehrkammer:** Der Dauertest wechselt ab zwischen „Kammern verbunden“ (ein Dom, automatisch der
   nächste, ganzer Tank) und „Mehrkammer“ (alle offenen Dome von vorn nacheinander, je Kammer
   eine Füllung, ohne Umweg über die Parkstellung). Schnittstelle: `DomeNo`, `DomeCount`,
@@ -90,8 +92,9 @@ Befehle im Terminal (`?` zeigt alle):
 | `n` | neues Fahrzeug: fährt vor (Lichtschranke belegt), Klapptreppe aus, Dom öffnen, Treppe zurück |
 | `p 1`, `f`, `s` | Produkt wählen, „Fahrzeug bereit“ bestätigen, „Automatisch beladen“ starten |
 | `k 0`, `k 1 2 3` | Auftrag: Kammern verbunden (ein Dom, automatisch) bzw. Mehrkammer, Dome von vorn nacheinander |
-| `e` | Beladung vorzeitig beenden (Klappe zu) → Rückfahrt in die Parkstellung; sonst endet sie bei Sollmenge |
-| `u` | Durchflusssensor fällt aus → Füllende über die Maximalhöhe (Schutzebene 2, Meldung) |
+| `e` | Leitstelle meldet „Befüllung Ende“ vorzeitig → Klappe zu, Rückfahrt in die Parkstellung |
+| `u` | Leitstelle beendet nicht (Mengenfehler) → Füllende über die Maximalhöhe (Schutzebene 2, „Befüllung stoppen“) |
+| `g` | Grenzschalter bleibt nass (Belag, Defekt) → Störung nach dem nächsten Hub, Pumpe aus, Klappe zu |
 | `l`, `t` | Lichtschranke / Klapptreppe umschalten (Verriegelungen testen) |
 | `x` | Stopp |
 | `h` | Handbetrieb: `j 3 +5` tippen, `b 2 -20` Bremse lüften und von Hand schieben (nur J1/J2, J3 gesperrt), `d` Arm wie von Hand in einen Dom führen |

@@ -76,6 +76,10 @@ verlinkten Dokumenten.
 - [x] Mail an BASF: Sensorvergleich, Füllende nie über die Überfüllsicherung, Fragen zur Zulassung (gesendet 27.10.)
 - [x] Rohrisolierung über J1 geklärt – von BASF zugesagt (10.11.)
 - [x] SICK-Kamera bestellt (Einkauf, 09.11., Laboraktion 900 €)
+- [ ] Vision-Software an Dom-Abdeckung anpassen, **wartet auf Maße aus der Konstruktion** (Ø, Dicke, Führung, Liquiphant-Kopf, Abstand Rohrende in Park): Abdeckung als Referenz für Job 2 statt Referenzflansch, Fehler 30 umkehren (Abdeckung > Öffnung), Abdeckung/Gabel/Wanne im Kollisionsmodell inkl. Aufsetzen auf dem Rand
+- [x] Simulation auf Stand 09.11. (10.11.): ein Grenzschalter 12 cm, Hub 5 cm, Füllende über Leitstelle, Pumpe aus vor Klappe zu
+- [ ] SPS-Entwurf (`plc/codesys/`, Basis TwinCAT) entsprechend anpassen
+- [ ] Anlagenpaket (Release ohne Simulation, Windows-Dienst bzw. Linux) – sobald feststeht, wo die Bildverarbeitung läuft (Beckhoff/Windows oder eigener PC)
 - [x] Mail an SEW (Herr Lay) gesendet 10.11.: Positioning Drive über EtherCAT an TwinCAT 3, ESI-Datei, STO festverdrahtet über CSO, Auslegung Bremswiderstände – **Antwort offen**; danach Umrichter bestellen (Angebot 426368452D; 426533683 überholt)
 - [x] Mail an BASF (Silas) gesendet 09.11.: Sensortest, ein Grenzschalter (10–15 cm, Hub 5 cm, Auslass 5–15 cm unter Spiegel), eigene Überfüllsicherung baugleich (Typ, Auswertung, Schaltpunkt, Zulassung), Signale Leitstelle/Pumpe – **Antwort offen**
 - [x] SEW-Servos J1/J2 bestellt über Einkauf (Udo, 10.11., Pos. 01/02 aus 426368452D, 4.202,68 €, Lieferzeit 4–6 Wochen)

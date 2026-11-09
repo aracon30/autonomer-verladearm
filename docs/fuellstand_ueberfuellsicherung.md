@@ -107,9 +107,16 @@ sie die heutige Sonde weiterverwendet.
 - **SPS (Peter):** Nachziehregelung, Füllventil, Auswertung Überfüllsicherung (direkt, nicht über PC).
 - **Vision-PC:** Bodenhöhe/Tankgeometrie für die maximale Eintauchtiefe, Nachzieh-Tabelle
   (Schnittstelle Version 3), Erkennung einer eingelegten Sonde (Variante C).
-- **Simulation (umgesetzt 03.11.2026):** Lkw-Kammer als liegender Zylinder, 22 m³/h, Nachziehen
-  über Grenzschalter A/B, Füllende über Sollmenge 95 %, Maximalhöhe und Überfüllsicherung
-  (`tools/plc_simulator.py`, Abschnitt `filling` in `simulation.yaml`).
+- **Simulation (Stand 10.11.2026):** Lkw-Kammer als liegender Zylinder, Pumpe der Leitstelle
+  22 m³/h, **ein** Grenzschalter 12 cm über dem Auslass, Hub 5 cm, Überwachung „nach dem Hub
+  trocken“; Ende über Leitstelle, Maximalhöhe („Befüllung stoppen“) bzw. Überfüllsicherung;
+  erst Pumpe aus, dann Klappe zu (`tools/plc_simulator.py`, Abschnitt `filling` in
+  `simulation.yaml`).
+
+> **Neuer Stand 09.11.2026:** Statt zwei Grenzschaltern (A/B, 1–3 cm) nur noch **ein**
+> Grenzschalter ca. 10–15 cm über dem Auslassende, Hub ca. 5 cm (Auslass 5–15 cm unter dem
+> Spiegel; Rückfrage BASF zu „optimal 2–3 cm“ läuft). Menge und Füllende steuert die Leitstelle,
+> die Absperrklappe gehört zum Arm. Die Abschnitte unten zu A/B gelten als Vorstand.
 
 ## Nachziehen mit zwei Grenzschaltern (26.10.2026)
 

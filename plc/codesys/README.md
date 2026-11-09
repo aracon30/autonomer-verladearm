@@ -18,7 +18,7 @@ BASF lässt sich der Code weitgehend nach TIA Portal (SCL) übertragen.
 | Datei | CODESYS-Objekt | Aufgabe |
 |---|---|---|
 | `GVL_Vision.st` | Globale Variablenliste | Schnittstelle zum Vision-PC (wie `DB_Vision`), per OPC UA freigeben |
-| `GVL_IO.st` | Globale Variablenliste | Taster, Leuchten, Sensoren, Klappe, Leitstelle |
+| `GVL_IO.st` | Globale Variablenliste | Taster, Leuchten, Grenzschalter, Überfüllsicherung (Meldung), Absperrklappe, Signale Leitstelle/Pumpe |
 | `GVL_Achsen.st` | Globale Variablenliste | Prozessdaten der 3 MOVITRAC, Fahrbefehle, Istwerte |
 | `GVL_Param.st` | Globale Variablenliste | Achsgrenzen, Geschwindigkeiten, Park, Eintauchtiefen, Zeiten |
 | `DUT_Pd.st` | Datentyp (DUT) | Prozessdaten MOVIKIT Positioning Drive (8 PA / 8 PE) |
@@ -28,7 +28,7 @@ BASF lässt sich der Code weitgehend nach TIA Portal (SCL) übertragen.
 | `F_Hilfen.st` | 4 Funktionen | Parkstellung, Höhe ↔ Lage in der Nachzieh-Tabelle, Interpolation |
 | `PRG_Heartbeat.st` | Programm | Heartbeat zum PC und Überwachung |
 | `PRG_Achsen.st` | Programm | Achsen jeden Zyklus bedienen, Istwerte an den PC |
-| `PRG_Main.st` | Programm | Automatikablauf: Kammern, Job 1/2/3, Eintauchen, Befüllen mit Nachziehen, Störung |
+| `PRG_Main.st` | Programm | Automatikablauf: Kammern, Job 1/2/3, Eintauchen, Klappe und Leitstelle, Nachziehen über einen Grenzschalter, erst Pumpe aus dann Klappe zu, Störung |
 | `PRG_Hand.st` | Programm | Tippbetrieb mit dem Handbediengerät |
 
 **Task:** MainTask zyklisch 10 ms, Aufrufreihenfolge `PRG_Heartbeat`, `PRG_Achsen`, `PRG_Main`,
@@ -78,6 +78,25 @@ Läuft die Soft-SPS auf demselben PC wie die Vision-Software, ist die Adresse `1
 | Park, Grenzen, Geschwindigkeiten, Eintauchtiefen | `GVL_Param` | Anlagendatei `heta_prototyp.yaml` |
 | Bremse lüften J1/J2 im Handbetrieb | `PRG_Hand` (nur Kommentar) | SEW, Sicherheitskonzept |
 | Signale Leitstelle | `GVL_IO` (`xPls…`) | Abstimmung BASF |
+
+## Befüllung: Signale zur Leitstelle (Stand 09.11.2026)
+
+Menge, Pumpe und Füllende steuert die Leitstelle; die Absperrklappe gehört zum Arm.
+
+| Signal | Richtung | Bedeutung |
+|---|---|---|
+| `xPlsFreigabe`, `iPlsProdukt`, `aPlsDome`, `iPlsSchritte` | PLS → SPS | Auftrag: Produkt, Kammern (DomeNo je Füllschritt) |
+| `xArmBereit` | SPS → PLS | Arm im Tank, Klappe offen – Pumpe darf starten |
+| `xPlsPumpeLaeuft` | PLS → SPS | Pumpe läuft |
+| `xPlsBefuellEnde` | PLS → SPS | Befüllung des Füllschritts beendet (Pumpe aus) |
+| `xBefuellStoppen` | SPS → PLS | Pumpe abschalten: Maximalhöhe, Arm am Ende, Störung |
+| Not-Halt → Pumpe aus | Sicherheitssteuerung → Pumpe | festverdrahtet, nicht über die SPS |
+| `xUeberfuellAus` | Überfüllsicherung → SPS | Meldung; die Pumpe schaltet sie selbst ab |
+
+Nachziehen: Grenzschalter `xGrenzNass` ca. 12 cm über dem Auslassende (`SENSOR_HOEHE`). Wird er
+nass, hebt J3 den Auslass um `NACHZIEH_SCHRITT` (5 cm); danach muss er innerhalb `TROCKEN_ZEIT`
+trocken sein, sonst Störung. Ende: erst „Befüllung stoppen“ bzw. „Ende“, Pumpe aus
+(`xPlsPumpeLaeuft` = FALSE) und `PUMPE_AUSLAUF` abwarten, dann Klappe zu.
 
 ## Grenzen dieses Entwurfs
 

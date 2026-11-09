@@ -74,11 +74,11 @@ verlinkten Dokumenten.
 - [ ] Entwicklungsakte (`docs/entwicklung/`) an HETA-Vorlage anpassen, Reviews R0-1…R0-6 freigeben, Lastenheft V1.0 (Abweichungen im Anforderungsnachweis)
 
 - [x] Mail an BASF: Sensorvergleich, Füllende nie über die Überfüllsicherung, Fragen zur Zulassung (gesendet 27.10.)
-- [ ] Rohrisolierung über J1 gegen Motorlage prüfen – vor der SEW-Bestellung
+- [x] Rohrisolierung über J1 geklärt – von BASF zugesagt (10.11.)
 - [x] SICK-Kamera bestellt (Einkauf, 09.11., Laboraktion 900 €)
 - [x] Mail an SEW (Herr Lay) gesendet 10.11.: Positioning Drive über EtherCAT an TwinCAT 3, ESI-Datei, STO festverdrahtet über CSO, Auslegung Bremswiderstände – **Antwort offen**; danach Umrichter bestellen (Angebot 426368452D; 426533683 überholt)
 - [x] Mail an BASF (Silas) gesendet 09.11.: Sensortest, ein Grenzschalter (10–15 cm, Hub 5 cm, Auslass 5–15 cm unter Spiegel), eigene Überfüllsicherung baugleich (Typ, Auswertung, Schaltpunkt, Zulassung), Signale Leitstelle/Pumpe – **Antwort offen**
-- [ ] SEW-Motoren J1/J2 bestellen (vorher Isolierung über J1 prüfen); Umrichter erst nach Antwort SEW (EtherCAT oder PROFINET); IMO-Antwort J3 abwarten
+- [ ] SEW-Servos J1/J2 bestellen (Pos. 01/02 aus 426368452D, frei); Umrichter erst nach Antwort SEW (EtherCAT oder PROFINET); IMO-Antwort J3 abwarten
 - [ ] Mit Peter: Überfüll-Abschaltung (Klappe/Pumpe, F-SPS), Kammerwahl vor Ort oder Leitstelle
 - [ ] Konstruktion: aufliegende Lanze kurz (ca. 20 cm), Führung ohne klemmende Hülse; Halter
   Grenzschalter; **Abtropfsicherung rein mechanisch** nach `docs/skizzen/Prinzipskizze_Abtropfsicherung_Rev6.pdf` (Dom-Abdeckung mit Überfüllsicherung, Pendelwanne vom Rohrende aufgedrückt, Feder schließt; Alternative Rev. 5)

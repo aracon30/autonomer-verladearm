@@ -16,9 +16,10 @@ speichern, mit denen die Domerkennung entwickelt und geprüft wird. Kein Arm, ke
 
 ## Anschluss Versorgung (Leitung YF2A28, 8 Adern)
 
-Belegung laut Datenblatt der Leitung bzw. Betriebsanleitung der Kamera prüfen: **+24 V (Pin 1,
-braun) und 0 V (Pin 3, blau)** an das Netzteil, übrige Adern isolieren. Erst anschließen, dann
-Netzteil einschalten. Die Kamera braucht ca. 20 s zum Hochfahren.
+Welche Ader +24 V und welche 0 V ist, steht in der **Betriebsanleitung der Kamera** (Anschluss
+Versorgung/E/A) und im Datenblatt der Leitung (spezieller Farbcode). Nur diese beiden Adern an das
+Netzteil, die übrigen einzeln isolieren. Anschließen lassen von einer Elektrofachkraft; erst
+anschließen, dann Netzteil einschalten. Die Kamera braucht ca. 20 s zum Hochfahren.
 
 ## Netzwerk am Laptop (einmalig)
 

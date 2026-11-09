@@ -61,6 +61,9 @@ source:
   domes: [offen]
   openings: [1, 2, 3]
   dome_pitch: 2.5
+detection:                 # Arbeitsraum für bis zu 3 Dome hintereinander (wie simulation.yaml)
+  roi_min: [-2.0, -3.3, 0.5]
+  roi_max: [2.0, 3.3, 8.0]
 plc:
   url: opc.tcp://127.0.0.1:4840/
 YAML

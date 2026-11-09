@@ -69,6 +69,7 @@ planning:
   move_waypoints: 3       # Stützpunkte für die Anfahrt (synchrone Gelenkbewegung)
   insert_waypoints: 5     # Stützpunkte für das senkrechte Eintauchen (max. 16 insgesamt)
   time_limit_s: 3.5       # Suche nach Umwegen begrenzen (Zeitüberwachung SPS: 5 s)
+  job_budget_s: 4.5       # Antwort spätestens nach dieser Zeit (Suche wird entsprechend verkürzt)
 
 drives: {}
   # Antriebe je Achse (q1, q2, q3), Werte am Gelenk: motor, gear, motor_speed [1/min], ratio,

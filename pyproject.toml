@@ -16,7 +16,8 @@ dependencies = [
 
 [project.optional-dependencies]
 viz = ["open3d>=0.18"]
-sick = ["visionary-python-base @ git+https://github.com/SICKAG/sick_visionary_python_base"]
+# als ZIP von GitHub, damit unter Windows kein Git nötig ist
+sick = ["visionary-python-base @ https://github.com/SICKAG/sick_visionary_python_base/archive/refs/heads/main.zip"]
 dev = ["pytest>=8", "ruff>=0.5"]
 
 [tool.setuptools.packages.find]

@@ -1,0 +1,17 @@
+# Kameratest mit der echten SICK Visionary-T Mini CX am Laptop (ohne Arm und ohne SPS).
+# Ablauf: docs/kameratest.md. Kamera ab Werk 192.168.1.10, Laptop z. B. 192.168.1.2 / 255.255.255.0.
+extends: heta_prototyp.yaml
+
+source:
+  type: sick
+  ip: 192.168.1.10
+  frames: 3            # Bilder je Messung, pixelweiser Median gegen Rauschen
+  password: CUST_SERV  # Service-Passwort; nach Änderung in SOPAS nur lokal eintragen
+
+detection:              # großzügig: alles, was die Kamera bis 8 m sieht
+  roi_min: [-4.0, -4.0, 0.3]
+  roi_max: [4.0, 4.0, 8.0]
+
+recording:
+  enabled: true        # jede Messung des Vision-Dienstes mit Punktwolke speichern
+  dir: data/aufzeichnung

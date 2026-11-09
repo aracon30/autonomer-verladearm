@@ -111,6 +111,20 @@ Befehle im Terminal (`?` zeigt alle):
 Der Simulator setzt die Startbedingungen und Verriegelungen um, die das SPS-Programm haben
 soll (`docs/schnittstelle.md`); der Bedienstatus erscheint auch in der Live-Ansicht.
 
+### Simulation unter Windows (Laptop, Beckhoff-IPC)
+
+Python ab 3.10 von python.org installieren (Häkchen „Add python.exe to PATH“), Repository als ZIP
+herunterladen oder klonen, dann im Ordner doppelklicken bzw. starten:
+
+```bat
+tools\simulation.bat            :: Dauertest
+tools\simulation.bat bedienen   :: selbst bedienen im Fenster „SPS-Simulator“ (? = Hilfe)
+```
+
+Es öffnen sich drei Fenster (SPS-Simulator, Vision-Dienst, Live-Ansicht) und der Browser mit
+http://127.0.0.1:8000. Beim ersten Start wird `.venv` angelegt (Internet, ca. 2 min). Beenden:
+Fenster schließen.
+
 Anlagendatei eines Arms im Browser bearbeiten (Konfigurator, http://<IP>:8090):
 
 ```bash

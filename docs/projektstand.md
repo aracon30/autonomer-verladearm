@@ -76,6 +76,7 @@ verlinkten Dokumenten.
 - [x] Mail an BASF: Sensorvergleich, Füllende nie über die Überfüllsicherung, Fragen zur Zulassung (gesendet 27.10.)
 - [ ] Rohrisolierung über J1 gegen Motorlage prüfen – vor der SEW-Bestellung
 - [x] SICK-Kamera bestellt (Einkauf, 09.11., Laboraktion 900 €)
+- [x] Mail an SEW (Herr Lay) gesendet 10.11.: Positioning Drive über EtherCAT an TwinCAT 3, ESI-Datei, STO festverdrahtet über CSO, Auslegung Bremswiderstände – **Antwort offen**; danach Umrichter bestellen (Angebot 426368452D; 426533683 überholt)
 - [x] Mail an BASF (Silas) gesendet 09.11.: Sensortest, ein Grenzschalter (10–15 cm, Hub 5 cm, Auslass 5–15 cm unter Spiegel), eigene Überfüllsicherung baugleich (Typ, Auswertung, Schaltpunkt, Zulassung), Signale Leitstelle/Pumpe – **Antwort offen**
 - [ ] SEW-Motoren J1/J2 bestellen (vorher Isolierung über J1 prüfen); Umrichter erst nach Antwort SEW (EtherCAT oder PROFINET); IMO-Antwort J3 abwarten
 - [ ] Mit Peter: Überfüll-Abschaltung (Klappe/Pumpe, F-SPS), Kammerwahl vor Ort oder Leitstelle

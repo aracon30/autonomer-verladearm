@@ -1,6 +1,7 @@
-(* Ein- und Ausgänge. Im Gerätebaum (E/A-Abbild der PROFINET-Geräte) diesen Variablen zuordnen.
-   Sicherheitssignale kommen als MELDUNG der Sicherheitssteuerung – sie schaltet STO selbst,
-   die SPS kann sie nicht überstimmen. *)
+(* Ein- und Ausgänge. Im Gerätebaum (TwinCAT: E/A-Abbild der EtherCAT-Klemmen bzw. PROFINET-
+   Geräte) diesen Variablen zuordnen. Sicherheitssignale kommen als MELDUNG der Sicherheits-
+   steuerung (TwinSAFE) – sie schaltet STO selbst, die SPS kann sie nicht überstimmen.
+   Not-Halt am Arm schaltet die Pumpe festverdrahtet über die Sicherheitssteuerung ab (nicht hier). *)
 {attribute 'qualified_only'}
 VAR_GLOBAL
     (* Bedienung am Schaltschrank *)
@@ -26,25 +27,23 @@ VAR_GLOBAL
     xKlapptreppeRuhe  : BOOL;   (* Klapptreppe in Ruhelage *)
     xLichtschranke    : BOOL;   (* Stellplatz belegt *)
 
-    (* Prozess *)
-    xGrenzA           : BOOL;   (* Grenzschalter A, ca. 1 cm über Auslassende: nass *)
-    xGrenzB           : BOOL;   (* Grenzschalter B, ca. 3 cm über Auslassende: nass *)
-    rDurchflussMenge  : REAL;   (* Menge laut Durchflussmesser [m³], zählt ab Klappe auf *)
-    xDurchflussOk     : BOOL;   (* Gerät meldet gültigen Messwert *)
+    (* Prozess am Arm *)
+    xGrenzNass        : BOOL;   (* Grenzschalter Nachziehen, ca. 10–15 cm über Auslassende: nass *)
     xUeberfuellAus    : BOOL;   (* Überfüllsicherung ausgelöst (schaltet die Pumpe selbst ab) *)
     xKlappeAuf        : BOOL;   (* Absperrklappe Rückmeldung auf *)
     xKlappeZu         : BOOL;   (* Absperrklappe Rückmeldung zu *)
-    xKlappeOeffnen    : BOOL;   (* Ausgang Absperrklappe *)
-    xPumpeFreigabe    : BOOL;   (* Freigabe Pumpe an PLS / Pumpensteuerung *)
+    xKlappeOeffnen    : BOOL;   (* Ausgang Absperrklappe (gehört zum Arm) *)
 
     (* Abtropfsicherung: rein mechanisch, keine Signale (Entscheidung 04.11.2026) *)
 
-    (* Leitstelle (PLS) – Signale mit BASF abstimmen *)
-    xPlsFreigabe      : BOOL;
+    (* Leitstelle (PLS) – Menge, Pumpe und Füllende steuert die Leitstelle; Signale mit BASF
+       abstimmen (Mail an BASF 09.11.2026) *)
+    xPlsFreigabe      : BOOL;   (* Verladung freigegeben (Auftrag liegt vor) *)
     iPlsProdukt       : INT;
-    rPlsSollmenge     : REAL;   (* m³ gesamt *)
     aPlsDome          : ARRAY[1..4] OF INT;    (* Füllschritte: DomeNo, 0 = automatisch *)
-    aPlsMenge         : ARRAY[1..4] OF REAL;   (* Menge je Füllschritt [m³] *)
-    iPlsSchritte      : INT;    (* Anzahl Füllschritte, 1 = Kammern verbunden *)
-    xPlsBeenden       : BOOL;   (* "Verladung beenden" *)
+    iPlsSchritte      : INT;    (* Anzahl Füllschritte (Kammern), 1 = Kammern verbunden *)
+    xPlsPumpeLaeuft   : BOOL;   (* Rückmeldung: Pumpe läuft *)
+    xPlsBefuellEnde   : BOOL;   (* "Befüllung Ende" für den aktuellen Füllschritt (Pumpe aus) *)
+    xArmBereit        : BOOL;   (* an PLS: Arm im Tank, Klappe offen – Befüllung freigegeben *)
+    xBefuellStoppen   : BOOL;   (* an PLS: Pumpe abschalten (Störung, Maximalhöhe, Arm am Ende) *)
 END_VAR

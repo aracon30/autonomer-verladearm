@@ -1,11 +1,16 @@
 (* Automatischer Verladeablauf – entspricht tools/plc_simulator.py (sequence, fill_tank).
-   Je Füllschritt (Kammer): Job 1 -> über den Dom -> Job 2 -> eintauchen -> befüllen mit
-   Nachziehen (2 Grenzschalter) -> Klappe zu, abtropfen -> heraus -> nächste Kammer (Job 1 vom
-   Dom aus) oder Job 3 -> Park. Die Abtropfsicherung arbeitet rein mechanisch (keine Signale).
+   Je Füllschritt (Kammer): Job 1 -> über den Dom -> Job 2 -> eintauchen -> Klappe auf, "Arm
+   bereit" -> Befüllung durch die Leitstelle, Nachziehen über einen Grenzschalter -> Pumpe aus,
+   Klappe zu, abtropfen -> heraus -> nächste Kammer (Job 1 vom Dom aus) oder Job 3 -> Park.
+   Die Abtropfsicherung arbeitet rein mechanisch (keine Signale).
 
-   Füllende (docs/fuellstand_ueberfuellsicherung.md, Schutzebenen):
-   1. Menge je Füllschritt (Durchfluss), 2. Maximalhöhe aus Armhöhe + Grenzschalter B,
+   Menge, Pumpe und Füllende steuert die Leitstelle. Schutzebenen
+   (docs/fuellstand_ueberfuellsicherung.md):
+   1. Leitstelle meldet "Befüllung Ende" (Pumpe aus),
+   2. Maximalhöhe aus Armhöhe + Grenzschalter bzw. Arm kann nicht weiter nachziehen
+      -> "Befüllung stoppen" an die Leitstelle,
    3. Überfüllsicherung – letzte Ebene, schaltet die Pumpe selbst ab; hier nur Störung.
+   Reihenfolge immer: erst Pumpe aus (Rückmeldung + Auslaufzeit), dann Klappe zu.
 
    Muster: Bausteine werden je Zyklus genau einmal VOR dem CASE aufgerufen. Ein Schritt setzt
    den Startmerker, der nächste Schritt wartet auf Done/Error und nimmt den Merker zurück. *)
@@ -37,8 +42,11 @@ VAR
     rPosTab     : REAL;                (* 1 = Anfahrpunkt, iTab = eingetaucht *)
     rHoehe      : REAL;                (* Auslassende relativ zum Domrand [m] *)
     rSpiegel    : REAL;                (* Spiegel relativ zum Domrand [m] *)
-    xANass      : BOOL;                (* A war schon nass *)
-    rMengeStart, rMenge, rSoll : REAL;
+    xNachStoppStoerung : BOOL;         (* nach dem Pumpenstopp in die Störung statt abtropfen *)
+    tonTrocken  : TON;                 (* nach dem Hub muss der Grenzschalter trocken sein *)
+    tonOhneSchalten : TON;             (* Pumpe läuft, Grenzschalter schaltet nicht *)
+    tonPumpeAus : TON;                 (* Warten auf "Pumpe aus" *)
+    tonAuslauf  : TON;                 (* Auslaufzeit der Pumpe *)
     xAuto       : BOOL;
     i           : INT;
 END_VAR
@@ -50,6 +58,13 @@ rtQuitt(CLK := GVL_IO.xQuittTaster);
 fbJob(xExecute := xJobStart, iJob := iJobNr, iProdukt := GVL_IO.iPlsProdukt, iDom := iDomNr);
 fbMove(xExecute := xMoveStart, aZiel := aZiel, rFaktor := rFaktor, xAbbruch := iSchritt >= 900);
 tonWarte(IN := xWarten, PT := tWarte);
+tonTrocken(IN := iSchritt = 56, PT := GVL_Param.TROCKEN_ZEIT);
+tonOhneSchalten(IN := iSchritt = 51 AND GVL_IO.xPlsPumpeLaeuft AND NOT GVL_IO.xGrenzNass,
+                PT := GVL_Param.MAX_OHNE_SCHALTEN);
+tonPumpeAus(IN := (iSchritt = 58 OR iSchritt = 900) AND GVL_IO.xPlsPumpeLaeuft,
+            PT := GVL_Param.PUMPE_AUS_MAX);
+tonAuslauf(IN := (iSchritt = 58 OR iSchritt = 900) AND NOT GVL_IO.xPlsPumpeLaeuft,
+           PT := GVL_Param.PUMPE_AUSLAUF);
 
 (* Verriegelungen während der Automatik *)
 xAuto := GVL_IO.xSicherheitOk AND GVL_IO.xKlapptreppeRuhe AND PRG_Heartbeat.xPcOk
@@ -68,6 +83,7 @@ CASE iSchritt OF
 0:  (* bereit *)
     GVL_Vision.ArmState := 0;
     GVL_Achsen.iBesitzer := 0;
+    GVL_IO.xKlappeOeffnen := FALSE; GVL_IO.xArmBereit := FALSE; GVL_IO.xBefuellStoppen := FALSE;
     IF rtStart.Q AND F_InPark() AND xAuto AND GVL_IO.xLichtschranke AND GVL_IO.xPlsFreigabe
        AND GVL_Vision.Ready AND GVL_Vision.AxesHomed AND GVL_IO.iPlsSchritte >= 1 THEN
         GVL_Achsen.iBesitzer := 1;
@@ -124,53 +140,72 @@ CASE iSchritt OF
         ELSE
             rPosTab := INT_TO_REAL(iTab);
             GVL_Vision.ArmState := 3;
-            xANass := FALSE;
-            rSoll := GVL_IO.aPlsMenge[iKammer];
-            rMengeStart := GVL_IO.rDurchflussMenge;
+            xNachStoppStoerung := FALSE;
             iSchritt := 50;
         END_IF
     ELSIF fbMove.xError THEN
         xMoveStart := FALSE; sMeldung := fbMove.sFehler; iSchritt := 900;
     END_IF
 
-(* --- Befüllen mit Nachziehen -------------------------------------------------------------- *)
-50: GVL_IO.xKlappeOeffnen := TRUE;
-    GVL_IO.xPumpeFreigabe := GVL_IO.xKlappeAuf;
-    rMenge := GVL_IO.rDurchflussMenge - rMengeStart;
-    rHoehe := F_Hoehe(rPosTab, iTab, rTiefe);
-    IF GVL_IO.xGrenzA THEN xANass := TRUE; END_IF
-    IF GVL_IO.xPlsBeenden THEN
-        sMeldung := 'Verladung von der Leitstelle beendet'; iSchritt := 60;
-    ELSIF GVL_IO.xDurchflussOk AND rMenge >= rSoll THEN
-        sMeldung := 'Sollmenge erreicht'; iSchritt := 60;                              (* Ebene 1 *)
-    ELSIF GVL_IO.xGrenzB AND NOT GVL_IO.xGrenzA THEN
-        sMeldung := 'Grenzschalter unplausibel (B nass, A trocken)'; iSchritt := 900;
-    ELSIF xANass AND NOT GVL_IO.xGrenzA THEN
-        sMeldung := 'Auslass über dem Spiegel (zu weit gehoben)'; iSchritt := 900;
-    ELSIF GVL_IO.xGrenzA AND GVL_IO.xGrenzB THEN                                        (* zu tief *)
-        rSpiegel := rHoehe + 0.03;                                                      (* B ca. 3 cm über Auslassende *)
+(* --- Klappe auf, "Arm bereit" an die Leitstelle -------------------------------------------- *)
+50: GVL_IO.xKlappeOeffnen := TRUE; GVL_IO.xBefuellStoppen := FALSE;
+    IF GVL_IO.xKlappeAuf THEN GVL_IO.xArmBereit := TRUE; iSchritt := 51; END_IF
+
+(* --- Befüllung durch die Leitstelle, Nachziehen über einen Grenzschalter ------------------ *)
+51: rHoehe := F_Hoehe(rPosTab, iTab, rTiefe);
+    IF GVL_IO.xPlsBefuellEnde THEN                                  (* Ebene 1: Leitstelle *)
+        sMeldung := 'Leitstelle: Befüllung Ende'; iSchritt := 58;
+    ELSIF tonOhneSchalten.Q THEN
+        sMeldung := 'Grenzschalter schaltet nicht (Pumpe läuft zu lange)';
+        xNachStoppStoerung := TRUE; iSchritt := 58;
+    ELSIF GVL_IO.xGrenzNass THEN                                    (* Spiegel auf Sensorhöhe *)
+        rSpiegel := rHoehe + GVL_Param.SENSOR_HOEHE;
         IF rSpiegel >= -GVL_Param.rMaxHoeheUnterRand THEN
-            sMeldung := 'Maximalhöhe erreicht'; iSchritt := 60;                         (* Ebene 2 *)
+            sMeldung := 'Maximalhöhe erreicht – Befüllung stoppen'; iSchritt := 58;   (* Ebene 2 *)
         ELSIF rPosTab <= 1.0 THEN
-            sMeldung := 'Nachziehen am Anfahrpunkt angekommen'; iSchritt := 60;
-        ELSE
+            sMeldung := 'Arm kann nicht weiter nachziehen – Befüllung stoppen'; iSchritt := 58;
+        ELSE                                                        (* Hub um NACHZIEH_SCHRITT *)
             rPosTab := F_PosFuerHoehe(rHoehe + GVL_Param.NACHZIEH_SCHRITT, iTab, rTiefe);
             FOR i := 1 TO 3 DO aZiel[i] := F_TabWinkel(rPosTab, iTab, i, aTab); END_FOR
             rFaktor := GVL_Param.FAKTOR_LANGSAM; xMoveStart := TRUE;
             iSchritt := 55;
         END_IF
     END_IF
-55: (* Nachziehen läuft, Klappe bleibt auf *)
-    rMenge := GVL_IO.rDurchflussMenge - rMengeStart;
+55: (* Nachziehen läuft, Klappe bleibt auf, Pumpe läuft weiter *)
     IF fbMove.xDone THEN
-        xMoveStart := FALSE; iSchritt := 50;
+        xMoveStart := FALSE; iSchritt := 56;
     ELSIF fbMove.xError THEN
         xMoveStart := FALSE; sMeldung := fbMove.sFehler; iSchritt := 900;
     END_IF
+56: (* nach dem Hub muss der Grenzschalter trocken werden *)
+    IF NOT GVL_IO.xGrenzNass THEN
+        iSchritt := 51;
+    ELSIF tonTrocken.Q THEN
+        sMeldung := 'Grenzschalter nach dem Nachziehen weiter nass (Belag/Defekt)';
+        xNachStoppStoerung := TRUE; iSchritt := 58;
+    ELSIF GVL_IO.xPlsBefuellEnde THEN
+        sMeldung := 'Leitstelle: Befüllung Ende'; iSchritt := 58;
+    END_IF
 
-(* --- Klappe zu, Pumpe aus, abtropfen ------------------------------------------------------ *)
-60: GVL_IO.xKlappeOeffnen := FALSE; GVL_IO.xPumpeFreigabe := FALSE;
-    IF GVL_IO.xKlappeZu THEN tWarte := GVL_Param.ABTROPFEN; xWarten := TRUE; iSchritt := 62; END_IF
+(* --- erst Pumpe aus (Leitstelle), dann Klappe zu ----------------------------------------- *)
+58: GVL_IO.xArmBereit := FALSE;
+    GVL_IO.xBefuellStoppen := TRUE;                                 (* bei "Ende" ohnehin aus *)
+    IF tonAuslauf.Q THEN
+        iSchritt := 60;
+    ELSIF tonPumpeAus.Q THEN
+        sMeldung := 'Pumpe meldet nicht aus – Klappe zu'; xNachStoppStoerung := TRUE; iSchritt := 60;
+    END_IF
+
+(* --- Klappe zu, abtropfen ----------------------------------------------------------------- *)
+60: GVL_IO.xKlappeOeffnen := FALSE; GVL_IO.xArmBereit := FALSE;
+    IF GVL_IO.xKlappeZu THEN
+        GVL_IO.xBefuellStoppen := FALSE;
+        IF xNachStoppStoerung THEN
+            iSchritt := 900;
+        ELSE
+            tWarte := GVL_Param.ABTROPFEN; xWarten := TRUE; iSchritt := 62;
+        END_IF
+    END_IF
 62: IF tonWarte.Q THEN xWarten := FALSE; iSchritt := 65; END_IF
 
 (* --- senkrecht heraus bis zum Anfahrpunkt ------------------------------------------------- *)
@@ -191,7 +226,7 @@ CASE iSchritt OF
     END_IF
 
 (* --- Job 3: Rückfahrt in die Parkstellung ------------------------------------------------- *)
-80: GVL_IO.xKlappeOeffnen := FALSE; GVL_IO.xPumpeFreigabe := FALSE;
+80: GVL_IO.xKlappeOeffnen := FALSE; GVL_IO.xArmBereit := FALSE;
     GVL_Achsen.iBesitzer := 1;
     iJobNr := 3; iDomNr := 0; xJobStart := TRUE; iSchritt := 81;
 81: IF fbJob.xDone THEN
@@ -216,7 +251,12 @@ CASE iSchritt OF
 
 (* --- Störung ------------------------------------------------------------------------------ *)
 900: GVL_Achsen.xCmdStop := TRUE;
-    GVL_IO.xKlappeOeffnen := FALSE; GVL_IO.xPumpeFreigabe := FALSE;
+    (* Störung: Pumpe abschalten lassen, Klappe erst nach Pumpe aus (bzw. nach PUMPE_AUS_MAX) zu *)
+    GVL_IO.xArmBereit := FALSE;
+    GVL_IO.xBefuellStoppen := GVL_IO.xPlsPumpeLaeuft OR NOT GVL_IO.xKlappeZu;
+    IF tonAuslauf.Q OR tonPumpeAus.Q OR NOT GVL_IO.xKlappeAuf THEN
+        GVL_IO.xKlappeOeffnen := FALSE;
+    END_IF
     GVL_Vision.ArmState := 9;
     xJobStart := FALSE; xMoveStart := FALSE; xWarten := FALSE;
     GVL_Achsen.xCmdReset := GVL_IO.xQuittTaster;
@@ -224,6 +264,8 @@ CASE iSchritt OF
 910: (* quittiert: Start = "Automatisch in Parkstellung" (Job 3) oder Handbetrieb *)
     GVL_Achsen.xCmdStop := FALSE; GVL_Achsen.xCmdReset := FALSE;
     GVL_Achsen.iBesitzer := 0;
+    GVL_IO.xKlappeOeffnen := FALSE;
+    GVL_IO.xBefuellStoppen := GVL_IO.xPlsPumpeLaeuft;
     IF F_InPark() THEN
         GVL_Vision.ArmState := 0; iSchritt := 0;
     ELSIF rtStart.Q AND GVL_IO.xSicherheitOk AND NOT GVL_IO.xBetriebsartHand THEN

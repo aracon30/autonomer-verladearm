@@ -78,7 +78,7 @@ verlinkten Dokumenten.
 - [x] SICK-Kamera bestellt (Einkauf, 09.11., Laboraktion 900 €)
 - [ ] Vision-Software an Dom-Abdeckung anpassen, **wartet auf Maße aus der Konstruktion** (Ø, Dicke, Führung, Liquiphant-Kopf, Abstand Rohrende in Park): Abdeckung als Referenz für Job 2 statt Referenzflansch, Fehler 30 umkehren (Abdeckung > Öffnung), Abdeckung/Gabel/Wanne im Kollisionsmodell inkl. Aufsetzen auf dem Rand
 - [x] Simulation auf Stand 09.11. (10.11.): ein Grenzschalter 12 cm, Hub 5 cm, Füllende über Leitstelle, Pumpe aus vor Klappe zu
-- [ ] SPS-Entwurf (`plc/codesys/`, Basis TwinCAT) entsprechend anpassen
+- [x] SPS-Entwurf (`plc/codesys/`, Basis TwinCAT) angepasst (10.11.): ein Grenzschalter, Signale Leitstelle (`xArmBereit`, `xBefuellStoppen`, `xPlsPumpeLaeuft`, `xPlsBefuellEnde`), erst Pumpe aus dann Klappe zu; Durchfluss/Sollmenge entfernt
 - [ ] Anlagenpaket (Release ohne Simulation, Windows-Dienst bzw. Linux) – sobald feststeht, wo die Bildverarbeitung läuft (Beckhoff/Windows oder eigener PC)
 - [x] Mail an SEW (Herr Lay) gesendet 10.11.: Positioning Drive über EtherCAT an TwinCAT 3, ESI-Datei, STO festverdrahtet über CSO, Auslegung Bremswiderstände – **Antwort offen**; danach Umrichter bestellen (Angebot 426368452D; 426533683 überholt)
 - [x] Mail an BASF (Silas) gesendet 09.11.: Sensortest, ein Grenzschalter (10–15 cm, Hub 5 cm, Auslass 5–15 cm unter Spiegel), eigene Überfüllsicherung baugleich (Typ, Auswertung, Schaltpunkt, Zulassung), Signale Leitstelle/Pumpe – **Antwort offen**

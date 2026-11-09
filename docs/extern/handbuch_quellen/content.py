@@ -1,4 +1,4 @@
-"""Inhalt der überarbeiteten Betriebsanleitung OMIM-4793 (autonomer Verladearm).
+"""Inhalt der überarbeiteten Betriebsanleitung OMIM-4896 (autonomer Verladearm).
 
 Blöcke: ("h1"|"h2"|"p"|"sub"|"li", text), ("note", text, …), ("warn", Stufe, Titel, Folge,
 [Maßnahmen]), ("table", Spaltenbreiten, Zeilen, Kopfzeile), ("keep", Index aus der Vorlage).
@@ -62,7 +62,7 @@ BLOCKS = [
     ("sub", "Verladearm"),
     ("table", W2, [
         ("Bezeichnung", "Autonomer Obenverladearm mit elektrischen Antrieben"),
-        ("Werksnummer / Zeichnung", "4793-01 / 00028433"),
+        ("Werksnummer / Zeichnung", "4896-01 / 00028433"),
         ("Nennweite", "DN 100"),
         ("Medium", "Polymerdispersion, flüssig"),
         ("Dichte", "ca. 1.100 kg/m³"),

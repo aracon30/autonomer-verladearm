@@ -50,7 +50,7 @@ Status: **E** = Entwurf · **P** = in Prüfung · **F** = freigegeben
 
 | Dokument | Ablage | Stand | Status | Freigabe |
 |---|---|---|---|---|
-| Betriebsanleitung OMIM-4793 (VO (EU) 2023/1230) | `docs/extern/OMIM-4793_Betriebsanleitung_autonom_Entwurf.docx` | Entwurf | E | [ ] |
-| Softwaredokumentation SWD-4793 | `docs/extern/SWD-4793_Softwaredokumentation_Entwurf.docx` | Entwurf, Schnittstelle V3 | E | [ ] |
+| Betriebsanleitung OMIM-4896 (VO (EU) 2023/1230) | `docs/extern/OMIM-4896_Betriebsanleitung_autonom_Entwurf.docx` | Entwurf | E | [ ] |
+| Softwaredokumentation SWD-4896 | `docs/extern/SWD-4896_Softwaredokumentation_Entwurf.docx` | Entwurf, Schnittstelle V3 | E | [ ] |
 | Technische Zusammenfassung (an BASF) | `docs/extern/` | gesendet | – | – |
 | Konformitätserklärung | – | – | offen (Phase 6) | [ ] |

@@ -13,10 +13,10 @@ Parkstellung.
       ▼
 Vision-Software (dieses Repo) ──OPC UA──► SPS: Beckhoff-IPC, TwinCAT 3 ──PROFINET/EtherCAT──► 3 × SEW MOVITRAC
                                             │  TwinSAFE: Not-Halt, Zustimmung, STO (festverdrahtet)
-Grenzschalter Nachziehen (IO-Link) ────────►┤
+Sensor Nachziehen (IO-Link) ───────────────►┤
 Absperrklappe (auf/zu, Endlagen) ◄─────────►┤
 Leitstelle/Pumpe BASF ◄────────────────────►┘  „Befüllung Start/Ende“, „Arm bereit“, „Befüllung stoppen“
-Überfüllsicherung (Liquiphant) ──────────────► schaltet die Pumpe direkt ab (Meldung an die SPS)
+Überfüllsicherung (Baumer LBFS) ─────────────► schaltet die Pumpe direkt ab (Meldung an die SPS)
 ```
 
 Der Vision-PC misst Domöffnung, Tank und offenen Deckel und liefert eine **kollisionsgeprüfte Bahn
@@ -25,9 +25,12 @@ SPS (siehe [ADR 0001](docs/adr/0001-architektur.md), [ADR 0002](docs/adr/0002-ge
 [Schnittstelle](docs/schnittstelle.md), [Kinematik und Bahnplanung](docs/kinematik.md)).
 
 **Aufgabenteilung bei der Befüllung:** Menge, Pumpe und Füllende steuert die Leitstelle. Der Arm
-positioniert den Auslass, öffnet die Absperrklappe erst, wenn er im Tank steht, und zieht über
-**einen Grenzschalter** (ca. 10–15 cm über dem Auslass, Hub ca. 5 cm) nach. Bei Störung oder
-Maximalhöhe meldet er „Befüllung stoppen“: erst Pumpe aus, dann Klappe zu. Die Überfüllsicherung
+positioniert den Auslass, öffnet die Absperrklappe (Anfang Fallrohr) erst, wenn er im Tank steht,
+und zieht über **einen Sensor** nach (Auslass ca. 5–15 cm unter dem Spiegel, Hub ca. 5 cm; Baumer
+LBFS oder Radar, Entscheidung BASF). Bei Störung oder Maximalhöhe meldet er „Befüllung stoppen“:
+erst Pumpe aus, dann Klappe zu. Nach dem Füllende drückt BASF die Leitung mit Druckluft in den
+Tank (Verdrängen/Spülen); die Klappe bleibt dabei offen (Ablauf in Klärung, in SPS-Entwurf und
+Simulation noch nicht enthalten). Die Überfüllsicherung (Baumer LBFS, keine WHG-/SIL-Anforderung)
 sitzt auf einer Dom-Abdeckung, die mit dem Arm auf den Domkasten gesetzt wird; eine mechanische
 Pendelwanne fängt das Nachtropfen ([Skizze Rev. 6](docs/skizzen/Prinzipskizze_Abtropfsicherung_Rev6.pdf)).
 
@@ -221,11 +224,12 @@ Prototyp in Entwicklung.
   Gerät noch nicht erprobt.
 - **Bestellt:** SICK Visionary-T Mini CX, SEW-Servos J1/J2.
 - **Entschieden:** Steuerung TwinCAT 3 auf Beckhoff-IPC (Schaltschrank und Grundsoftware über
-  Automatisierungspartner), Befüllung über die Leitstelle, ein Grenzschalter, mechanische
-  Abtropfsicherung.
+  Automatisierungspartner), Befüllung über die Leitstelle, ein Sensor fürs Nachziehen, Überfüll-
+  sicherung Baumer LBFS (keine WHG/SIL), mechanische Abtropfsicherung.
 - **Offen:** Feldbus der Umrichter (Antwort SEW), J3-Schwenktrieb (Lastfall mit langem Auslass,
-  IMO), Sensoren und Überfüllsicherung (Antwort Kunde), Angebot Schaltschrank/Software.
-- **Nächste Schritte:** Aufnahmen an echten Tankwagen mit der Kamera, Simulation und SPS-Entwurf
-  auf den Stand vom 09.11. bringen, Konstruktion Dom-Abdeckung.
+  IMO), Sensortyp Nachziehen (LBFS oder Radar, BASF), Verdrängen/Spülen (Ablauf BASF), Reinigung
+  Füllrohr (Mechanik), Kooperation/Angebot Schaltschrank und Software.
+- **Nächste Schritte:** Termin BASF (12.11.), Aufnahmen an echten Tankwagen mit der Kamera,
+  Konstruktion Dom-Abdeckung, danach Vision-Software auf die Abdeckung umstellen.
 
 Details: [Projektstand](docs/projektstand.md).

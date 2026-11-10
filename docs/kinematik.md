@@ -95,7 +95,10 @@ der Blick tief in den Tank geht (`deep_min` unter der Oberfläche).
   Ziel ist die kleine, oft seitlich versetzte **Füllöffnung** (ca. 0,2–0,35 m) – nicht die Mitte
   des Domrings. Mittelpunkt per Kreis-Fit auf dem innersten Rand.
 - **Referenzflansch:** Passt er nicht durch die Öffnung, muss er über dem Rand bleiben:
-  Eintauchtiefe ≤ `outlet.marker_offset − scene.flange_margin`, sonst Fehler 30.
+  Eintauchtiefe ≤ `outlet.marker_offset − scene.flange_margin`, sonst Fehler 30. **Wird ersetzt:**
+  Statt des Flansches kommt die **Dom-Abdeckung** (größer als die Öffnung, setzt auf dem Domkasten
+  auf); Prüfung und Kollisionsmodell werden umgestellt, sobald die Maße aus der Konstruktion
+  vorliegen (Änderung Ä-15).
 
 In der Simulation (beide Bauarten, Klappe offen, Laufstege) traf der Auslass die Füllöffnung im
 Mittel auf 3 mm, höchstens 7 mm genau; Spiel bis zum Rand mindestens 52 mm.
@@ -143,7 +146,8 @@ Plausibilisierung und als Referenz für die SPS-Programmierung.
 ## Offene Punkte
 
 - Rohrdurchmesser nur über `clearance` berücksichtigt (Rohrachse als Linie); der Referenzflansch
-  am Auslass ist nicht als Körper modelliert (nur Höhenprüfung gegen die Eintauchtiefe)
+  am Auslass ist nicht als Körper modelliert (nur Höhenprüfung gegen die Eintauchtiefe); künftig
+  Dom-Abdeckung und Pendelwanne als Körper inkl. Aufsetzen auf dem Rand (wartet auf Maße)
 - Dombauarten nur nach einem Foto modelliert: mit echten Aufnahmen verschiedener Fahrzeuge prüfen
 - Pendeln des Auslasses beim Anfahren (J4 frei): Beschleunigungen begrenzen, Beruhigungszeit
   vor dem Eintauchen

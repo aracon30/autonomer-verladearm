@@ -10,7 +10,8 @@ Leitstelle) sind folgende Änderungen nötig. Offene Werte sind mit **[folgt]** 
 - Titel: „Autonomer Obenverladearm mit elektrischen Antrieben (Drehen J1/J2, Heben/Senken J3)“.
 - Geltungsbereich um **Kamera, Vision-PC mit Software, SPS und Schnittstelle zur Leitstelle**
   erweitern; Herstellerunterlagen: SEW (Servomotoren, Getriebe, MOVITRAC advanced), IMO
-  (Schwenkantrieb), SICK (Kamera, Füllstand), Industrie-PC, Siemens S7-1500.
+  (Schwenkantrieb), SICK (Kamera), Baumer/E+H (Füllstand, Überfüllsicherung), Beckhoff
+  (Industrie-PC C6027 mit TwinCAT 3 und TwinSAFE).
 - 1.2 Konformität: Maschinenrichtlinie 2006/42/EG gilt nur für Inverkehrbringen **bis 19.01.2027**,
   danach **Maschinenverordnung (EU) 2023/1230**. Risikobeurteilung und Sicherheitsfunktionen
   (EN ISO 13849, PL je Funktion) für den automatischen Betrieb neu. Keine Ex-Zone bleibt.
@@ -22,15 +23,16 @@ Leitstelle) sind folgende Änderungen nötig. Offene Werte sind mit **[folgt]** 
 |---|---|---|
 | Antriebe | RF47, 0,75 kW (nur Heben/Senken) | J1/J2: SEW CM3C71S + P5KG31 i = 4 + Zahnkranz (i ges. 10,6), Bremse BK1 16 Nm, Geber AZ2Z · J3: RF47 DRN80M4/BE05 + IMO WD-E 0223/3 (i ges. 1 457,6), Geber AK8Z |
 | Bewegung | Heben/Senken ±45° | J1 −120…+120°, J2 −140…+140°, J3 −45…+45°, max. 6 °/s je Gelenk |
-| Antriebsregelung | MOVITRAC | 3 × SEW MOVITRAC advanced MCX91A (2 × 4 A, 1 × 2,5 A), PROFINET, STO, MOVIKIT Positioning Drive |
-| Steuerung | – | Siemens S7-1500 [Typ folgt], Industrie-PC (Linux) mit Vision-Software |
+| Antriebsregelung | MOVITRAC | 3 × SEW MOVITRAC advanced MCX91A (2 × 4 A, 1 × 2,5 A), PROFINET oder EtherCAT [folgt SEW], STO, MOVIKIT Positioning Drive |
+| Steuerung | – | Beckhoff C6027 (Windows 11 IoT) mit TwinCAT 3 (SPS, OPC UA) und TwinSAFE, zugleich Vision-PC [Aufstellort Vision folgt]; Schaltschrank NemaSoft |
 | Kamera | – | SICK Visionary-T Mini CX (3D), Montage über der Verladestelle |
 | Bedienung | Taster Heben/Senken/Reset, Hängetaster XAC-A2713 | Leuchttaster „Beladen starten“, Not-Halt, „Quittieren“, Schlüsselschalter Automatik/Hand, Leuchtmelder; steckbares **Handbediengerät** mit Zustimmtaster, Not-Halt, Achswahl, +/−; Auftrag, Produkt und Kalibrierung aus der **Leitstelle** |
 | Sensorik Bewegung | 2 Endlagensensoren, induktiver Hindernissensor | Multiturn-Absolutgeber je Achse, Software-Endlagen, Endlagenschalter [folgt], Hindernissensor Lanze (beibehalten?) [folgt], Lichtschranke Stellplatz, Rückmeldung Klapptreppe |
-| Sensorik Füllstand | Liquiphant + Ultraschall | zwei Grenzschalter (kapazitiv) am Auslassrohr fürs Nachziehen, Durchflusssensor (Sollmenge), Maximalhöhe aus Armhöhe, **Überfüllsicherung** an aufliegender Lanze (z. B. SICK LFV 200) [folgt], Absperrklappe mit Stellungsrückmeldung |
+| Sensorik Füllstand | Liquiphant + Ultraschall | **ein** Sensor fürs Nachziehen (Baumer LBFS am Auslassrohr oder Radar an der Dom-Abdeckung, Entscheidung BASF [folgt]), Maximalhöhe aus Armhöhe, **Überfüllsicherung Baumer LBFS** an der Dom-Abdeckung (keine WHG-/SIL-Anforderung), elektrische Absperrklappe am Anfang des Fallrohrs mit Stellungsrückmeldung. Menge, Pumpe und Füllende: Leitstelle |
 | Elektrischer Anschluss / Schaltschrank | 16 A, Rittal AX 500 × 500 × 300 | Leistung und Schrankgröße neu (3 Umrichter, SPS, PC) [folgt Schaltschrankbauer] |
 | Gewicht | 251/326 kg | neu mit Antrieben J1/J2 und Zahnkränzen [folgt] |
-| Neu | – | Umgebungstemperatur −20…+40 °C (Getriebe J1/J2 −15 °C, zurückgestellt), Windgrenze für Automatik [folgt], Netzwerk/Schnittstellen (PROFINET, OPC UA, PLS) |
+| Abtropfen | – | **mechanische Abtropfsicherung** (Pendelwanne, vom Rohrende geöffnet), ohne Antrieb und ohne Signale |
+| Neu | – | Umgebungstemperatur −20…+40 °C (Getriebe J1/J2 −15 °C, zurückgestellt), Windgrenze für Automatik [folgt], Netzwerk/Schnittstellen (EtherCAT/PROFINET, OPC UA, PLS) |
 
 ## Kapitel 3 – Aufbau und Funktion
 
@@ -38,8 +40,10 @@ Neu schreiben:
 - Drei Achsen, Arm faltet sich in die Parkstellung; Kamera, Vision-PC, SPS und ihre Aufgaben
   (PC misst und plant kollisionsfreie Bahnen, SPS fährt, prüft und überwacht).
 - **Automatischer Ablauf:** Leitstelle gibt Auftrag/Produkt frei → Bediener drückt „Beladen
-  starten“ → Dom messen → über den Dom fahren → nachmessen → senkrecht eintauchen → Befüllen mit
-  Nachziehen → Sollmenge → Klappe zu, Abtropfen → Rückfahrt in die Parkstellung.
+  starten“ → Dom messen → über den Dom fahren → nachmessen → senkrecht eintauchen → Klappe auf,
+  „Arm bereit“ → Leitstelle befüllt, Arm zieht nach → Füllende der Leitstelle (oder Maximalhöhe)
+  → Pumpe aus → Verdrängen/Spülen mit Klappe offen [Ablauf folgt BASF] → Klappe zu, Abtropfen →
+  nächste Kammer oder Rückfahrt in die Parkstellung.
 - Satz „Der Antrieb bewegt sich nur, solange ein Taster gedrückt ist“ gilt nur noch im
   Handbetrieb.
 - Haltebremsen an allen Achsen; J1/J2 nicht selbsthemmend, J3 Selbsthemmung nicht zugesichert.
@@ -73,7 +77,8 @@ Not-Halt und Quittieren nur vor Ort. Hindernissensor-Hinweis anpassen (im Automa
 Ergänzen: Bedeutung der Leuchtmelder; Vision-Fehler (keine Öffnung erkannt, mehrere Öffnungen,
 nicht erreichbar, Kollision, Auslass nicht gefunden, Kamera nicht verfügbar – Codes aus
 `docs/schnittstelle.md`), Heartbeat-Ausfall, Lichtschranke frei, Klapptreppe nicht in Ruhelage,
-Überfüllsicherung ausgelöst, Nachziehen am Ende, Durchflusssensor gestört, Kamera verschmutzt,
+Überfüllsicherung ausgelöst, Nachziehen am Ende (Maximalhöhe), Sensor Nachziehen meldet nach dem
+Hub weiter „nass“ (Belag), Leitstelle beendet nicht, Kamera verschmutzt,
 Rückfahrt nicht möglich → Handbetrieb mit Handbediengerät oder „Automatisch in Parkstellung“.
 Stromausfall: Bremsen halten, Absolutgeber behalten die Lage, keine Referenzfahrt.
 
@@ -107,12 +112,14 @@ Abnahme mit Protokoll (`docs/inbetriebnahme.md`).
 
 Ergänzen: Kamerafenster reinigen, Kalibrierung prüfen (Prüfstellung), Bremsentest, Getriebe
 (SEW/IMO-Intervalle), Ritzel/Zahnkranz J1/J2 schmieren und Flankenspiel prüfen, Kabel am Arm,
-Datensicherung Anlagendatei/Software, Software-Updates nur durch HETA.
+Datensicherung Anlagendatei/Software, Software-Updates nur durch HETA. Füllrohr wöchentlich mit
+Hochdruck reinigen (Vorgabe BASF; Ausführung am Arm [folgt Konstruktion]), Sensoren Füllstand und
+Überfüllsicherung reinigen und prüfen, Abtropfsicherung (Gelenk, Feder, Gleitstück) prüfen.
 
 ## Kapitel 11 – Ersatzteile
 
 Neu: Servomotor J1/J2 mit Getriebe, Getriebemotor J3, IMO-Schwenkantrieb, 3 Umrichter
-(Speichermodul CMM11A), Kamera, Vision-PC, SPS-Baugruppen, Handbediengerät, Ritzel/Zahnkranz,
+(Speichermodul CMM11A), Kamera, Beckhoff-IPC und E/A-Klemmen, Handbediengerät, Ritzel/Zahnkranz,
 Sensoren Füllstand/Überfüllsicherung, Absperrklappe. Ultraschallsensor, Hängetaster und
 MOVITRAC classic entfallen. Teilenummern [folgt].
 
@@ -120,5 +127,5 @@ MOVITRAC classic entfallen. Teilenummern [folgt].
 
 - Außerbetriebnahme: Arm in die Parkstellung, Daten sichern.
 - Mitgeltend: SEW-Unterlagen (CM3C, P5KG, RF47/DRN, MOVITRAC advanced, MOVIKIT Positioning Drive
-  33350930), IMO WD-E, SICK-Kamera und Füllstandsensoren, Industrie-PC, S7-1500,
+  33350930), IMO WD-E, SICK-Kamera, Füllstandsensoren (Baumer/E+H), Beckhoff C6027 und TwinCAT,
   Risikobeurteilung, Stromlaufplan neu, Software-Dokumentation (Schnittstelle, Inbetriebnahme).

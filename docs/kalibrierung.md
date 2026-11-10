@@ -8,7 +8,7 @@ Sensor versetzt, getauscht oder die Traverse verändert wurde.
 
 Der Sensor ist fest über der Station montiert („eye-to-hand“). Der Arm fährt die
 **Markierungsscheibe am Auslass** (oder den Referenzflansch, siehe `outlet` in der
-Anlagendatei) an 10 Stellen im Arbeitsraum. Je Stellung gibt es zwei Angaben
+Anlagendatei; künftig die Dom-Abdeckung, Ä-15) an 10 Stellen im Arbeitsraum. Je Stellung gibt es zwei Angaben
 für denselben Punkt:
 
 - **Armbasis:** Auslassende aus den Servo-Istwinkeln (Vorwärtsrechnung, `docs/kinematik.md`)

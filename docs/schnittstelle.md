@@ -84,7 +84,7 @@ Vorher (ohne Automatik): Arm steht in der Parkstellung. LKW/Kesselwagen fährt v
 Klapptreppe fährt auf das Fahrzeug, der Fahrer öffnet den Dom, die Klapptreppe fährt zurück.
 
 1. **Leitstelle** (PLS) gibt den Auftrag frei und wählt das **Produkt** (→ `ProductId`, bestimmt
-   die Eintauchtiefe und Sollmenge). Am Schaltschrank gibt es **kein Display** (Festlegung
+   die Eintauchtiefe). Menge, Pumpe und Füllende bleiben bei der Leitstelle (Festlegung 09.11.). Am Schaltschrank gibt es **kein Display** (Festlegung
    19.10.2026), nur Taster und Leuchtmelder. Der Auftrag ist eine **Liste von Füllschritten**
    (Dom, Menge), je nach Tankwagen (Abschnitt „Tankwagen mit mehreren Domen“ unten).
 2. **Bediener drückt „Beladen starten“** (Leuchttaster am Schaltschrank, einziger Bedientaster im
@@ -95,13 +95,19 @@ Klapptreppe fährt auf das Fahrzeug, der Fahrer öffnet den Dom, die Klapptreppe
 4. Beruhigungszeit, der Auslass pendelt frei (J4).
 5. **Job 2** → Korrektur prüfen (Betrag < Grenzwert, sonst Job 2 wiederholen oder Abbruch) →
    Stützpunkt 1 anfahren → restliche Stützpunkte langsam = Eintauchen.
-6. **Befüllen** (SPS, **ohne PC**, `docs/fuellstand_ueberfuellsicherung.md`): Absperrklappe auf,
-   Durchflusssensor zählt die Menge. Zwei Grenzschalter am Auslassrohr (ca. 1 und 3 cm über dem
-   Auslassende) melden die Eintauchtiefe; meldet der obere „nass“, zieht die SPS den Arm senkrecht nach, entlang der Eintauch-Stützpunkte aus Job 2
-   (Höhe je Stützpunkt aus der Vorwärtsrechnung, dazwischen linear im Gelenkraum). Die
-   Überfüllsicherung schließt die Klappe unabhängig davon (nur letzte Ebene, nie betriebsmäßig).
-7. **Sollmenge erreicht** oder **Maximalhöhe** aus Armhöhe erreicht (oder Bediener beendet die
-   Beladung) → Klappe zu, Abtropfpause.
+6. **Befüllen** (SPS, **ohne PC**, `docs/fuellstand_ueberfuellsicherung.md`): SPS öffnet die
+   Absperrklappe (Anfang Fallrohr) und meldet „Arm bereit“; die **Leitstelle** startet die Pumpe
+   und bestimmt die Menge. **Ein Sensor** am Auslassrohr regelt das Nachziehen: meldet er „nass“,
+   zieht die SPS den Arm senkrecht nach (Hub ca. 5 cm), entlang der Eintauch-Stützpunkte aus
+   Job 2 (Höhe je Stützpunkt aus der Vorwärtsrechnung, dazwischen linear im Gelenkraum). Ziel:
+   Auslass ca. 5–15 cm unter dem Spiegel (BASF, 10.11.). Sensortyp entscheidet BASF: Baumer LBFS
+   (Schaltschwelle gegen Produktfilm, Wiederholversuch) oder Radar an der Dom-Abdeckung
+   (durchgehende Messung). Die Überfüllsicherung (Baumer LBFS an der Abdeckung, schaltet auch bei
+   Schaum) wirkt unabhängig davon (nur letzte Ebene, nie betriebsmäßig).
+7. **Füllende der Leitstelle** oder **Maximalhöhe** aus Armhöhe erreicht (oder Störung) → SPS
+   meldet „Befüllung stoppen“, Pumpe aus, nach Auslaufzeit **Verdrängen/Spülen** (Druckluft
+   drückt den Leitungsinhalt in den Tank): Klappe bleibt offen, Arm bleibt im Tank, bis die
+   Leitstelle „beendet“ meldet (Signal und Ablauf mit BASF in Klärung) → Klappe zu, Abtropfpause.
 8. **Weitere Füllschritte** (Mehrkammer): senkrecht heraus bis zum Anfahrpunkt (Eintauch-
    Stützpunkte rückwärts), dann **Job 1** mit dem nächsten `DomeNo` aus der Istlage – der PC plant
    erst senkrecht hoch, dann zum nächsten Dom – weiter ab Schritt 3. Ohne Umweg über die
@@ -126,9 +132,8 @@ Bauart nicht, nur den Dom:
   wie bisher Fehler 30/31 (Fahrzeug umsetzen).
 - Eine Plausibilitätsprüfung (erwartete Zahl offener Dome aus dem Auftrag gegen `DomeCount`) ist
   vorgesehen, aber noch nicht umgesetzt.
-- **Überfüllsicherung bei Mehrkammer:** jede Kammer braucht ihre eigene. Mit Liquiphant von Hand
-  muss der Bediener ihn zwischen den Kammern umsetzen und mit „Beladen starten“ quittieren; mit
-  einer Lanze am Arm geht es ohne Eingriff (offen, Termin BASF).
+- **Überfüllsicherung bei Mehrkammer:** jede Kammer braucht ihre eigene. Sie sitzt an der
+  Dom-Abdeckung am Arm und fährt mit von Kammer zu Kammer, ohne Eingriff des Bedieners.
 
 Während der Automatik: Klapptreppe verriegelt (darf nicht ausfahren). Fällt die Lichtschranke ab
 oder verlässt die Treppe die Ruhelage: Bewegung stoppen, Meldung (reine SPS-Funktion, kein PC-Signal).

@@ -216,3 +216,35 @@ def test_planung_haelt_zeitlimit_auch_auf_langsamem_rechner(monkeypatch):
     assert time.monotonic() - t < 0.5 + K.HARD_MARGIN + 0.3
     if not plan["ok"]:
         assert plan["code"] in (30, 31) and plan["reason"]
+
+
+def test_rueckfahrt_mit_ersatzweg_haelt_zeitlimit(monkeypatch):
+    """Job 3: auch der Ersatzweg (Anfahrt rückwärts) läuft innerhalb der harten Frist."""
+    import time
+
+    import verladearm_vision.kinematics as K
+
+    orig = K.first_collision
+
+    def slow(*a, **k):
+        time.sleep(0.03)
+        return orig(*a, **k)
+
+    geom = ArmGeometry(
+        joints={"q1": {"min": -120, "max": 120, "park": -90},
+                "q2": {"min": -170, "max": 170, "park": 10},
+                "q3": {"min": -90, "max": 90, "park": 45}},
+        obstacles=[{"name": "Geländer", "min": [1.2, -2.5, -3.2], "max": [1.4, 2.5, -1.0]}])
+    q = K.inverse_candidates(geom, [2.6, -0.2, -2.8])[0]
+    fallback = [geom.park + (q - geom.park) * u for u in np.linspace(0, 1, 60)]
+    def endless(*a, **k):  # neue Rückfahrt findet nichts, bis die Frist abläuft
+        while True:
+            K._pruefe_frist()
+            time.sleep(0.01)
+
+    monkeypatch.setattr(K, "_retract_new", endless)
+    monkeypatch.setattr(K, "first_collision", slow)
+    t = time.monotonic()
+    plan = K.plan_retract(geom, q, lift=0.5, fallback=fallback, time_limit=0.5)
+    assert time.monotonic() - t < 0.5 + K.HARD_MARGIN + 0.3
+    assert plan["ok"] or plan["reason"]

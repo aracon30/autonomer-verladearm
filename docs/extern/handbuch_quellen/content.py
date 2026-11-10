@@ -108,28 +108,33 @@ BLOCKS = [
         ("Bauseitige Absicherung", "[folgt]; FI-Schutzschalter falls vorhanden allstromsensitiv "
                                    "(Typ B)"),
         ("Schaltschrank", "[Typ und Abmessungen folgen]"),
-        ("Steuerung", "Siemens SIMATIC S7-1500 [Typ / F-CPU folgt]"),
-        ("Vision-PC", "Siemens Industrie-PC, Linux, Vision-Software HETA [Typ folgt]"),
+        ("Steuerung", "Beckhoff Industrie-PC C6027 mit TwinCAT 3 (SPS, OPC UA) und "
+                      "TwinSAFE (Not-Halt, Zustimmung, STO)"),
+        ("Vision-PC", "Vision-Software HETA auf dem Beckhoff-IPC (Windows 11 IoT) "
+                      "[Aufstellort bestätigen]"),
         ("3D-Kamera", "SICK Visionary-T Mini CX, über der Verladestelle [Typ bestätigen]"),
         ("Antriebsregelung", "3 × SEW MOVITRAC advanced mit MOVIKIT Positioning Drive, "
-                             "Einkabeltechnik MOVILINK DDI, Bremswiderstände [folgt]"),
+                             "Einkabeltechnik MOVILINK DDI, Bremswiderstände [folgt], "
+                             "Feldbus [PROFINET oder EtherCAT folgt]"),
         ("Bedienung vor Ort", "Leuchttaster „Beladen starten“, Not-Halt, Taster „Quittieren“, "
                               "Schlüsselschalter Automatik / Hand, Leuchtmelder (bereit / läuft / "
                               "Störung), Anschluss für Handbediengerät"),
         ("Handbediengerät", "steckbar, mit 3-stufigem Zustimmtaster, Not-Halt, Achswahl "
                             "J1 / J2 / J3 und Tasten + / − [Typ folgt]"),
-        ("Leitstelle", "Freigabe, Produkt, Sollmenge, Kalibrierung, Meldungen über "
-                       "[Schnittstelle zum PLS folgt]"),
+        ("Leitstelle", "Freigabe, Produkt, Menge, Pumpe und Füllende, Verdrängen/Spülen, "
+                       "Kalibrierung, Meldungen über [Schnittstelle zum PLS folgt]"),
         ("Sensorik Bewegung", "Multiturn-Absolutwertgeber je Achse, Software-Endlagen, "
                               "[Endlagenschalter folgen], [induktiver Hindernissensor an der "
                               "Lanze – beibehalten?], Lichtschranke Stellplatz, Rückmeldung "
                               "Klapptreppe „Ruhelage“"),
-        ("Sensorik Füllstand", "Messstab (geführte Mikrowelle) an der Lanze, Durchflusssensor "
-                               "[Typen folgen]"),
-        ("Überfüllsicherung", "Grenzschalter an aufliegender Lanze mit fester Länge unter dem "
-                              "Domrand, wirkt direkt auf die Absperrklappe [Typ und Zulassung "
-                              "folgen, z. B. SICK LFV 200]"),
-        ("Absperrklappe", "DN 100 mit Antrieb und Stellungsrückmeldung [Typ folgt]"),
+        ("Sensorik Füllstand", "ein Sensor für das Nachziehen [Baumer LBFS am Auslassrohr oder "
+                               "Radar an der Dom-Abdeckung, Entscheidung Betreiber]"),
+        ("Überfüllsicherung", "Baumer LBFS an der Dom-Abdeckung, Schaltpunkt ca. 0,20 m unter dem "
+                              "Domrand, schaltet auch bei Schaum, wirkt direkt auf die Pumpe "
+                              "[Typ folgt]"),
+        ("Absperrklappe", "DN 100, elektrisch, am Anfang des Fallrohrs, mit "
+                          "Stellungsrückmeldung [Typ folgt]"),
+        ("Abtropfsicherung", "mechanische Pendelwanne unter dem Auslass, ohne Antrieb"),
         ("Stromlaufplan", "[Nummer folgt]"),
     ]),
 
@@ -149,8 +154,10 @@ BLOCKS = [
     ("li", "Bei Stromausfall, Not-Halt oder Abschalten über den Hauptschalter fallen alle "
            "Bremsen ein; der Arm bleibt in seiner Position stehen."),
     ("li", "Mehrere 4\"-Drehgelenke, Produktleitung DN 100 mit Einlass N1 und Auslass N2."),
-    ("li", "Lanze am Auslass mit Messstab (Füllstand) und aufliegender Lanze für die "
-           "Überfüllsicherung."),
+    ("li", "Dom-Abdeckung am Auslass: setzt auf den Domkasten auf und trägt die "
+           "Überfüllsicherung; Sensor für das Nachziehen [Ausführung folgt]."),
+    ("li", "Mechanische Abtropfsicherung: Pendelwanne, die das Rohrende beim Eintauchen "
+           "aufschiebt und die beim Herausfahren unter den Auslass schwenkt."),
     ("sub", "Steuerung und Sensorik"),
     ("li", "**SPS:** steuert den Ablauf, fährt die Achsen, prüft jede Vorgabe des Vision-PCs und "
            "überwacht Not-Halt, Verriegelungen, Füllstand und Überfüllsicherung."),
@@ -159,8 +166,8 @@ BLOCKS = [
     ("li", "**Umrichter:** positionieren jede Achse; die SPS gibt Ziel, Geschwindigkeit und "
            "Beschleunigung so vor, dass alle Achsen gleichzeitig ankommen. Die Multiturngeber "
            "behalten die Lage auch ohne Spannung – eine Referenzfahrt ist nicht nötig."),
-    ("li", "**Leitstelle:** gibt den Auftrag frei, wählt Produkt und Sollmenge, stößt die "
-           "Kalibrierung an und erhält alle Meldungen. Aus der Leitstelle kann der Arm nicht "
+    ("li", "**Leitstelle:** gibt den Auftrag frei, wählt das Produkt, steuert Pumpe, Menge, "
+           "Füllende und Spülen, stößt die Kalibrierung an und erhält alle Meldungen. Aus der Leitstelle kann der Arm nicht "
            "von Hand verfahren werden."),
     ("li", "**Bedienung vor Ort:** Start-Taster, Not-Halt, Quittieren, Schlüsselschalter "
            "Automatik / Hand, Leuchtmelder und Handbediengerät."),
@@ -170,10 +177,13 @@ BLOCKS = [
     ("li", "Der Bediener drückt „Beladen starten“."),
     ("li", "Die Kamera misst den Dom, der Arm fährt über die Öffnung, misst die Lage des "
            "Auslasses nach und taucht senkrecht ein."),
-    ("li", "Die Absperrklappe öffnet. Steigt der Füllstand, zieht die SPS den Arm senkrecht nach, "
-           "sodass der Auslass knapp unter der Oberfläche bleibt."),
-    ("li", "Ist die Sollmenge erreicht, schließt die Klappe. Nach einer Abtropfpause fährt der "
-           "Arm senkrecht heraus und in die Parkstellung. Die grüne Leuchte zeigt: Fahrzeug darf "
+    ("li", "Die Absperrklappe öffnet, der Arm meldet „bereit“ und die Leitstelle startet die "
+           "Pumpe. Steigt der Füllstand, zieht die SPS den Arm senkrecht nach, sodass der Auslass "
+           "ca. 5–15 cm unter der Oberfläche bleibt."),
+    ("li", "Beendet die Leitstelle die Befüllung, stoppt die Pumpe. Die Leitung wird mit "
+           "Druckluft in den Tank gespült; die Klappe bleibt dabei offen [Ablauf folgt]. Danach "
+           "schließt die Klappe. Nach einer Abtropfpause fährt der Arm senkrecht heraus, zur "
+           "nächsten Kammer oder in die Parkstellung. Die grüne Leuchte zeigt: Fahrzeug darf "
            "wegfahren."),
     ("p", "Im **Handbetrieb** bewegt sich eine Achse nur, solange Zustimmtaster und +/− am "
           "Handbediengerät gedrückt sind (Tippbetrieb, reduzierte Geschwindigkeit)."),
@@ -201,7 +211,7 @@ BLOCKS = [
     ("table", W2b, [
         ("Bedienung vor Ort", "Vom Betreiber unterwiesenes Bedienpersonal, das diese Anleitung "
                               "gelesen und verstanden hat."),
-        ("Leitstand", "Unterwiesenes Leitstandpersonal (Freigabe, Produkt, Sollmenge, "
+        ("Leitstand", "Unterwiesenes Leitstandpersonal (Freigabe, Produkt, Menge, "
                       "Kalibrierung anstoßen, Meldungen)."),
         ("Handbetrieb", "Bedienpersonal mit Schlüsselberechtigung und Unterweisung im "
                         "Handbetrieb."),
@@ -322,17 +332,19 @@ BLOCKS = [
          "(geöffnet, frei), Kamerafenster reinigen, erneut starten."),
         ("Bahn nicht erreichbar oder Kollision gemeldet", "Fahrzeug anders stellen oder Hindernis "
          "beseitigen. Bleibt die Meldung, Verladung von Hand nach Betreiberverfahren."),
-        ("Auslass beim Nachmessen nicht gefunden", "Arm fährt zurück. Markierung bzw. Flansch am "
+        ("Auslass beim Nachmessen nicht gefunden", "Arm fährt zurück. Markierung bzw. Dom-Abdeckung am "
          "Auslass und Kamerafenster prüfen."),
         ("Verbindung Vision-PC gestört / Kamera nicht verfügbar", "Bewegung stoppt. Arm im "
          "Handbetrieb in die Parkstellung fahren; HETA informieren."),
         ("Lichtschranke frei oder Klapptreppe nicht in Ruhelage während der Automatik",
          "Bewegung stoppt sofort. Ursache klären, dann „Automatisch in Parkstellung“ oder "
          "Handbetrieb."),
-        ("Überfüllsicherung ausgelöst", "Absperrklappe ist zu. Füllstand prüfen, Ursache klären "
-         "(z. B. Durchflusssensor). Arm erst danach zurückfahren."),
-        ("Nachziehen am oberen Ende angekommen", "Absperrklappe ist zu. Sollmenge und "
-         "Fahrzeugdaten prüfen."),
+        ("Überfüllsicherung ausgelöst", "Pumpe aus, Absperrklappe ist zu. Füllstand prüfen, "
+         "Ursache klären (z. B. Menge der Leitstelle, Schaum). Arm erst danach zurückfahren."),
+        ("Nachziehen am oberen Ende angekommen (Maximalhöhe)", "Pumpe aus, Absperrklappe ist "
+         "zu. Menge der Leitstelle und Fahrzeugdaten prüfen."),
+        ("Sensor Nachziehen meldet nach dem Anheben weiter „nass“", "Störung, Pumpe aus, Klappe "
+         "zu. Sensor auf Belag prüfen und reinigen."),
         ("Antrieb bewegt nicht", "Keine Gewalt anwenden. Hauptschalter, Not-Halt, Betriebsart, "
          "Meldung am Umrichter und Blockaden prüfen."),
         ("Fehleranzeige am Frequenzumrichter", "Fehlercode gemäß Betriebsanleitung SEW "
@@ -433,12 +445,12 @@ BLOCKS = [
     ("li", "Fahrzeug abstellen, erden, Dom öffnen. Klapptreppe in Ruhelage fahren."),
     ("li", "Vergewissern Sie sich, dass sich niemand auf dem Fahrzeug und im Bewegungsbereich "
            "befindet."),
-    ("li", "Die Leitstelle gibt den Auftrag mit Produkt und Sollmenge frei."),
+    ("li", "Die Leitstelle gibt den Auftrag mit Produkt und Menge frei."),
     ("li", "Drücken Sie „Beladen starten“ (Leuchte grün = bereit)."),
     ("li", "Der Arm fährt über den Dom, misst nach, taucht ein und befüllt (Leuchte gelb). "
            "Beobachten Sie den Vorgang auf Leckagen und ungewöhnliche Bewegungen."),
-    ("li", "Ist die Sollmenge erreicht, schließt die Absperrklappe, der Arm tropft ab und fährt "
-           "in die Parkstellung."),
+    ("li", "Beendet die Leitstelle die Befüllung, stoppt die Pumpe, die Leitung wird gespült, "
+           "die Absperrklappe schließt, der Arm tropft ab und fährt in die Parkstellung."),
     ("li", "Das Fahrzeug darf erst wegfahren, wenn die Leuchte grün ist."),
     ("h2", "9.3. Verladung vorzeitig beenden"),
     ("li", "Die Leitstelle kann die Befüllung jederzeit beenden: Klappe zu, Abtropfen, "
@@ -500,8 +512,9 @@ BLOCKS = [
         ("–", "Vision-PC", "[folgt]"),
         ("–", "SPS-Baugruppen", "siehe Stromlaufplan"),
         ("–", "Handbediengerät mit Zustimmtaster und Not-Halt", "siehe Stromlaufplan"),
-        ("–", "Messstab Füllstand, Überfüllsicherung, Durchflusssensor", "[folgt]"),
-        ("–", "Absperrklappe DN 100 mit Antrieb", "[folgt]"),
+        ("–", "Sensor Nachziehen, Überfüllsicherung Baumer LBFS", "[folgt]"),
+        ("–", "Absperrklappe DN 100, elektrisch", "[folgt]"),
+        ("–", "Abtropfsicherung (Pendelwanne, Feder, Gleitstück)", "[folgt]"),
         ("14", "Flachdichtung DN100 PN16, NBR", "10162-001"),
         ("25", "Drehgelenk 4\"", "00008424"),
         ("26", "Drehgelenk 4\"", "00028675"),
@@ -521,9 +534,9 @@ BLOCKS = [
     ("li", "SEW: Servomotoren CM3C, Planetengetriebe P5KG, Getriebemotor RF47/DRN, MOVITRAC "
            "advanced, Handbuch MOVIKIT Positioning Drive (33350930)."),
     ("li", "IMO: Schwenkantrieb WD-E 0223/3."),
-    ("li", "SICK: 3D-Kamera Visionary-T Mini; Herstellerunterlagen Füllstand und "
-           "Überfüllsicherung."),
-    ("li", "Industrie-PC, Siemens S7-1500."),
+    ("li", "SICK: 3D-Kamera Visionary-T Mini."),
+    ("li", "Baumer bzw. E+H: Füllstandsensor und Überfüllsicherung."),
+    ("li", "Beckhoff: Industrie-PC C6027, TwinCAT 3, TwinSAFE."),
     ("li", "HETA-Softwaredokumentation: Schnittstelle SPS ↔ Vision-PC, Inbetriebnahme, "
            "Kalibrierung."),
 ]

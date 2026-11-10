@@ -2,6 +2,9 @@
 
 Je Achse: Motor, Getriebe, Geber, Bremse, Ansteuerung. Offene Punkte sind mit **offen** markiert.
 
+> Steuerung seit 09.11.2026: **TwinCAT 3 auf Beckhoff-IPC** (Feldbus PROFINET oder EtherCAT, Antwort
+> SEW offen). Hinweise unten zur S7-1500 stammen aus der früheren Auswertung.
+
 In der Simulation hinterlegt: `vision/config/anlagen/heta_prototyp.yaml`, Abschnitt `drives`
 (Geschwindigkeit, Rampen, Getriebespiel; Fahrzeiten in der Inbetriebnahmeprüfung).
 

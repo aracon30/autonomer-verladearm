@@ -10,7 +10,7 @@ Stand 02.11.2026 · **Entwurf, nicht übersetzt und nicht getestet.**
 fehlende Typumwandlungen an.
 
 Aufbau und Ablauf entsprechen dem SPS-Simulator (`tools/plc_simulator.py`). Die Schnittstelle zum
-Vision-PC ist die gleiche wie für die S7 (`docs/schnittstelle.md`, Version 3). Für die Anlage
+Vision-PC ist unabhängig von der Steuerung (`docs/schnittstelle.md`, Version 3). Für die Anlage
 BASF lässt sich der Code weitgehend nach TIA Portal (SCL) übertragen.
 
 ## Aufbau

@@ -23,15 +23,15 @@ Stand:
 | F-01 | Dom automatisch erkennen, Mitte und Ausrichtung | Muss | 3D-Kamera SICK Visionary-T Mini, Erkennung `detection/opening.py` | T `test_detection.py` (u. a. `test_findet_oeffnung`, `test_fuelloeffnung_im_domdeckel`); P Kameratest | ✅ |
 | F-02 | verschiedene Tankwagen, Aufbauhöhen, Positionen | Muss | runde und ebene Dächer, Arbeitsraum je Anlage | T `test_runder_tank_*`, `test_ebenes_dach_*`; I Arbeitsraum; P | ✅ |
 | F-03 | Edelstahl, Lack, Tag/Nacht, Nässe, Schmutz | Muss | aktive ToF-Kamera, Median über Bilder, Glasscheibe | P Kameratest am Tankwagen (Spiegelung, Nässe) | ⬜ |
-| F-04 | Sensor zentral oberhalb, wenig Hardware an der Spitze | Soll | Kamera über der Verladestelle; an der Spitze nur Referenzflansch, Grenzschalter, Abtropfsicherung | Stückliste, Skizzen | 🔶 |
+| F-04 | Sensor zentral oberhalb, wenig Hardware an der Spitze | Soll | Kamera über der Verladestelle; an der Spitze nur Dom-Abdeckung (Referenz, Überfüllsicherung), Sensor Nachziehen, mechanische Abtropfsicherung | Stückliste, Skizzen | 🔶 |
 | F-05 | keine/mehrere Öffnungen erkennen und abbrechen | Muss | keine Öffnung → Fehler 20; **mehrere Dome werden nicht mehr abgebrochen**, sondern per `DomeNo` gewählt (Mehrkammer, Schnittstelle V3) | T `test_keine_oeffnung`, `test_mehrkammer_*`, `test_dom_nicht_vorhanden` | ⚠️ |
 | F-06 | Plausibilität der Zielposition | Muss | Größe/Lage in der Erkennung, Nachmessen Job 2 mit Grenzwert, Prüfung der Stützpunkte in der SPS | T `test_korrektur_gleicht_modellfehler_aus`, `test_fehlercodes`; S | ✅ |
 | F-07 | Feinpositionierung im Nahbereich (Kann) | Kann | Nachmessen des Auslasses mit der Kamera (Job 2) statt Ultraschall | T `test_messen_nachmessen_rueckfahrt` | ✅ |
-| F-10 | produktspezifische Eintauchtiefe, Nachziehen | Muss | Eintauchtiefe je ProductId; Nachziehen durch die SPS | T `test_eintauchtiefe_je_produkt`; S `test_befuellen_mit_nachziehen_bis_sollmenge` | ✅ |
-| F-11 | Auslass bleibt unter der Oberfläche | Muss | 2 kapazitive Grenzschalter, Auslass 1–3 cm unter dem Spiegel (BASF: 2–3 cm) | S (bisher mit durchgehendem Messwert); Sensortest BASF; P | 🔶 |
-| F-12 | Füllstand **kontinuierlich**, zuverlässig bei Schaum | Muss | **Zwei Grenzschalter statt kontinuierlicher Messung**; Füllstand an jedem Schaltpunkt aus Armhöhe | Sensortest BASF; P | ⚠️ |
-| F-13 | Überfüllsicherung erkennt Flüssigkeit und Schaum, unabhängig | Muss | eigener zugelassener Grenzschalter (Schaltpunkt ca. 20 cm unter Rand), schaltet die Pumpe ab; nie betriebsmäßig | Zulassung (WHG/SIL) nach BASF; P; A | 🔶 |
-| F-14 | Sensorik beständig gegen klebrige Medien | Muss | glatte kapazitive Spitzen, Ausblenden von Anhaftung, Spülen | Sensortest BASF | 🔶 |
+| F-10 | produktspezifische Eintauchtiefe, Nachziehen | Muss | Eintauchtiefe je ProductId; Nachziehen durch die SPS | T `test_eintauchtiefe_je_produkt`; S `test_befuellen_mit_einem_grenzschalter_bis_ende_leitstelle` | ✅ |
+| F-11 | Auslass bleibt unter der Oberfläche | Muss | ein Sensor (Baumer LBFS oder Radar, Entscheidung BASF), Auslass ca. 5–15 cm unter dem Spiegel (BASF 10.11.) | S (bisher mit durchgehendem Messwert); Sensortest BASF; P | 🔶 |
+| F-12 | Füllstand **kontinuierlich**, zuverlässig bei Schaum | Muss | **Grenzschalter (LBFS) oder kontinuierlich (Radar)**, Entscheidung BASF; beim Grenzschalter Füllstand an jedem Schaltpunkt aus Armhöhe | Sensortest BASF; P | ⚠️ |
+| F-13 | Überfüllsicherung erkennt Flüssigkeit und Schaum, unabhängig | Muss | Baumer LBFS an der Dom-Abdeckung (Schaltpunkt ca. 20 cm unter Rand, schaltet auch bei Schaum; keine WHG-/SIL-Anforderung), schaltet die Pumpe ab; nie betriebsmäßig | Zulassung (WHG/SIL) nach BASF; P; A | 🔶 |
+| F-14 | Sensorik beständig gegen klebrige Medien | Muss | Schaltschwelle gegen Produktfilm (LBFS) bzw. berührungslos (Radar); Sensoren steckbar zum Reinigen; Füllrohr wöchentlich reinigen | Sensortest BASF | 🔶 |
 | F-20 | Nachtropfen beim Herausfahren auffangen | Muss | rein mechanische Abtropfsicherung (in Arbeit; Vorstufe Skizze Rev. 3) | Konstruktion; P | 🔶 |
 | F-21 | Auffang entleeren/reinigen ohne Betreten | Soll | Kippnase und Anschlag an der Spülwanne, Spülen in der Parkstellung | P | 🔶 |
 | F-22 | selbstständig in die Parkstellung | Muss | Job 3 (Rückfahrt aus jeder Lage, auch ohne vorige Messung) | T `test_rueckfahrt_*`; S | ✅ |

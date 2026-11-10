@@ -35,7 +35,7 @@ BLOCKS = [
         ("Vision-Software", "[Version folgt]"),
         ("Schnittstelle", "InterfaceVersion 3 (mehrere Dome)"),
         ("SPS-Programm", "[Version folgt]"),
-        ("Betriebssystem Vision-PC", "Ubuntu Linux 22.04 / 24.04 [Stand bei Auslieferung folgt]"),
+        ("Betriebssystem Vision-PC", "Windows 11 IoT auf dem Beckhoff-IPC C6027 [Aufstellort und Stand bei Auslieferung folgen]"),
     ]),
 
     # 2 ---------------------------------------------------------------------------------------
@@ -56,7 +56,8 @@ BLOCKS = [
          "Drive, Strom-, Drehzahl- und Lageregelung, Bremsenansteuerung, STO."),
         ("Sicherheitstechnik", "Not-Halt, Zustimmtaster, STO, sichere Verriegelungen "
          "[Ausführung und PL folgen aus der Risikobeurteilung]."),
-        ("Leitstelle (PLS)", "Freigabe, Produkt, Sollmenge, Kalibrierung anstoßen, Meldungen."),
+        ("Leitstelle (PLS)", "Freigabe, Produkt, Pumpe, Menge und Füllende, Verdrängen/Spülen, "
+         "Kalibrierung anstoßen, Meldungen."),
     ], ("Ebene", "Aufgabe")),
     ("p", "Der Vision-PC regelt nichts in Echtzeit. Er liefert Vorschläge; die SPS entscheidet "
           "und fährt. Fällt der Vision-PC aus, stoppt die SPS die automatische Bewegung; der Arm "
@@ -64,11 +65,13 @@ BLOCKS = [
     ("sub", "Komponenten"),
     ("table", W2, [
         ("3D-Kamera", "SICK Visionary-T Mini CX, Ethernet zum Vision-PC [Typ bestätigen]"),
-        ("Vision-PC", "Siemens Industrie-PC mit Linux, Dienste „verladearm-vision“ und "
+        ("Vision-PC", "Beckhoff-IPC C6027 (Windows 11 IoT), Dienste „verladearm-vision“ und "
                       "„verladearm-viewer“ [Typ folgt]"),
-        ("SPS", "Siemens S7-1500 mit integriertem OPC-UA-Server [Typ folgt]"),
+        ("SPS", "TwinCAT 3 auf demselben Beckhoff-IPC, OPC-UA-Server TF6100; Sicherheit "
+                "TwinSAFE"),
         ("Verbindung Vision-PC ↔ SPS", "OPC UA über Ethernet, SPS = Server, Vision-PC = Client"),
-        ("Verbindung SPS ↔ Umrichter", "PROFINET, MOVIKIT Positioning Drive (8 Prozessdaten)"),
+        ("Verbindung SPS ↔ Umrichter", "[PROFINET oder EtherCAT folgt], MOVIKIT Positioning "
+                                       "Drive (8 Prozessdaten)"),
     ]),
 
     # 3 ---------------------------------------------------------------------------------------
@@ -118,7 +121,8 @@ BLOCKS = [
         ("1", "Dom (DomeNo) und Deckel messen, Bahn ab Istlage planen", "vom vorigen Dom aus "
          "erst senkrecht hoch; Anfahrt (ggf. mit Umweg), senkrechtes Absenken, Eintauchen; "
          "ApproachIndex = Anfahrpunkt über dem Dom"),
-        ("2", "Auslass über dem Dom nachmessen (Referenzflansch), Modellabweichung ausgleichen",
+        ("2", "Auslass über dem Dom nachmessen (Referenz am Auslass [künftig Dom-Abdeckung]), "
+              "Modellabweichung ausgleichen",
          "korrigierter Anfahrpunkt und Eintauchen; ApproachIndex = 1"),
         ("3", "Rückfahrt ab Istlage planen (aus jeder Lage, auch nach Handbetrieb)",
          "senkrecht heraus, dann kollisionsfrei in die Parkstellung; ApproachIndex = 0"),
@@ -177,7 +181,8 @@ BLOCKS = [
         ("31", "Kein kollisionsfreier Weg (festes Hindernis, Tankkörper, Domkragen, Deckel oder "
                "eigener Arm im Weg)"),
         ("32", "Istwinkel ungültig oder unplausibel"),
-        ("33", "Auslass bzw. Referenzflansch beim Nachmessen nicht erkannt"),
+        ("33", "Auslass bzw. Referenz (Flansch, künftig Dom-Abdeckung) beim Nachmessen nicht "
+               "erkannt"),
         ("34", "Job 2 ohne vorheriges Ergebnis aus Job 1"),
         ("90", "Interner Fehler Vision-Dienst bzw. Kamera nicht verfügbar"),
         ("91", "Unbekannter Auftrag"),
@@ -207,14 +212,20 @@ BLOCKS = [
           "Vorschlag für die Signale [Abstimmung mit dem Betreiber folgt]:"),
     ("table", [4300, 1300, 4038], [
         ("Freigabe Verladung", "PLS → SPS", "Auftrag freigegeben, Start vor Ort möglich"),
-        ("Produkt (ProductId), Sollmenge", "PLS → SPS", "bestimmt Eintauchtiefe und Füllende"),
+        ("Produkt (ProductId)", "PLS → SPS", "bestimmt die Eintauchtiefe"),
         ("Füllschritte (Dom, Menge)", "PLS → SPS", "Kammern verbunden: ein Schritt, Dom 0; "
                                                   "Mehrkammer: Dom 1, 2, … von vorn je Kammer"),
-        ("Verladung beenden", "PLS → SPS", "Klappe zu, Abtropfen, Rückfahrt"),
+        ("Pumpe läuft", "PLS → SPS", "Rückmeldung der Pumpe; Klappe erst zu, wenn die Pumpe "
+                                    "steht"),
+        ("Befüllung Ende", "PLS → SPS", "Menge erreicht oder vorzeitig beendet; Pumpe aus"),
+        ("Verdrängen/Spülen beendet", "PLS → SPS", "[Signal folgt] Klappe bleibt bis dahin offen, "
+                                                  "Arm im Tank"),
+        ("Arm bereit", "SPS → PLS", "Arm im Tank, Klappe offen: Pumpe darf starten"),
+        ("Befüllung stoppen", "SPS → PLS", "Störung, Maximalhöhe oder Not-Halt: Pumpe aus"),
         ("Kalibrierung anstoßen", "PLS → SPS", "startet erst nach Freigabe vor Ort"),
         ("Automatisch in Parkstellung", "PLS → SPS", "nur nach Freigabe vor Ort"),
         ("Zustand (bereit, läuft, Störung, Park)", "SPS → PLS", "entspricht den Leuchtmeldern"),
-        ("Menge, Füllstand, Klappe", "SPS → PLS", "laufende Werte"),
+        ("Füllstand (aus Armhöhe), Klappe", "SPS → PLS", "laufende Werte"),
         ("Störmeldung mit Code und Text", "SPS → PLS", "Fehlercodes Kapitel 3.6 und SPS-Meldungen"),
         ("Überfüllsicherung ausgelöst", "SPS → PLS", "sofort, unabhängig vom Ablauf"),
     ], ("Signal", "Richtung", "Bedeutung")),
@@ -224,6 +235,9 @@ BLOCKS = [
     # 5 ---------------------------------------------------------------------------------------
     ("h1", "5. INSTALLATION UND BETRIEB DES VISION-PCS"),
     ("h2", "5.1. Installation"),
+    ("note", "[Wird überarbeitet: Die Vision-Software läuft künftig als Windows-Dienst auf dem "
+             "Beckhoff-IPC. Installationspaket folgt; die Angaben unten gelten für einen "
+             "Linux-PC.]"),
     ("p", "Die Software wird von HETA installiert. Das Installationsskript legt Benutzer, "
           "Programm, Konfiguration und Systemdienste an und kann für Updates erneut ausgeführt "
           "werden:"),
@@ -310,10 +324,10 @@ BLOCKS = [
            "Zylinder großzügig erfassen. Fahrzeug und offener Deckel werden bei jeder Messung "
            "erkannt. Mindestabstand zur Rohrachse standardmäßig 0,15 m; der Arm wird zusätzlich "
            "gegen sich selbst geprüft."),
-    ("li", "**Produkte:** Eintauchtiefe je ProductId. Grenze: Der Referenzflansch am Auslass "
-           "(Ø 220 mm, 0,82 m über dem Auslassende) muss durch die Öffnung passen."),
-    ("li", "**Referenz am Auslass:** vorhandener Flansch Ø 220 mm, Oberkante 823 mm über dem "
-           "untersten Punkt des Auslasses; rund, mittig und rechtwinklig zum Rohr."),
+    ("li", "**Produkte:** Eintauchtiefe je ProductId (Auslass ca. 20 cm über dem Tankboden). "
+           "[Grenze durch die Dom-Abdeckung folgt mit den Maßen der Konstruktion.]"),
+    ("li", "**Referenz am Auslass:** [Dom-Abdeckung: Durchmesser, Höhe über dem Auslassende "
+           "folgen; bisher Flansch Ø 220 mm]."),
     ("li", "**Arbeitsraum:** Bereich, in dem Dome vorkommen (Fahrspur, Haltemarke, "
            "Haltetoleranz, Domhöhe niedrigstes/höchstes Fahrzeug). Nur für Prüfung und "
            "Kalibrierung."),
@@ -337,7 +351,7 @@ BLOCKS = [
           "der Inbetriebnahme und immer, wenn die Kamera versetzt, getauscht oder ihre Halterung "
           "verändert wurde."),
     ("h2", "7.1. Prinzip"),
-    ("p", "Der Arm fährt den Referenzflansch am Auslass an 10 Stellen im Arbeitsraum. Je "
+    ("p", "Der Arm fährt die Referenz am Auslass [Dom-Abdeckung] an 10 Stellen im Arbeitsraum. Je "
           "Stellung gibt es zwei Angaben für denselben Punkt: aus den Istwinkeln über die "
           "Kinematik und aus der Punktwolke der Kamera. Aus den Punktpaaren folgt die beste "
           "Drehung und Verschiebung; die Restfehler zeigen, wie gut Kinematik und Messung "

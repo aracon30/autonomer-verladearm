@@ -1,6 +1,13 @@
 # Stückliste Prototyp-Steuerung (Werkstatt Lich, Soft-SPS)
 
 Stand 02.11.2026 · Entwurf zur Anfrage bei Schaltschrankbauer bzw. Elektriker.
+
+> **Stand 10.11.2026 – Abschnitte 1, 2, 5, 6 überholt:** Schaltschrank, Steuerung und Sicherheit
+> liefert der Automatisierungspartner (NemaSoft, Angebot V2 vom 04.11.): **Beckhoff C6027 mit
+> TwinCAT 3** (SPS + Vision-PC, Windows 11 IoT), **TwinSAFE** statt eigener Sicherheitssteuerung,
+> EtherCAT-E/A, IO-Link-Box ED6224; Feldbus zu den Umrichtern PROFINET oder EtherCAT (Antwort SEW
+> offen). Die Abschnitte bleiben als Referenz für den Funktionsumfang. **Abschnitt 4** (Beistellung
+> HETA am Arm) ist aktuell.
 Konzept: Ein Linux-Industrie-PC führt die Vision-Software **und** die SPS (CODESYS Control for
 Linux SL) aus; eine separate Sicherheitssteuerung übernimmt alle Sicherheitsfunktionen
 (Programm: `plc/codesys/`). Typen sind **Beispiele**, Preise grobe Richtwerte ohne Angebot.
@@ -22,7 +29,7 @@ Status: **B** = Beistellung HETA (bereits angeboten/festgelegt) · **N** = neu a
 |---|---|---|---|---|---|
 | 2.1 | Sicherheitssteuerung | konfigurierbar, z. B. Pilz PNOZmulti 2 (Grundgerät + E/A-Erweiterung, optional PROFINET-Meldemodul); Funktionen siehe Abschnitt 5 | 1 | 1.500–2.500 | N |
 | 2.2 | E/A-Modul PROFINET | z. B. Siemens ET 200SP: Buskoppler, DI 16 × 24 V, DQ 16 × 24 V/0,5 A | 1 | 600–1.000 | N |
-| 2.3 | IO-Link-Master PROFINET | ≥ 4 Ports (Grenzschalter A/B, Durchfluss, Reserve), z. B. ifm AL1102 oder Siemens ET 200eco 6ES7148-6JE00 | 1 | 400–900 | N |
+| 2.3 | IO-Link-Master | ≥ 4 Ports (Sensor Nachziehen, Überfüllsicherung, Reserve); im Angebot NemaSoft: Beckhoff ED6224 | 1 | 400–900 | (Peter) |
 | 2.4 | Switch | unmanaged, Gigabit, 5–8 Ports, z. B. Phoenix FL SWITCH 1008N | 1 | 150–300 | N |
 | 2.5 | Netzteil | 24 V DC, 20 A | 1 | 200–400 | N |
 | 2.6 | Einspeisung | Hauptschalter, Leitungsschutz/Sicherungen für 3 × MOVITRAC nach SEW-Vorgabe, Klemmen, Kabelkanal | 1 | 500–1.000 | N |
@@ -47,10 +54,10 @@ Status: **B** = Beistellung HETA (bereits angeboten/festgelegt) · **N** = neu a
 
 | Pos | Teil | Anforderung / Beispiel | Menge | ca. € | Status |
 |---|---|---|---|---|---|
-| 4.1 | Grenzschalter Nachziehen A/B | kapazitiv, IO-Link, z. B. Baumer CleverLevel oder SICK LFC; Typ nach Sensortest BASF | 2 | 400–600 | N |
-| 4.2 | Überfüllsicherung | zugelassen nach BASF-Vorgabe, Schaltpunkt ca. 20 cm unter Rand, wirkt direkt auf Pumpe/Klappe; Meldung an SPS | 1 | 500–1.500 | N (nach BASF) |
-| 4.3 | Absperrklappe DN 100 | mit Antrieb (pneumatisch oder elektrisch) und Endlagen auf/zu | 1 | 800–2.000 | N |
-| 4.4 | Durchflussmesser | IO-Link oder Impuls; in der Werkstatt Menge simuliert | 1 | 0–1.500 | O |
+| 4.1 | Sensor Nachziehen | **ein** Sensor, IO-Link; Entscheidung BASF: **Baumer LBFS** am Auslassrohr (ca. 10–15 cm über Auslass, Schaltschwelle gegen Produktfilm, Wiederholversuch BASF) **oder Radar** an der Dom-Abdeckung (z. B. E+H Micropilot FMR20B, 80 GHz, schmale Keule); steckbar (M12) | 1 | 400–1.000 | N (nach BASF) |
+| 4.2 | Überfüllsicherung | **Baumer LBFS** (Wunsch BASF, schaltet auch bei Schaum), an der Dom-Abdeckung, Schaltpunkt ca. 20 cm unter Rand; **keine WHG-/SIL-Anforderung** (BASF 10.11.); wirkt direkt auf Pumpe/Klappe, Meldung an SPS; Bestellcode, Länge, Anschluss angefragt | 1 | 400–800 | N (nach BASF) |
+| 4.3 | Absperrklappe DN 100 | **elektrisch**, am Anfang des Fallrohrs, Endlagen auf/zu; offen auch beim Verdrängen/Spülen | 1 | 800–2.000 | N |
+| 4.4 | Durchflussmesser | **entfällt** (Menge und Füllende steuert die Leitstelle, 09.11.) | – | – | – |
 | 4.5 | Abtropfsicherung | **rein mechanisch** (Entscheidung 04.11.2026), kein Antrieb, keine Signale an die Steuerung | – | – | – |
 | 4.6 | 3D-Kamera | SICK Visionary-T Mini CX mit Halter und Kabeln (Angebot 33503320) | 1 | – | B (SICK) |
 | 4.7 | Motoren J1–J3 | SEW, mit Hybridkabeln und Kabelschlepps | 3 | – | B (SEW) |
@@ -81,8 +88,8 @@ Status: **B** = Beistellung HETA (bereits angeboten/festgelegt) · **N** = neu a
 | Rechner (1.1–1.2) | 2.500–4.800 |
 | Schaltschrank (2.1–2.7) | 3.850–7.100 |
 | Bedienung und Sicherheit (3.1–3.7) | 1.210–2.330 |
-| Prozess (4.1–4.4) | 1.700–5.600 |
-| **Gesamt Material** | **ca. 9.200–19.800** |
+| Prozess (4.1–4.3, ohne Durchfluss) | 1.600–3.800 |
+| **Gesamt Material (alter Werkstatt-Ansatz)** | **ca. 9.100–18.000** |
 
 Zusätzlich: EPLAN, Aufbau und Verdrahtung des Schranks, Konfiguration und Validierung der
 Sicherheitssteuerung (Schaltschrankbauer/Elektriker), Inbetriebnahme. SPS-Programm: HETA

@@ -24,11 +24,41 @@ kommen aus der Anlagenkonfiguration und werden bei der Inbetriebnahme eingestell
 """
 
 import dataclasses
+import threading
 import time
 from dataclasses import dataclass, field
 
 import numpy as np
 from scipy.optimize import least_squares
+
+
+class _Zeitlimit(Exception):
+    """Harte Zeitgrenze der Bahnplanung überschritten (Zeitüberwachung der SPS)."""
+
+
+_frist = threading.local()  # harte Frist je Thread (Vision-Dienst und Live-Ansicht getrennt)
+
+
+def _pruefe_frist():
+    """In den Rechenschleifen aufrufen: bricht ab, sobald die harte Frist abgelaufen ist."""
+    d = getattr(_frist, "deadline", None)
+    if d is not None and time.monotonic() > d:
+        raise _Zeitlimit
+
+
+class _Frist:
+    """Harte Frist für einen Planungsaufruf; eine äußere, frühere Frist bleibt gültig."""
+
+    def __init__(self, deadline: float):
+        self.deadline = deadline
+
+    def __enter__(self):
+        self.prev = getattr(_frist, "deadline", None)
+        _frist.deadline = self.deadline if self.prev is None else min(self.prev, self.deadline)
+
+    def __exit__(self, *exc):
+        _frist.deadline = self.prev
+        return False
 
 
 def _rx(t):
@@ -548,6 +578,7 @@ def _line(geom: ArmGeometry, q0, p_from, p_to, steps: int, what: str, offset=Non
     offset = np.zeros(3) if offset is None else np.asarray(offset, dtype=float)
     q, qs, pts = np.asarray(q0, dtype=float), [], []
     for u in np.linspace(0, 1, steps):
+        _pruefe_frist()
         res = inverse(geom, p_from + (p_to - p_from) * u - offset, q0=q)
         if not res.ok:
             return qs, pts, f"{what} nicht erreichbar ({u * 100:.0f} % der Bahn)"
@@ -572,6 +603,7 @@ def _joint_move(geom: ArmGeometry, q_from, q_to, steps: int, what: str,
     als `max_step` bewegt (sonst könnte ein weiter Schwenk durch einen dünnen Deckel „springen“).
     Zurück kommen `steps` Stellungen für Stützpunkte und Anzeige.
     """
+    _pruefe_frist()
     q_from, q_to = np.asarray(q_from, float), np.asarray(q_to, float)
     fine = int(np.ceil(np.abs(q_to - q_from).max() * _arm_length(geom) / max_step)) + 1
     if geom.obstacles:
@@ -638,6 +670,7 @@ def inverse_candidates(geom: ArmGeometry, target, tol: float = 0.002) -> list:
     starts = [geom.park] + [[heading - q2 / 2, q2, 0.0] for q2 in (-2.4, -1.6, -0.8, 0.8, 1.6, 2.4)]
     sols = []
     for st in starts:
+        _pruefe_frist()
         st = np.clip(np.asarray(st, float), lo + 1e-6, hi - 1e-6)
         fit = least_squares(lambda q: tip(geom, q) - target, st, bounds=(lo, hi),
                             xtol=1e-10, ftol=1e-10)
@@ -655,6 +688,7 @@ def _keyframes(geom: ArmGeometry, q0, keypoints, spacing: float = 0.35):
         k = np.asarray(k, float)
         n = max(1, int(np.ceil(np.linalg.norm(k - p) / spacing)))
         for u in np.linspace(0, 1, n + 1)[1:]:
+            _pruefe_frist()
             res = inverse(geom, p + (k - p) * u, q0=q, fast=True)
             if not res.ok:
                 return None
@@ -744,6 +778,7 @@ def _search(geom: ArmGeometry, q0, goals, deadline: float, what: str, max_frames
 
 
 def _edge_free(geom: ArmGeometry, a, b, max_step: float) -> bool:
+    _pruefe_frist()
     n = int(np.ceil(np.abs(b - a).max() * _arm_length(geom) / max_step)) + 1
     us = np.linspace(0, 1, max(n, 2))
     return first_collision(geom, forward_many(geom, a + np.outer(us, b - a)))[1] is None
@@ -820,9 +855,33 @@ def plan_motion(geom: ArmGeometry, target_mm, normal, insertion_depth: float | N
     Beide Armstellungen (Ellenbogen links/rechts) werden probiert: Beim Eintauchen darf z. B. der
     Rohrbogen an J4 nicht über dem Domdeckel stehen. Die Schwenkbewegung endet über dem Vorpunkt;
     führt die direkte Fahrt durch ein Hindernis, geht es in sicherer Höhe oder seitlich herum.
-    `time_limit` [s] begrenzt die Suche nach Umwegen (Zeitüberwachung der SPS: 5 s).
+    `time_limit` [s] begrenzt die Suche nach Umwegen (Zeitüberwachung der SPS: 5 s); nach
+    `time_limit` + `HARD_MARGIN` bricht die Planung in jedem Fall ab (Fehler 31 bzw. 30).
     """
     deadline = time.monotonic() + time_limit
+    plan = {"park": forward(geom, geom.park).round(4).tolist(), "ok": False,
+            "insertion_depth": geom.insertion_depth if insertion_depth is None
+            else insertion_depth, "code": 30}
+    try:
+        with _Frist(deadline + HARD_MARGIN):
+            return _plan_motion(geom, target_mm, normal, insertion_depth, q_start, move_steps,
+                                insert_steps, deadline, plan)
+    except _Zeitlimit:
+        plan.pop("move_vias", None)
+        plan.update(ok=False, code=31 if "Kollision" in str(plan.get("reason", "")) else 30,
+                    reason=_zeitlimit_text(plan.get("reason")))
+        return plan
+
+
+HARD_MARGIN = 0.25  # s über time_limit hinaus, bis die Planung hart abbricht
+
+
+def _zeitlimit_text(err) -> str:
+    return (f"{err}; " if err else "") + "Planung abgebrochen (Zeitlimit)"
+
+
+def _plan_motion(geom, target_mm, normal, insertion_depth, q_start, move_steps, insert_steps,
+                 deadline, plan):
     center = np.asarray(target_mm, dtype=float) / 1000.0
     n = np.asarray(normal, dtype=float)
     n /= np.linalg.norm(n)
@@ -830,9 +889,6 @@ def plan_motion(geom: ArmGeometry, target_mm, normal, insertion_depth: float | N
     depth = geom.insertion_depth if insertion_depth is None else insertion_depth
     inside = center - n * depth
     q0 = geom.park if q_start is None else np.asarray(q_start, dtype=float)
-
-    plan = {"park": forward(geom, geom.park).round(4).tolist(), "ok": False,
-            "insertion_depth": depth, "code": 30}
     candidates = inverse_candidates(geom, above)
     if not candidates:
         plan["reason"] = "Anfahrpunkt nicht erreichbar, Arbeitsraum oder Achsgrenzen prüfen"
@@ -871,6 +927,7 @@ def plan_motion(geom: ArmGeometry, target_mm, normal, insertion_depth: float | N
         vias, q_move, move, err = transit(o, False)
         if not err:
             return done(o, vias, q_move, move)
+        plan["reason"] = err  # falls die Suche nach Umwegen in die Frist läuft
     # 2. Suche im Gelenkraum zu allen möglichen Vorpunkten gleichzeitig (60 % der Restzeit)
     budget = time.monotonic() + 0.6 * max(0.0, deadline - time.monotonic())
     found = _search(geom, q0, [o[4] for o in options], budget, "Anfahrt") if options else None
@@ -931,7 +988,12 @@ def plan_retract(geom: ArmGeometry, q_start, lift: float, lift_steps: int = 8,
     p0 = tip(geom, q_start)
     plan = {"park": forward(geom, geom.park).round(4).tolist(), "ok": False, "code": 30}
     deadline = time.monotonic() + time_limit
-    result = _retract_new(geom, q_start, p0, lift, lift_steps, move_steps, plan, deadline)
+    try:
+        with _Frist(deadline + HARD_MARGIN):
+            result = _retract_new(geom, q_start, p0, lift, lift_steps, move_steps, dict(plan),
+                                  deadline)
+    except _Zeitlimit:
+        result = dict(plan, code=31, reason=_zeitlimit_text("Rückfahrt"))
     if result["ok"] or not fallback:
         return result
     back = _retract_reverse(geom, q_start, p0, fallback, lift_steps, dict(plan))

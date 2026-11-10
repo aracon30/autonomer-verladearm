@@ -190,3 +190,29 @@ def test_selbstkollision_aeusserer_gegen_inneren_ausleger():
     qs = gefaltet + np.linspace(0, 1, 20)[:, None] * (ueber_kreuz - gefaltet)
     i, name = first_collision(g, forward_many(g, qs))
     assert name == SELF_NAME and 0 < i < 19
+
+
+def test_planung_haelt_zeitlimit_auch_auf_langsamem_rechner(monkeypatch):
+    """Harte Frist: auch wenn jede Kollisionsprüfung langsam ist (schwacher IPC), kommt die
+    Antwort kurz nach time_limit – sonst meldet die SPS Zeitüberschreitung (5 s)."""
+    import time
+
+    import verladearm_vision.kinematics as K
+
+    orig = K.first_collision
+
+    def slow(*a, **k):
+        time.sleep(0.004)
+        return orig(*a, **k)
+
+    monkeypatch.setattr(K, "first_collision", slow)
+    geom = ArmGeometry(
+        joints={"q1": {"min": -120, "max": 120, "park": -90},
+                "q2": {"min": -170, "max": 170, "park": 10},
+                "q3": {"min": -90, "max": 90, "park": 45}},
+        obstacles=[{"name": "Geländer", "min": [1.2, -2.5, -3.2], "max": [1.4, 2.5, -1.0]}])
+    t = time.monotonic()
+    plan = K.plan_motion(geom, [2650, -180, -3290], [0, 0, 1], time_limit=0.5)
+    assert time.monotonic() - t < 0.5 + K.HARD_MARGIN + 0.3
+    if not plan["ok"]:
+        assert plan["code"] in (30, 31) and plan["reason"]

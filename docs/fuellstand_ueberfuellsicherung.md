@@ -1,7 +1,22 @@
 # Konzept: Füllstand, Nachziehen und Überfüllsicherung
 
-Stand 27.10.2026 – Entwurf zur Abstimmung mit dem Kunden (Anforderung BASF vom 15.10.2026,
-Gespräch 27.10.2026: `docs/kunde_basf_h517.md`). Hintergrund und erste Idee: `docs/ideenspeicher.md`.
+Stand 10.11.2026 (Anforderung BASF vom 15.10.2026, Gespräch 27.10.2026, Sensortest BASF vom
+10.11.2026: `docs/kunde_basf_h517.md`). Hintergrund und erste Idee: `docs/ideenspeicher.md`.
+
+## Aktueller Stand (10.11.2026)
+
+**Die Abschnitte ab „Neu aus dem Gespräch mit BASF (27.10.2026)“ sind Vorstand** und nur noch
+zur Nachvollziehbarkeit enthalten. Es gilt:
+
+| Thema | Stand |
+|---|---|
+| **Aufgabenteilung** | Menge, Pumpe und Füllende steuert die **Leitstelle** (kein eigener Durchflussmesser). Der Arm positioniert den Auslass, öffnet die eigene **elektrische Absperrklappe** (Anfang Fallrohr) erst im Tank und meldet „Arm bereit“; bei Störung/Maximalhöhe „Befüllung stoppen“ → Pumpe aus → nach Auslaufzeit Klappe zu (09.11.) |
+| **Nachziehen** | Auslass **ca. 5–15 cm unter dem Spiegel** (BASF 10.11.; Gründe: Verschmutzung, Produktverlust, Pumpendruck). **Ein** Sensor, Hub ca. 5 cm. Sensortyp entscheidet BASF: **Baumer LBFS** am Auslassrohr (ca. 10–15 cm über dem Auslass) mit Schaltschwelle gegen Produktfilm (Minimum Film ca. 45 %, Produkt ca. 20 % → „Range max“ ca. 30 %, Wiederholversuch BASF) **oder Radar** an der Dom-Abdeckung (z. B. E+H Micropilot FMR20B, 80 GHz, schmale Keule; durchgehende Messung, kein Produktkontakt; Schaum prüfen) |
+| **Überfüllsicherung** | **Baumer LBFS** (Wunsch BASF, schaltet auch bei Schaum) an der **Dom-Abdeckung**, Schaltpunkt ca. 0,20 m unter dem Domrand (heute Liquiphant FTL51, L 220 mm, Schaltpunkt 207 mm). **Keine WHG-/SIL-Anforderung** (BASF 10.11.). Wirkt direkt auf die Pumpe, Meldung an die SPS; nur letzte Ebene, nie betriebsmäßig. Anhaftung führt zu frühem Schalten (sichere Seite) |
+| **Verdrängen/Spülen** | Nach dem Abfüllen drückt Druckluft den Leitungsinhalt in den Tank. Klappe bleibt **offen**, Arm bleibt im Tank, bis die Leitstelle „beendet“ meldet; danach Klappe zu, Abtropfen. Ablauf und Signal bei BASF angefragt – **in SPS-Entwurf und Simulation noch nicht enthalten** |
+| **Abtropfen** | rein mechanische Pendelwanne, vom Rohrende geöffnet (Rev6), keine Signale |
+| **Reinigung Füllrohr** | BASF reinigt die Füllrohrverlängerung heute wöchentlich abgekuppelt mit Hochdruck; Umsetzung am Arm klärt die HETA-Mechanik |
+| **Sensoren am Arm** | steckbar (M12), damit Abdeckung/Rohr gereinigt bzw. getauscht werden können |
 
 ## Neu aus dem Gespräch mit BASF (27.10.2026)
 

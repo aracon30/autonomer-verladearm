@@ -988,16 +988,23 @@ def plan_retract(geom: ArmGeometry, q_start, lift: float, lift_steps: int = 8,
     p0 = tip(geom, q_start)
     plan = {"park": forward(geom, geom.park).round(4).tolist(), "ok": False, "code": 30}
     deadline = time.monotonic() + time_limit
+    # mit Ersatzweg: Reserve dafür; beide Versuche zusammen bleiben in der harten Frist
+    new_deadline = deadline - (min(0.6, 0.3 * time_limit) if fallback else 0.0)
+    result = dict(plan, code=31, reason=_zeitlimit_text("Rückfahrt"))
     try:
         with _Frist(deadline + HARD_MARGIN):
-            result = _retract_new(geom, q_start, p0, lift, lift_steps, move_steps, dict(plan),
-                                  deadline)
+            try:
+                with _Frist(new_deadline + HARD_MARGIN):
+                    result = _retract_new(geom, q_start, p0, lift, lift_steps, move_steps,
+                                          dict(plan), new_deadline)
+            except _Zeitlimit:
+                pass
+            if result["ok"] or not fallback:
+                return result
+            back = _retract_reverse(geom, q_start, p0, fallback, lift_steps, dict(plan))
+            return back if back["ok"] else result
     except _Zeitlimit:
-        result = dict(plan, code=31, reason=_zeitlimit_text("Rückfahrt"))
-    if result["ok"] or not fallback:
         return result
-    back = _retract_reverse(geom, q_start, p0, fallback, lift_steps, dict(plan))
-    return back if back["ok"] else result
 
 
 def plan_lift(geom: ArmGeometry, q_start, lift: float, lift_steps: int = 8):

@@ -67,10 +67,24 @@ def schreibe_stl(daten: np.ndarray, ziel: Path, sprung: float = 0.05) -> int:
     z. B. Kante Tisch/Wand) entfallen. Binäres STL in Millimetern. Liefert die Dreieckszahl."""
     p = daten[:, :3].astype(float)
     p = p[np.isfinite(p).all(axis=1) & (p[:, 2] > 0.05)]
-    u, v = p[:, 0] / p[:, 2], p[:, 1] / p[:, 2]
     w, h = 512, 424  # Visionary-T Mini CX
-    col = np.round((u - u.min()) / (u.max() - u.min()) * (w - 1)).astype(int)
-    row = np.round((v - v.min()) / (v.max() - v.min()) * (h - 1)).astype(int)
+    xd, yd = p[:, 0] / p[:, 2], p[:, 1] / p[:, 2]
+    rd = np.hypot(xd, yd)
+
+    def raster(k1):  # radiale Verzeichnung herausrechnen, dann linear aufs Pixelraster
+        r = rd.copy()
+        for _ in range(20):
+            r = rd / (1 + k1 * r * r)
+        f = np.where(rd > 0, r / np.maximum(rd, 1e-12), 1.0)
+        u, v = xd * f, yd * f
+        col = np.round((u - u.min()) / (u.max() - u.min()) * (w - 1)).astype(int)
+        row = np.round((v - v.min()) / (v.max() - v.min()) * (h - 1)).astype(int)
+        return row, col
+
+    # Verzeichnung so wählen, dass möglichst jeder Punkt eine eigene Rasterzelle bekommt
+    k1 = max(np.linspace(-0.4, 0.4, 41),
+             key=lambda k: len(np.unique(np.ravel_multi_index(raster(k), (h, w)))))
+    row, col = raster(k1)
     idx = np.full((h, w), -1)
     idx[row, col] = np.arange(len(p))
     d = np.linalg.norm(p, axis=1)
@@ -85,6 +99,9 @@ def schreibe_stl(daten: np.ndarray, ziel: Path, sprung: float = 0.05) -> int:
     tri = np.concatenate(tris)
     v3 = (p * 1000.0).astype(np.float32)[tri]  # (n, 3, 3) mm
     n = np.cross(v3[:, 1] - v3[:, 0], v3[:, 2] - v3[:, 0])
+    weg = (n * v3.mean(axis=1)).sum(axis=1) > 0  # Normale soll zur Kamera zeigen
+    v3[weg] = v3[weg][:, [0, 2, 1]]
+    n[weg] = -n[weg]
     n /= np.maximum(np.linalg.norm(n, axis=1, keepdims=True), 1e-12)
     rec = np.zeros(len(tri), dtype=[("n", "<f4", 3), ("v", "<f4", (3, 3)), ("a", "<u2")])
     rec["n"], rec["v"] = n, v3

@@ -122,5 +122,5 @@ für Abstände und Platzverhältnisse reicht die angehängte Punktwolke.
 
 **Ohne ReCap:** `.venv\Scripts\python tools\npy_zu_ply.py --stl …npy` erzeugt ein Dreiecksnetz
 (`.stl`, Millimeter, Kanten mit Tiefensprung offen). Inventor öffnet bzw. importiert STL als
-Netzkörper – zum Ansehen, Messen und als Bezug; kein Volumenkörper. Ca. 10 % der Punkte fallen beim
-Vernetzen weg (Rasterzuordnung ohne Linsenmodell), es entstehen kleine Lücken.
+Netzkörper – zum Ansehen, Messen und als Bezug; kein Volumenkörper. Wenige Prozent der Punkte fallen beim
+Vernetzen weg (Rasterzuordnung nachträglich), kleine Lücken möglich.

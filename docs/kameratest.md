@@ -85,6 +85,12 @@ keine Gesichter oder Kennzeichen lesbar, gelten aber als Aufnahmen des Geländes
 | Punktwolke lückenhaft | Abstand zu klein (< 0,5 m) oder zu groß (> 8 m), direkte Sonne, Spiegelungen |
 | IP der Kamera unbekannt | SICK SOPAS ET (kostenlos von sick.com) findet die Kamera im Netz |
 
+## Infrarot-Bild
+
+Die Kamera liefert kein Farbbild, aber neben dem Abstand ein **Infrarot-Graubild** (Intensität).
+Jede Aufnahme speichert es zusätzlich als `…_ir.png` (zum Anschauen) und als 4. Spalte in der
+`.npy` (je Punkt). Im Betrachter unter „Farbe“ zwischen *Abstand* und *Infrarot* umschalten.
+
 ## Aufnahmen in 3D ansehen
 
 ```bat

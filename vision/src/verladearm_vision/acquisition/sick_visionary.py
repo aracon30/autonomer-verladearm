@@ -81,6 +81,7 @@ class SickVisionarySource:
         self.control_port = control_port
         self.streaming_port = streaming_port
         self.frames = max(1, int(frames))
+        self.last_intensity = self.last_point_intensity = None
         self.password = password
         self.min_valid_fraction = min_valid_fraction
         self.retry_s = retry_s
@@ -143,7 +144,8 @@ class SickVisionarySource:
         log.info("Visionary-T Mini bereit")
 
     def _snapshot(self):
-        """Ein Bild: (Distanz [mm] als (H, W) mit NaN für ungültige Pixel, CameraParams)."""
+        """Ein Bild: (Distanz [mm] (H, W) mit NaN für ungültige Pixel, CameraParams,
+        Infrarot-Intensität (H, W) oder None)."""
         from python_base.Streaming import Data
 
         self._control.singleStep()
@@ -156,7 +158,10 @@ class SickVisionarySource:
         dist = np.asarray(data.depthmap.distance, dtype=float).reshape(cam.height, cam.width)
         conf = np.asarray(data.depthmap.confidence).reshape(cam.height, cam.width)
         dist[(conf != 0) | (dist <= 0)] = np.nan  # SICK: Zustandswert 0 = gültig
-        return dist, cam
+        raw = getattr(data.depthmap, "intensity", None)  # Infrarot-Graubild der ToF-Kamera
+        inten = (np.asarray(raw, dtype=float).reshape(cam.height, cam.width)
+                 if raw is not None and np.size(raw) == cam.height * cam.width else None)
+        return dist, cam, inten
 
     def _drop(self):
         """Verbindung verwerfen (nach Fehler), der Hintergrund-Thread verbindet neu."""
@@ -208,6 +213,11 @@ class SickVisionarySource:
         with warnings.catch_warnings():  # Pixel ohne gültigen Wert sind hier erwartet
             warnings.simplefilter("ignore", category=RuntimeWarning)
             dist = np.nanmedian(stack, axis=0)
+        ir = [s[2] for s in shots if s[2] is not None]
+        # Infrarot-Bild (H, W) und je Punkt (gleiche Reihenfolge wie die Punkte) für Aufnahmen
+        self.last_intensity = np.median(np.stack(ir), axis=0) if ir else None
+        self.last_point_intensity = (self.last_intensity.ravel()[np.isfinite(dist).ravel()]
+                                     if ir else None)
         valid = np.isfinite(dist).mean()
         if valid < self.min_valid_fraction:
             log.warning("Nur %.0f %% gültige Pixel (Verschmutzung, Blendung?)", valid * 100)

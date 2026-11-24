@@ -66,7 +66,8 @@ class FakeSource(SickVisionarySource):
         self._frames = iter(frames)
 
     def _snapshot(self):
-        return next(self._frames), CAM
+        d = next(self._frames)
+        return d, CAM, np.full(d.shape, 100.0) + np.arange(d.size).reshape(d.shape)
 
 
 def test_median_ueber_mehrere_bilder():
@@ -74,9 +75,22 @@ def test_median_ueber_mehrere_bilder():
     a, b, c = base.copy(), base.copy(), base.copy()
     b[0, 0] = 9999.0  # Ausreißer
     c[0, 1] = np.nan  # ein Bild ohne Wert
-    pts = FakeSource([a, b, c]).grab()
+    src = FakeSource([a, b, c])
+    pts = src.grab()
     assert len(pts) == CAM.width * CAM.height
     assert np.allclose(pts[:, 2], 3.5, atol=1e-6)
+    # Infrarot-Bild wird mitgeliefert, je Punkt in derselben Reihenfolge
+    assert src.last_intensity.shape == (CAM.height, CAM.width)
+    assert len(src.last_point_intensity) == len(pts)
+
+
+def test_infrarot_passt_zu_den_gueltigen_punkten():
+    d = render_roof(CAM, 3.0, hole_d=0)
+    d[0, :5] = np.nan  # ungültige Pixel fallen bei Punkten und Infrarot gleich weg
+    src = FakeSource([d])
+    pts = src.grab()
+    assert len(src.last_point_intensity) == len(pts) == d.size - 5
+    assert src.last_point_intensity[0] == 105.0
 
 
 class LateCamera(SickVisionarySource):

@@ -108,7 +108,8 @@ und ohne Admin-Rechte) oder MeshLab. Aufnahmen von Werksgeländen nicht in Onlin
 
 Inventor hängt Punktwolken nur im ReCap-Format (.rcp/.rcs) an:
 
-1. `.venv\Scripts\python tools\npy_zu_ply.py --pts data\aufnahmen\<aufnahme>.npy` → `.pts`
+1. Im Betrachter `tools\punktwolke_ansehen.html` die Aufnahme laden, Farbe wählen und **„Export für
+   ReCap/Inventor (.pts)“** klicken – oder `.venv\Scripts\python tools\npy_zu_ply.py --pts …npy` → `.pts`
    (Millimeter, Infrarot als Grauwert).
 2. **Autodesk ReCap** (bei Inventor bzw. der Product Design Collection meist dabei): neues Projekt,
    `.pts` importieren, Einheit **Millimeter** → Projekt als `.rcp` speichern.

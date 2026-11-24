@@ -6,7 +6,8 @@ import {PLYLoader} from 'three/examples/jsm/loaders/PLYLoader.js';
 document.body.insertAdjacentHTML('beforeend', `<div id="bar"><b>Punktwolke</b><br>
 <input type="file" id="f" accept=".ply,.npy"> <br>Punktgröße <input type="range" id="ps" min="1" max="8" value="2">
 <label><input type="checkbox" id="flip"> 180° drehen</label>
-<br>Farbe <label><input type="radio" name="fm" id="fmd" checked> Abstand</label> <label><input type="radio" name="fm" id="fmi"> Infrarot</label><div id="info">Datei wählen oder hierher ziehen.
+<br>Farbe <label><input type="radio" name="fm" id="fmd" checked> Abstand</label> <label><input type="radio" name="fm" id="fmi"> Infrarot</label>
+<br><button id="ex" disabled>Export für ReCap/Inventor (.pts)</button><div id="info">Datei wählen oder hierher ziehen.
 Maus: links drehen, rechts schieben, Rad zoomen.
 Doppelklick auf Punkt: Abstand zur Kamera.</div></div><div id="drop">.ply oder .npy hierher ziehen</div>`);
 const r = new THREE.WebGLRenderer({antialias: true}); r.setPixelRatio(devicePixelRatio); document.getElementById('app').appendChild(r.domElement);
@@ -45,9 +46,17 @@ function npy(buf) { // einfacher .npy-Leser (float32/float64, C-Ordnung)
 }
 async function load(file) { const b = await file.arrayBuffer(); let g;
   if (file.name.endsWith('.npy')) g = npy(b); else { ir = null; g = new PLYLoader().parse(b); g.userData.plyColor = !!g.attributes.color; }
-  show(g); document.getElementById('drop').style.display = 'none'; document.title = file.name; }
+  fname = file.name; show(g); ex.disabled = false; document.getElementById('drop').style.display = 'none'; document.title = file.name; }
 f.onchange = () => f.files[0] && load(f.files[0]);
 addEventListener('dragover', (e) => e.preventDefault()); addEventListener('drop', (e) => { e.preventDefault(); e.dataTransfer.files[0] && load(e.dataTransfer.files[0]); });
+let fname = 'punktwolke';
+ex.onclick = () => { // Leica-PTS: Anzahl, dann x y z [mm] Intensität r g b – ReCap liest es, Inventor hängt das .rcp an
+  const g = pts.geometry, p = g.attributes.position.array, c = g.attributes.color.array, n = p.length / 3, rows = [String(n)];
+  for (let i = 0; i < n; i++) { const r = Math.round(c[3*i] * 255), gg = Math.round(c[3*i+1] * 255), b = Math.round(c[3*i+2] * 255);
+    rows.push(`${(p[3*i]*1000).toFixed(1)} ${(p[3*i+1]*1000).toFixed(1)} ${(p[3*i+2]*1000).toFixed(1)} ${Math.round((r+gg+b)/3)*8-1024} ${r} ${gg} ${b}`); }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([rows.join('\n') + '\n'], {type: 'text/plain'}));
+  a.download = fname.replace(/\.(npy|ply)$/i, '') + '.pts'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+};
 fmd.onchange = fmi.onchange = () => { if (pts) { colorize(pts.geometry); } };
 ps.oninput = () => pts && (pts.material.size = +ps.value); flip.onchange = () => pts && (pts.rotation.z = flip.checked ? Math.PI : 0);
 const ray = new THREE.Raycaster(); ray.params.Points.threshold = 0.02;

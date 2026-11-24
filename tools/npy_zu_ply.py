@@ -4,8 +4,10 @@
     .venv\\Scripts\\python tools\\npy_zu_ply.py --pts data\\aufnahmen\\*.npy   # für ReCap/Inventor
 
 Legt neben jeder Datei eine .ply an (binär, mit Farbe nach Abstand: blau nah … rot fern).
-Mit --pts zusätzlich eine .pts (Text, Millimeter, x y z Intensität r g b), die Autodesk ReCap
-einliest; ReCap speichert daraus ein .rcp, das Inventor als Punktwolke anhängt.
+Mit --stl zusätzlich ein Dreiecksnetz .stl (binär, Millimeter) – Inventor importiert es ohne ReCap
+als Netzkörper (Öffnen bzw. Importieren, Dateityp STL). Mit --pts zusätzlich eine .pts (Text,
+Millimeter, x y z Intensität r g b), die Autodesk ReCap einliest; ReCap speichert daraus ein
+.rcs/.rcp, das Inventor als Punktwolke anhängt.
 """
 
 import glob
@@ -59,9 +61,43 @@ def schreibe_pts(daten: np.ndarray, ziel: Path) -> None:
         np.savetxt(f, np.column_stack([xyz, inten, rgb]), fmt="%.1f %.1f %.1f %d %d %d %d")
 
 
+def schreibe_stl(daten: np.ndarray, ziel: Path, sprung: float = 0.05) -> int:
+    """Dreiecksnetz aus der Aufnahme: Punkte zurück ins Kamera-Pixelraster legen (die ToF-Kamera
+    misst ein Raster), Nachbarn verbinden; Dreiecke über Tiefensprünge (> `sprung` relativ,
+    z. B. Kante Tisch/Wand) entfallen. Binäres STL in Millimetern. Liefert die Dreieckszahl."""
+    p = daten[:, :3].astype(float)
+    p = p[np.isfinite(p).all(axis=1) & (p[:, 2] > 0.05)]
+    u, v = p[:, 0] / p[:, 2], p[:, 1] / p[:, 2]
+    w, h = 512, 424  # Visionary-T Mini CX
+    col = np.round((u - u.min()) / (u.max() - u.min()) * (w - 1)).astype(int)
+    row = np.round((v - v.min()) / (v.max() - v.min()) * (h - 1)).astype(int)
+    idx = np.full((h, w), -1)
+    idx[row, col] = np.arange(len(p))
+    d = np.linalg.norm(p, axis=1)
+    a, b, c, e = idx[:-1, :-1], idx[:-1, 1:], idx[1:, :-1], idx[1:, 1:]
+    tris = []
+    for t in ((a, b, c), (b, e, c)):
+        i = np.stack([x.ravel() for x in t], axis=1)
+        i = i[(i >= 0).all(axis=1)]
+        dd = d[i]
+        ok = (dd.max(axis=1) - dd.min(axis=1)) <= sprung * dd.min(axis=1)
+        tris.append(i[ok])
+    tri = np.concatenate(tris)
+    v3 = (p * 1000.0).astype(np.float32)[tri]  # (n, 3, 3) mm
+    n = np.cross(v3[:, 1] - v3[:, 0], v3[:, 2] - v3[:, 0])
+    n /= np.maximum(np.linalg.norm(n, axis=1, keepdims=True), 1e-12)
+    rec = np.zeros(len(tri), dtype=[("n", "<f4", 3), ("v", "<f4", (3, 3)), ("a", "<u2")])
+    rec["n"], rec["v"] = n, v3
+    with open(ziel, "wb") as f:
+        f.write(b"Verladearm Kameraaufnahme, mm".ljust(80, b" "))
+        f.write(np.uint32(len(tri)).tobytes())
+        f.write(rec.tobytes())
+    return len(tri)
+
+
 if __name__ == "__main__":
-    pts = "--pts" in sys.argv
-    dateien = [g for a in sys.argv[1:] if a != "--pts" for g in (glob.glob(a) or [a])]
+    pts, stl = "--pts" in sys.argv, "--stl" in sys.argv
+    dateien = [g for a in sys.argv[1:] if not a.startswith("--") for g in (glob.glob(a) or [a])]
     if not dateien:
         sys.exit(__doc__)
     for name in dateien:
@@ -73,3 +109,6 @@ if __name__ == "__main__":
         if pts:
             schreibe_pts(daten, quelle.with_suffix(".pts"))
             print(f"{quelle.with_suffix('.pts')}")
+        if stl:
+            n = schreibe_stl(daten, quelle.with_suffix(".stl"))
+            print(f"{quelle.with_suffix('.stl')}  ({n:,} Dreiecke)")

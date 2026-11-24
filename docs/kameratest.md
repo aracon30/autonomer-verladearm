@@ -119,3 +119,8 @@ Inventor hängt Punktwolken nur im ReCap-Format (.rcp/.rcs) an:
 Koordinaten: Ursprung in der Kamera, z = Blickrichtung (ohne Kalibrierung nicht im Armsystem).
 Für ein Volumenmodell (STL) muss die Punktwolke erst vernetzt werden (z. B. CloudCompare/MeshLab);
 für Abstände und Platzverhältnisse reicht die angehängte Punktwolke.
+
+**Ohne ReCap:** `.venv\Scripts\python tools\npy_zu_ply.py --stl …npy` erzeugt ein Dreiecksnetz
+(`.stl`, Millimeter, Kanten mit Tiefensprung offen). Inventor öffnet bzw. importiert STL als
+Netzkörper – zum Ansehen, Messen und als Bezug; kein Volumenkörper. Ca. 10 % der Punkte fallen beim
+Vernetzen weg (Rasterzuordnung ohne Linsenmodell), es entstehen kleine Lücken.

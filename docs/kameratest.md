@@ -84,3 +84,13 @@ keine Gesichter oder Kennzeichen lesbar, gelten aber als Aufnahmen des Geländes
 | SICK-Bibliothek lässt sich nicht installieren | https://github.com/SICKAG/sick_visionary_python_base als ZIP herunterladen, entpacken, dann `.venv\Scripts\python -m pip install <Ordner>` |
 | Punktwolke lückenhaft | Abstand zu klein (< 0,5 m) oder zu groß (> 8 m), direkte Sonne, Spiegelungen |
 | IP der Kamera unbekannt | SICK SOPAS ET (kostenlos von sick.com) findet die Kamera im Netz |
+
+## Aufnahmen in 3D ansehen
+
+```bat
+.venv\Scripts\python tools\npy_zu_ply.py data\aufnahmen\*.npy
+```
+
+legt neben jeder Aufnahme eine `.ply` an (Farbe nach Abstand: blau nah … rot fern). Öffnen z. B. mit
+**CloudCompare** (kostenlos, cloudcompare.org; die „portable“ ZIP-Version läuft ohne Installation
+und ohne Admin-Rechte) oder MeshLab. Aufnahmen von Werksgeländen nicht in Online-Viewer hochladen.

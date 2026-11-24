@@ -72,8 +72,9 @@ Je **Enter** eine Aufnahme (3 Bilder gemittelt), **q** beendet. Gespeichert wird
 - Licht: Halle, Tageslicht, nasse oder glänzende Oberflächen
 
 Die Dateien bitte an HETA (Projektordner) geben, **nicht ins Repository einchecken**. Auf
-**Werksgeländen (BASF)** nur mit Foto- bzw. Aufnahmegenehmigung aufnehmen; Punktwolken zeigen
-keine Gesichter oder Kennzeichen lesbar, gelten aber als Aufnahmen des Geländes.
+**Werksgeländen (BASF)** nur mit Foto- bzw. Aufnahmegenehmigung aufnehmen. **Das Infrarot-Bild
+(`_ir.png`, 4. Spalte) zeigt Personen, Gesichter und Kennzeichen erkennbar** wie ein
+Schwarz-Weiß-Foto: Personen vorher aus dem Bild bitten bzw. Aufnahmen mit Personen löschen.
 
 ## Wenn etwas nicht geht
 

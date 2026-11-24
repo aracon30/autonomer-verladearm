@@ -16,10 +16,19 @@ speichern, mit denen die Domerkennung entwickelt und geprüft wird. Kein Arm, ke
 
 ## Anschluss Versorgung (Leitung YF2A28, 8 Adern)
 
-Welche Ader +24 V und welche 0 V ist, steht in der **Betriebsanleitung der Kamera** (Anschluss
-Versorgung/E/A) und im Datenblatt der Leitung (spezieller Farbcode). Nur diese beiden Adern an das
-Netzteil, die übrigen einzeln isolieren. Anschließen lassen von einer Elektrofachkraft; erst
-anschließen, dann Netzteil einschalten. Die Kamera braucht ca. 20 s zum Hochfahren.
+Belegung laut Betriebsanleitung der Kamera (Stecker M12, 8-polig, A-codiert) und Farbcode auf dem
+Etikett der Leitung YF2A28-150S01XLEAX:
+
+| Pin | Funktion | Ader | Anschluss |
+|---|---|---|---|
+| 1 | U_V 24 V DC (−30 % … +25 %) | **BN braun** | Netzteil **+24 V** |
+| 3 | GND | **BU blau** | Netzteil **0 V** |
+| 2, 4, 5, 6, 7, 8 | DIO 3, 4, 1, 5, 6, 2 (Digital-E/A, für den Test nicht nötig) | WH, BK, GY, PK, VT, OG | **einzeln isolieren** |
+| Schirm | | Geflecht | an PE/Funktionserde des Netzteils bzw. der Hutschiene |
+
+Anschließen lassen von einer Elektrofachkraft; Polung vor dem Einschalten messen; erst anschließen,
+dann Netzteil einschalten. M12-Stecker handfest (0,6 Nm). Die Kamera braucht ca. 20 s zum
+Hochfahren. Ethernet (M12 X-codiert → RJ45) nur stecken, nichts zu verdrahten.
 
 ## Netzwerk am Laptop (einmalig)
 

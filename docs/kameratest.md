@@ -92,5 +92,7 @@ keine Gesichter oder Kennzeichen lesbar, gelten aber als Aufnahmen des Geländes
 ```
 
 legt neben jeder Aufnahme eine `.ply` an (Farbe nach Abstand: blau nah … rot fern). Öffnen z. B. mit
-**CloudCompare** (kostenlos, cloudcompare.org; die „portable“ ZIP-Version läuft ohne Installation
+**ohne Installation:** `tools\punktwolke_ansehen.html` per Doppelklick im Browser öffnen und die `.npy` oder
+`.ply` hineinziehen (offline; drehen, zoomen, Doppelklick misst den Abstand). Alternativ
+**CloudCompare** (kostenlos, cloudcompare.org; braucht das Visual-C++-Paket 2013, ggf. über die IT; die „portable“ ZIP-Version läuft ohne Installation
 und ohne Admin-Rechte) oder MeshLab. Aufnahmen von Werksgeländen nicht in Online-Viewer hochladen.

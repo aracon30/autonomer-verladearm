@@ -16,10 +16,19 @@ speichern, mit denen die Domerkennung entwickelt und geprüft wird. Kein Arm, ke
 
 ## Anschluss Versorgung (Leitung YF2A28, 8 Adern)
 
-Welche Ader +24 V und welche 0 V ist, steht in der **Betriebsanleitung der Kamera** (Anschluss
-Versorgung/E/A) und im Datenblatt der Leitung (spezieller Farbcode). Nur diese beiden Adern an das
-Netzteil, die übrigen einzeln isolieren. Anschließen lassen von einer Elektrofachkraft; erst
-anschließen, dann Netzteil einschalten. Die Kamera braucht ca. 20 s zum Hochfahren.
+Belegung laut Betriebsanleitung der Kamera (Stecker M12, 8-polig, A-codiert) und Farbcode auf dem
+Etikett der Leitung YF2A28-150S01XLEAX:
+
+| Pin | Funktion | Ader | Anschluss |
+|---|---|---|---|
+| 1 | U_V 24 V DC (−30 % … +25 %) | **BN braun** | Netzteil **+24 V** |
+| 3 | GND | **BU blau** | Netzteil **0 V** |
+| 2, 4, 5, 6, 7, 8 | DIO 3, 4, 1, 5, 6, 2 (Digital-E/A, für den Test nicht nötig) | WH, BK, GY, PK, VT, OG | **einzeln isolieren** |
+| Schirm | | Geflecht | an PE/Funktionserde des Netzteils bzw. der Hutschiene |
+
+Anschließen lassen von einer Elektrofachkraft; Polung vor dem Einschalten messen; erst anschließen,
+dann Netzteil einschalten. M12-Stecker handfest (0,6 Nm). Die Kamera braucht ca. 20 s zum
+Hochfahren. Ethernet (M12 X-codiert → RJ45) nur stecken, nichts zu verdrahten.
 
 ## Netzwerk am Laptop (einmalig)
 
@@ -75,3 +84,21 @@ keine Gesichter oder Kennzeichen lesbar, gelten aber als Aufnahmen des Geländes
 | SICK-Bibliothek lässt sich nicht installieren | https://github.com/SICKAG/sick_visionary_python_base als ZIP herunterladen, entpacken, dann `.venv\Scripts\python -m pip install <Ordner>` |
 | Punktwolke lückenhaft | Abstand zu klein (< 0,5 m) oder zu groß (> 8 m), direkte Sonne, Spiegelungen |
 | IP der Kamera unbekannt | SICK SOPAS ET (kostenlos von sick.com) findet die Kamera im Netz |
+
+## Infrarot-Bild
+
+Die Kamera liefert kein Farbbild, aber neben dem Abstand ein **Infrarot-Graubild** (Intensität).
+Jede Aufnahme speichert es zusätzlich als `…_ir.png` (zum Anschauen) und als 4. Spalte in der
+`.npy` (je Punkt). Im Betrachter unter „Farbe“ zwischen *Abstand* und *Infrarot* umschalten.
+
+## Aufnahmen in 3D ansehen
+
+```bat
+.venv\Scripts\python tools\npy_zu_ply.py data\aufnahmen\*.npy
+```
+
+legt neben jeder Aufnahme eine `.ply` an (Farbe nach Abstand: blau nah … rot fern). Öffnen z. B. mit
+**ohne Installation:** `tools\punktwolke_ansehen.html` per Doppelklick im Browser öffnen und die `.npy` oder
+`.ply` hineinziehen (offline; drehen, zoomen, Doppelklick misst den Abstand). Alternativ
+**CloudCompare** (kostenlos, cloudcompare.org; braucht das Visual-C++-Paket 2013, ggf. über die IT; die „portable“ ZIP-Version läuft ohne Installation
+und ohne Admin-Rechte) oder MeshLab. Aufnahmen von Werksgeländen nicht in Online-Viewer hochladen.

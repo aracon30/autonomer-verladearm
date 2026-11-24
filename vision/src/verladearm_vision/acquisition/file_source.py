@@ -11,7 +11,7 @@ import numpy as np
 
 def load_points(path: Path) -> np.ndarray:
     if path.suffix == ".npy":
-        return np.load(path).astype(float)
+        return np.load(path)[:, :3].astype(float)  # Spalte 4 = Infrarot (Aufnahmen)
     if path.suffix == ".npz":
         with np.load(path) as data:
             return data["points"].astype(float)

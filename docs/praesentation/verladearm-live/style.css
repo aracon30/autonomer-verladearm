@@ -1,0 +1,11 @@
+html,body{margin:0;height:100%;background:#eef1f4;font-family:Inter,sans-serif;color:#1d2733;overflow:hidden}
+#app canvas{display:block}
+.pan{position:fixed;background:rgba(255,255,255,.92);border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,.12);padding:12px 14px;font-size:13px}
+#info{top:14px;left:14px;width:250px}#info h1{font-size:16px;margin:0 0 4px}#info .hsub{color:#667;margin-bottom:10px}
+.row{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;padding:2px 0}
+.on{color:#d9480f;font-weight:700}
+#step{top:14px;right:14px;width:270px}#step .cur{font-size:15px;font-weight:700;color:#d9480f;margin:4px 0 8px}
+#step ol{margin:0;padding-left:18px;color:#889}#step li.a{color:#1d2733;font-weight:600}
+#ctl{bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center}
+#ctl input[type=range]{width:min(50vw,520px)}button{font:inherit;border:1px solid #c5ccd4;background:#fff;border-radius:6px;padding:5px 10px;cursor:pointer}
+@media(max-width:700px){#step{display:none}#info{width:200px}}

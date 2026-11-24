@@ -1,8 +1,11 @@
 """Aufnahmen (.npy, Punkte x y z in m) als .ply speichern, z. B. für CloudCompare oder MeshLab.
 
     .venv\\Scripts\\python tools\\npy_zu_ply.py data\\aufnahmen\\*.npy
+    .venv\\Scripts\\python tools\\npy_zu_ply.py --pts data\\aufnahmen\\*.npy   # für ReCap/Inventor
 
 Legt neben jeder Datei eine .ply an (binär, mit Farbe nach Abstand: blau nah … rot fern).
+Mit --pts zusätzlich eine .pts (Text, Millimeter, x y z Intensität r g b), die Autodesk ReCap
+einliest; ReCap speichert daraus ein .rcp, das Inventor als Punktwolke anhängt.
 """
 
 import glob
@@ -38,12 +41,35 @@ def schreibe_ply(punkte: np.ndarray, ziel: Path) -> None:
         f.write(rec.tobytes())
 
 
+def schreibe_pts(daten: np.ndarray, ziel: Path) -> None:
+    """Leica-PTS (Text): Anzahl, dann je Zeile x y z [mm] Intensität r g b (Grau aus Infrarot)."""
+    p = daten[np.isfinite(daten[:, :3]).all(axis=1)]
+    xyz = p[:, :3] * 1000.0
+    if p.shape[1] >= 4:  # Infrarot als Intensität und Grauwert
+        ir = p[:, 3].astype(float)
+        lo, hi = np.percentile(ir, [1, 99])
+        g = (np.clip((ir - lo) / max(hi - lo, 1e-9), 0, 1) * 255).astype(int)
+        rgb = np.column_stack([g, g, g])
+        inten = (g * 8 - 1024).clip(-2047, 2047)
+    else:
+        rgb = farbe(np.linalg.norm(p[:, :3], axis=1) / 6.0).astype(int)
+        inten = np.zeros(len(p), int)
+    with open(ziel, "w", encoding="ascii") as f:
+        f.write(f"{len(p)}\n")
+        np.savetxt(f, np.column_stack([xyz, inten, rgb]), fmt="%.1f %.1f %.1f %d %d %d %d")
+
+
 if __name__ == "__main__":
-    dateien = [g for a in sys.argv[1:] for g in (glob.glob(a) or [a])]
+    pts = "--pts" in sys.argv
+    dateien = [g for a in sys.argv[1:] if a != "--pts" for g in (glob.glob(a) or [a])]
     if not dateien:
         sys.exit(__doc__)
     for name in dateien:
         quelle = Path(name)
+        daten = np.load(quelle, allow_pickle=False)
         ziel = quelle.with_suffix(".ply")
-        schreibe_ply(np.load(quelle, allow_pickle=False)[:, :3], ziel)
+        schreibe_ply(daten[:, :3], ziel)
         print(f"{ziel}")
+        if pts:
+            schreibe_pts(daten, quelle.with_suffix(".pts"))
+            print(f"{quelle.with_suffix('.pts')}")

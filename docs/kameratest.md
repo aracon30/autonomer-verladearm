@@ -103,3 +103,18 @@ legt neben jeder Aufnahme eine `.ply` an (Farbe nach Abstand: blau nah … rot f
 `.ply` hineinziehen (offline; drehen, zoomen, Doppelklick misst den Abstand). Alternativ
 **CloudCompare** (kostenlos, cloudcompare.org; braucht das Visual-C++-Paket 2013, ggf. über die IT; die „portable“ ZIP-Version läuft ohne Installation
 und ohne Admin-Rechte) oder MeshLab. Aufnahmen von Werksgeländen nicht in Online-Viewer hochladen.
+
+## In Autodesk Inventor verwenden
+
+Inventor hängt Punktwolken nur im ReCap-Format (.rcp/.rcs) an:
+
+1. `.venv\Scripts\python tools\npy_zu_ply.py --pts data\aufnahmen\<aufnahme>.npy` → `.pts`
+   (Millimeter, Infrarot als Grauwert).
+2. **Autodesk ReCap** (bei Inventor bzw. der Product Design Collection meist dabei): neues Projekt,
+   `.pts` importieren, Einheit **Millimeter** → Projekt als `.rcp` speichern.
+3. **Inventor:** Baugruppe/Bauteil → Registerkarte *3D-Modell* bzw. *Werkzeuge* →
+   **Punktwolke anhängen** → `.rcp` wählen, platzieren, ausrichten.
+
+Koordinaten: Ursprung in der Kamera, z = Blickrichtung (ohne Kalibrierung nicht im Armsystem).
+Für ein Volumenmodell (STL) muss die Punktwolke erst vernetzt werden (z. B. CloudCompare/MeshLab);
+für Abstände und Platzverhältnisse reicht die angehängte Punktwolke.

@@ -29,9 +29,9 @@ plc:
 # nach und meldet bei Störung oder Maximalhöhe „Befüllung stoppen“ (erst Pumpe aus, dann Klappe zu).
 filling:
   flow: 22                # m³/h Pumpe der Leitstelle (BASF: 20–25 m³/h)
-  tank_diameter: 2.2      # m Lkw-Tank (liegender Zylinder)
+  tank_diameter: 2.0      # m Lkw-Tank (liegender Zylinder); + Domkragen 0,1 m = 2,10 m
   chamber_length: 2.5     # m je Kammer (wie source.dome_pitch); verbundene Kammern: × Domzahl
-  depth_below_rim: 2.32   # m Tankboden unter Domrand (Tank + Domkragen 0,12 m)
+  depth_below_rim: 2.10   # m Tankboden unter Domrand: BASF 24.11. 2,10–2,30 m, flachster Tank
   start_level: 0.03       # m Restmenge über dem Boden
   fill_ratio: 0.95        # Menge der Leitstelle: 95 % des Kammervolumens (der SPS unbekannt)
   sensor_height: 0.12     # m Grenzschalter über dem Auslassende (10–15 cm)
@@ -43,7 +43,7 @@ filling:
 
 products:
   # Eintauchtiefe unter Domrand je ProductId: Auslass ca. 20 cm über dem Tankboden
-  # (2,32 m − 0,2 m). Der Referenzflansch (Ø 220) passt durch das offene Mannloch.
-  default: {insertion_depth: 2.1}
-  1: {name: Dispersion A, insertion_depth: 2.1}
-  2: {name: Dispersion B, insertion_depth: 2.1}
+  # (flachster Tank 2,10 m − 0,2 m). Der Referenzflansch (Ø 220) passt durch das offene Mannloch.
+  default: {insertion_depth: 1.9}
+  1: {name: Dispersion A, insertion_depth: 1.9}
+  2: {name: Dispersion B, insertion_depth: 1.9}

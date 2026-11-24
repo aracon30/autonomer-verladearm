@@ -17,7 +17,7 @@ von P. Schreiber übermittelt.
 
 **Ablauf / Sicherheit vor Ort**
 - Kammern werden über die **offenen Dome** erkannt; Reihenfolge der Kammern noch festlegen.
-- **Tankhöhen ca. 2,10–2,30 m** (Bezug klären: Domrand bis Boden?) – BASF liefert genauere
+- **Tankhöhen 2,10–2,30 m, Domrand bis Tankboden** (bestätigt) – BASF liefert genauere
   Fahrzeug- und Tankdaten. **Wichtig für die Eintauchtiefe** (heute 2,1 m unter Domrand angenommen).
 - Klapptreppe hat bereits eine Zustandsleuchte; Treppenstellung kann die Armbewegung sperren.
 - Erdung steht in der Checkliste des Bedieners; elektrische Überwachung unklar.
@@ -67,8 +67,9 @@ von P. Schreiber übermittelt.
 
 ## Folgen für HETA
 
-- **Eintauchtiefe prüfen:** Bei Tanktiefe 2,10 m (falls Domrand–Boden) setzt ein Auslass bei
-  2,10 m unter Rand auf → Eintauchtiefe dann höchstens ca. 1,90 m bzw. je Fahrzeug aus dem PLS.
+- **Eintauchtiefe auf 1,90 m gesenkt** (flachster Tank 2,10 m − 20 cm): Simulation, Anlagendatei
+  `simulation.yaml`, SPS-Entwurf `GVL_Param`. Bei tieferen Tanks bleibt mehr Abstand; besser später
+  Tiefe je Fahrzeug aus dem PLS oder über das Radar.
 - **SPS-Ablauf:** Verdrängen mit Arm im Tank (Klappe offen, Handventil heute von Hand – künftig
   Signal „Verdrängen beendet“), danach Parkstellung; Spülen erst in Park (Spülwanne). Störcodes
   als Ausgang an BASF.

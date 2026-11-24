@@ -125,10 +125,11 @@ def _spiegel(sim, chambers=1):
 
 def test_kammervolumen_liegender_zylinder():
     sim = make_filling_sim()
-    full = sim.chamber_volume(2.2, 2.5)
-    assert full == pytest.approx(np.pi * 1.1**2 * 2.5)
-    assert sim.chamber_volume(1.1, 2.5) == pytest.approx(full / 2)
-    assert sim.level_for(full / 2, 2.5) == pytest.approx(1.1, abs=1e-6)
+    d = sim.fill["tank_diameter"]  # Lkw-Tank der Simulation (2,0 m)
+    full = sim.chamber_volume(d, 2.5)
+    assert full == pytest.approx(np.pi * (d / 2) ** 2 * 2.5)
+    assert sim.chamber_volume(d / 2, 2.5) == pytest.approx(full / 2)
+    assert sim.level_for(full / 2, 2.5) == pytest.approx(d / 2, abs=1e-6)
 
 
 def test_befuellen_mit_einem_grenzschalter_bis_ende_leitstelle(capsys):

@@ -54,7 +54,7 @@ JOG_FACTOR = 0.2  # Tippen im Handbetrieb mit reduzierter Geschwindigkeit
 HAND_SPEED = 2.0  # °/s, Arm von Hand geschoben (Bremse gelüftet)
 FILL_STEP = 2.0  # s Befüllzeit je Rechenschritt
 # Befüllung, falls die Anlagendatei keinen Abschnitt `filling` hat (Werte siehe simulation.yaml)
-FILL_DEFAULTS = dict(flow=22.0, tank_diameter=2.2, chamber_length=2.5, depth_below_rim=2.32,
+FILL_DEFAULTS = dict(flow=22.0, tank_diameter=2.0, chamber_length=2.5, depth_below_rim=2.10,
                      start_level=0.03, fill_ratio=0.95, sensor_height=0.12, lift_step=0.05,
                      pump_rundown=3.0, max_below_rim=0.28, overfill_below_rim=0.22, speedup=40.0)
 

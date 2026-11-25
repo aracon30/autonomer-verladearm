@@ -124,3 +124,22 @@ für Abstände und Platzverhältnisse reicht die angehängte Punktwolke.
 (`.stl`, Millimeter, Kanten mit Tiefensprung offen). Inventor öffnet bzw. importiert STL als
 Netzkörper – zum Ansehen, Messen und als Bezug; kein Volumenkörper. Wenige Prozent der Punkte fallen beim
 Vernetzen weg (Rasterzuordnung nachträglich), kleine Lücken möglich.
+
+## Drehteller-Scan (Objekt rundum erfassen)
+
+Kamera fest, Objekt (z. B. Filter) auf einem Drehteller mit Winkelskala:
+
+```bat
+.venv\Scripts\python tools\drehteller.py aufnahme --name Filter1 --schritt 15
+.venv\Scripts\python tools\drehteller.py zusammensetzen data\drehteller\Filter1
+```
+
+Bei der Aufnahme optional zuerst den **leeren Teller** aufnehmen, dann je Schritt den Teller weiter-
+drehen und Enter drücken. Das Zusammensetzen bestimmt die Drehachse selbst (auch bei runden
+Gehäusen ohne Merkmale), dreht alle Bilder zurück und gibt `Filter1_gesamt.npy/.ply/.pts` (mit
+`--stl` auch ein grobes STL) sowie Höhe und Durchmesser aus. Ansehen und nachmessen im Betrachter
+(Doppelklick misst), in ReCap bzw. Inventor über die `.pts`.
+
+Aufbau: Kamera 1–3 m entfernt, **30–45° schräg von oben** (sonst fehlt die Oberseite; die
+Unterseite fehlt immer), **Boden im Bild**, Winkel genau einstellen, 10–20° je Schritt
+(24 Bilder bei 15°), niemand im Bild. Genauigkeit ca. 1–2 cm.

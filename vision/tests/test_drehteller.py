@@ -25,14 +25,15 @@ def _objekt(rng):
     return np.vstack([zyl, kasten, seite]), np.vstack([nz, nk, ns])
 
 
-def _aufnahmen(schritt=15, anzahl=24, seed=0, kasten=True):
+def _aufnahmen(schritt=15, anzahl=24, seed=0, kasten=True, wand_n=15000):
     rng = np.random.default_rng(seed)
     p, nrm = _objekt(rng)
     if not kasten:  # rein drehsymmetrisch (Filtergehäuse ohne Stutzen)
         p, nrm = p[:40000], nrm[:40000]
     mitte = np.array([0.1, 0.2, 2.2])  # Drehachse 2,2 m vor der Kamera
     n = 15000
-    wand = np.column_stack([rng.uniform(-2, 2, n), rng.uniform(-1.5, 1, n), np.full(n, 4.0)])
+    wand = np.column_stack([rng.uniform(-2, 2, wand_n), rng.uniform(-1.5, 1, wand_n),
+                            np.full(wand_n, 4.0)])
     boden = np.column_stack([rng.uniform(-2, 2, n), np.full(n, 0.75), rng.uniform(1, 4, n)])
     bilder = []
     for k in range(anzahl):
@@ -45,10 +46,10 @@ def _aufnahmen(schritt=15, anzahl=24, seed=0, kasten=True):
     return bilder
 
 
-def _speichern(tmp_path, bilder):
+def _speichern(tmp_path, bilder, schritt=15):
     dateien = []
     for k, b in enumerate(bilder):
-        f = tmp_path / (f"{k * 15:05.1f}".replace(".", ",") + ".npy")
+        f = tmp_path / (f"{k * schritt:05.1f}".replace(".", ",") + ".npy")
         np.save(f, b.astype(np.float32))
         dateien.append(f)
     return sorted(dateien, key=drehteller.winkel_aus_name)
@@ -73,3 +74,12 @@ def test_drehsymmetrisches_filtergehaeuse(tmp_path):
     rel -= np.outer(rel @ info["achse"], info["achse"])
     w = np.degrees(np.arctan2(rel[:, 2], rel[:, 0]))
     assert np.histogram(w, bins=12, range=(-180, 180))[0].min() > 50
+
+
+def test_grosse_wand_wird_nicht_fuer_den_boden_gehalten(tmp_path):
+    """Die Wand hat mehr Punkte als der Boden: trotzdem richtige Achse und Maße."""
+    bilder = _aufnahmen(wand_n=60000, anzahl=12, schritt=30)
+    wolke, info = drehteller.zusammensetzen(_speichern(tmp_path, bilder, schritt=30))
+    assert abs(abs(info["boden"][1]) - 1) < 0.05  # Boden erkannt (Normale = Kamera-y), nicht Wand
+    assert abs(abs(info["achse"][1]) - 1) < 0.05  # Achse senkrecht, nicht in Blickrichtung
+    assert abs(info["hoehe"] - 1.0) < 0.06

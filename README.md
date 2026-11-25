@@ -74,7 +74,7 @@ Referenzflansch.
   Beschleunigung im Verhältnis zu ihrem Weg vor (gleiche Ruckzeit), alle kommen gleichzeitig an.
   `PROZESSDATEN=1 tools/simulation.sh` schreibt die Vorgaben je Fahrt ins SPS-Log.
 - **Befüllen von unten mit Nachziehen:** Der Auslass taucht bis ca. 20 cm über den Tankboden ein
-  (Eintauchtiefe 2,1 m). Die SPS öffnet die Absperrklappe und meldet „Arm bereit“; die Leitstelle
+  (Eintauchtiefe 1,9 m: flachster Tank 2,10 m unter Domrand laut BASF, 20 cm Abstand). Die SPS öffnet die Absperrklappe und meldet „Arm bereit“; die Leitstelle
   startet die Pumpe (22 m³/h), der Spiegel steigt in der liegenden zylindrischen Kammer. **Ein**
   Grenzschalter sitzt 12 cm über dem Auslassende: nass → J3 hebt um 5 cm (ca. 35 Hübe je Kammer),
   danach muss er trocken sein, sonst Störung. Der Auslass bleibt ca. 7–12 cm unter dem Spiegel.

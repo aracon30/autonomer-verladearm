@@ -32,7 +32,7 @@ VAR_GLOBAL
     aMax    : ARRAY[1..3] OF REAL := [120.0, 140.0, 45.0];
     aPark   : ARRAY[1..3] OF REAL := [70.0, -135.0, 10.0]; (* heta_prototyp.yaml, bei IBN anpassen *)
     (* Eintauchtiefe je Produkt [m unter Domrand], Index = ProductId 0..9 *)
-    (* ca. 20 cm über dem Tankboden: Domrand bis Boden 2,32 m (Lkw Ø 2,2 m) – Tanktiefe BASF offen *)
-    aEintauchtiefe : ARRAY[0..9] OF REAL := [2.1, 2.1, 2.1, 2.1, 2.1, 2.1, 2.1, 2.1, 2.1, 2.1];
+    (* ca. 20 cm über dem Tankboden: Domrand bis Boden 2,10–2,30 m (BASF 24.11.) – flachster Tank 2,10 m *)
+    aEintauchtiefe : ARRAY[0..9] OF REAL := [1.9, 1.9, 1.9, 1.9, 1.9, 1.9, 1.9, 1.9, 1.9, 1.9];
     rMaxHoeheUnterRand : REAL := 0.28;   (* m: Füllende Ebene 2, knapp unter der Überfüllsicherung (ca. 0,2 m) *)
 END_VAR

@@ -80,6 +80,7 @@ In der Simulation hinterlegt: `vision/config/anlagen/heta_prototyp.yaml`, Abschn
 - **Geschwindigkeit:** 34 1/min ÷ 34 = **1 1/min = 6 °/s** bei 50 Hz – genau die zulässige
   Höchstdrehzahl des Schwenkantriebs. 90° in 15 s. Umrichter auf max. 50 Hz begrenzen,
   Technologieobjekt J3 z. B. 5 °/s Anfahrt, 1–2 °/s beim Eintauchen.
+- **Masse (Konstruktion 25.11.2026): ca. 161 kg** leer ab IMO-Drehgelenk (äußerer Ausleger, Fallrohr, Klappe, Anbauten). Moment bei waagerechtem Ausleger = 161 kg × 9,81 × Schwerpunktabstand: 1,5 m → 2,4 kNm, 2,0 m → 3,2 kNm, 2,5 m → 3,9 kNm, 2,8 m → 4,4 kNm; mit Produkt im Rohr (DN 100, ca. 50 kg, beim Nachziehen gefüllt) ca. +1,2 kNm. **Schwerpunktabstand aus Inventor erforderlich**, dann IMO-Lastfall aktualisieren.
 - **Moment:** Last laut IMO-Auslegung 3,52 kNm, eigene Schätzung 1,6–2,0 kNm. Verfügbar
   215 Nm × 34 × Wirkungsgrad: bei η = 0,4/0,5/0,6 → 2,9/3,7/4,4 kNm (kurzzeitig mit 300 Nm
   4,1/5,1/6,1 kNm). Für die geschätzte Last reichlich, für 3,52 kNm **knapp** → Lastannahme

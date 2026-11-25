@@ -20,6 +20,7 @@ from datetime import date, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib import resources
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import numpy as np
 import yaml
@@ -311,6 +312,14 @@ def make_handler(folder: Path = ANLAGEN, backup: Path = BACKUP):
                 self._send(b"Nicht gefunden", 404, "text/plain; charset=utf-8")
 
         def do_POST(self):
+            # Schutz gegen fremde Webseiten im selben Browser (CSRF) und DNS-Rebinding: nur JSON
+            # (erzwingt bei fremden Seiten eine CORS-Vorabfrage, die wir nicht beantworten) und
+            # Origin muss, falls gesetzt, zum eigenen Host passen.
+            ctype = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            origin = self.headers.get("Origin")
+            if ctype != "application/json" or (
+                    origin and urlsplit(origin).netloc != self.headers.get("Host")):
+                return self._send({"error": "Anfrage abgelehnt (Herkunft/Format)"}, 403)
             try:
                 body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
                 if self.path == "/api/check":

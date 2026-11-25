@@ -100,6 +100,9 @@ def objekt_freistellen(bild: np.ndarray, leer: np.ndarray | None, boden_n: np.nd
         m = lab == k
         if m.sum() < 50:
             continue
+        # flache Gruppen (Wand, Tischplatte, Schrankfront) sind nicht das Objekt
+        if np.sqrt(np.linalg.eigvalsh(np.cov(p[m, :3].T))[0]) < 0.012:
+            continue
         c = p[m, :3].mean(axis=0)
         w = m.sum() / (1 + np.hypot(c[0], c[1]) / max(c[2], 0.1)) / max(c[2], 0.3) ** 2
         if w > wert:
@@ -142,8 +145,13 @@ def achse_finden(objekte, winkel, n0):
     mitte = np.vstack(proben).mean(axis=0)
 
     def teile(x):
-        achse = n0 + x[2] * u + x[3] * v
-        return mitte + x[0] * u + x[1] * v, achse / np.linalg.norm(achse)
+        # Richtung: n0 um u und v gekippt (jede Richtung erreichbar); Achspunkt in der Ebene
+        # senkrecht zur aktuellen Achse durch die Objektmitte
+        achse = drehung(u, x[2]) @ drehung(v, x[3]) @ n0
+        a1 = np.cross(achse, v)
+        a1 /= np.linalg.norm(a1)
+        a2 = np.cross(achse, a1)
+        return mitte + x[0] * a1 + x[1] * a2, achse
 
     def kosten(x, sinn, paare):
         punkt, achse = teile(x)
@@ -175,21 +183,56 @@ def achse_finden(objekte, winkel, n0):
     return punkt, achse, sinn, erg.fun
 
 
-def zusammensetzen(dateien: list[Path], leer: Path | None = None, voxel_m: float = 0.01):
+def ebenen(p: np.ndarray, anzahl: int = 3, min_anteil: float = 0.05) -> list:
+    """Die größten Ebenen nacheinander (Normale, d): Kandidaten für den Boden."""
+    out, rest = [], p
+    for k in range(anzahl):
+        if len(rest) < 100:
+            break
+        n, d, m = ebene(rest, seed=k)
+        if n is None or m.sum() < min_anteil * len(p):
+            break
+        out.append((n, d))
+        rest = rest[~m]
+    return out
+
+
+def zusammensetzen(dateien: list[Path], leer: Path | None = None, voxel_m: float = 0.01,
+                   normale=None, alle_pruefen: bool = False):
+    """`normale`: Bodennormale (Drehachsrichtung) in Kamerakoordinaten vorgeben, falls die
+    automatische Wahl danebenliegt; mit `alle_pruefen` wird sie nur als zusätzlicher Kandidat
+    genommen."""
     roh = [np.load(f, allow_pickle=False).astype(float) for f in dateien]
     roh = [voxel(r[np.isfinite(r[:, :3]).all(axis=1)], voxel_m) for r in roh]
     winkel = np.radians([winkel_aus_name(f) for f in dateien])
     ref = voxel(np.load(leer, allow_pickle=False).astype(float), voxel_m) if leer else None
-    n0, d0, _ = ebene(ref[:, :3] if ref is not None else roh[0][:, :3])  # Boden
-    objekte = [ausreisser_weg(objekt_freistellen(r, ref, n0, d0)) for r in roh]
-    if min(len(o) for o in objekte) < 100:
+    # Welche Ebene der Boden ist, steht nicht fest (eine große Wand oder Tischplatte kann mehr
+    # Punkte haben). Daher die größten Ebenen bzw. eine vorgegebene Normale als Kandidaten
+    # durchprobieren und die nehmen, mit der die zurückgedrehten Bilder am besten passen.
+    kandidaten = ebenen(ref[:, :3] if ref is not None else roh[0][:, :3])
+    if normale is not None:
+        n = np.asarray(normale, float) / np.linalg.norm(normale)
+        basis = ref if ref is not None else roh[0]
+        kandidaten = [(n, float(np.median(basis[:, :3] @ n)))] + kandidaten
+        kandidaten = kandidaten[:1] if not alle_pruefen else kandidaten
+    ergebnisse = []
+    for n0, d0 in kandidaten:
+        objekte = [ausreisser_weg(objekt_freistellen(r, ref, n0, d0)) for r in roh]
+        if min(len(o) for o in objekte) < 100:
+            continue
+        ergebnisse.append((objekte, achse_finden(objekte, winkel, n0), n0))
+    if not ergebnisse:
         raise SystemExit("Objekt nicht gefunden: Boden im Bild? Objekt in Bildmitte?")
-    punkt, achse, sinn, rest = achse_finden(objekte, winkel, n0)
+    # Unter den gut passenden Lösungen die, deren Ebene senkrecht zur gefundenen Achse steht
+    # (der Boden liegt senkrecht zur Drehachse, eine Wand dagegen parallel)
+    bester_rest = min(e[1][3] for e in ergebnisse)
+    gut = [e for e in ergebnisse if e[1][3] <= 1.3 * bester_rest + 0.002]
+    objekte, (punkt, achse, sinn, rest), boden = max(gut, key=lambda e: abs(e[2] @ e[1][1]))
     teile = [zurueckdrehen(o, punkt, achse, sinn * (w - winkel[0]))
              for o, w in zip(objekte, winkel, strict=True)]
     wolke = ausreisser_weg(voxel(np.vstack(teile), voxel_m / 2))
     info = masse(wolke, punkt, achse) | {"rest": rest, "punkte": len(wolke), "achse": achse,
-                                         "achspunkt": punkt}
+                                         "achspunkt": punkt, "boden": boden}
     return wolke, info
 
 
@@ -251,6 +294,8 @@ def main():
     z.add_argument("ordner")
     z.add_argument("--stl", action="store_true", help="zusätzlich ein STL-Netz (grob)")
     z.add_argument("--voxel", type=float, default=0.01, help="Rasterweite [m] (Standard 1 cm)")
+    z.add_argument("--normale", help="Drehachse/Bodennormale vorgeben, z. B. 0,-1,0 "
+                   "(Kamerakoordinaten; nur nötig, wenn die automatische Wahl danebenliegt)")
     args = p.parse_args()
     if args.befehl == "aufnahme":
         return aufnahme(args)
@@ -261,7 +306,8 @@ def main():
     if len(dateien) < 3:
         sys.exit(f"Mindestens 3 Aufnahmen in {ordner} nötig.")
     leer = ordner / "leer.npy"
-    wolke, info = zusammensetzen(dateien, leer if leer.exists() else None, args.voxel)
+    normale = [float(x) for x in args.normale.split(",")] if args.normale else None
+    wolke, info = zusammensetzen(dateien, leer if leer.exists() else None, args.voxel, normale)
     basis = ordner / f"{ordner.name}_gesamt"
     np.save(basis.with_suffix(".npy"), wolke.astype(np.float32))
     schreibe_ply(wolke[:, :3], basis.with_suffix(".ply"))

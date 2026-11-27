@@ -128,7 +128,26 @@ def masse(p: np.ndarray, punkt: np.ndarray, achse: np.ndarray) -> dict:
     h = rel @ achse
     radial = np.linalg.norm(rel - np.outer(h, achse), axis=1)
     lo, hi = np.percentile(h, [0.5, 99.5])
-    return {"hoehe": float(hi - lo), "durchmesser": float(2 * np.percentile(radial, 99.5))}
+    # Grundriss (senkrecht zur Achse): kleinstes umschließendes Rechteck → Länge × Breite,
+    # sinnvoll für nicht runde Teile (Kastenfilter, Gehäuse mit Stutzen)
+    e1 = np.cross(achse, [1.0, 0, 0] if abs(achse[0]) < 0.9 else [0, 1.0, 0])
+    e1 /= np.linalg.norm(e1)
+    e2 = np.cross(achse, e1)
+    xy = np.column_stack([rel @ e1, rel @ e2])
+    m = np.ones(len(xy), bool)
+    for v in (xy[:, 0], xy[:, 1]):  # vereinzelte Ausreißer am Rand ignorieren
+        a, b = np.percentile(v, [0.2, 99.8])
+        m &= (v >= a) & (v <= b)
+    xy = xy[m]
+    best = (np.inf, 0.0, 0.0)
+    for w in np.radians(np.arange(0, 90, 0.5)):
+        c, s_ = np.cos(w), np.sin(w)
+        u, v = xy @ [c, s_], xy @ [-s_, c]
+        lu, lv = u.max() - u.min(), v.max() - v.min()
+        if lu * lv < best[0]:
+            best = (lu * lv, max(lu, lv), min(lu, lv))
+    return {"hoehe": float(hi - lo), "durchmesser": float(2 * np.percentile(radial, 99.5)),
+            "laenge": float(best[1]), "breite": float(best[2])}
 
 
 # --- Zusammensetzen -------------------------------------------------------------------------
@@ -156,6 +175,8 @@ def achse_finden(objekte, winkel, n0, faktor_frei: bool = False):
     def kosten(x, sinn, paare):
         punkt, achse = teile(x)
         k = x[4] if len(x) > 4 else 1.0  # Faktor auf die Winkel (Drehzahl nur ungefähr bekannt)
+        if abs(k - 1) > 0.15:  # Umlaufzeit ist auf ±15 % bekannt; sonst „dreht“ sich nichts mehr
+            return 1.0 + abs(k - 1)
         e = []
         for i in paare:
             q = zurueckdrehen(proben[i + 1], punkt, achse, sinn * k * (winkel[i + 1] - winkel[i]))
@@ -203,7 +224,8 @@ def ebenen(p: np.ndarray, anzahl: int = 3, min_anteil: float = 0.05) -> list:
 
 
 def zusammensetzen(dateien: list[Path], leer: Path | None = None, voxel_m: float = 0.01,
-                   normale=None, alle_pruefen: bool = False, umlaufzeit: float | None = None):
+                   normale=None, alle_pruefen: bool = False, umlaufzeit: float | None = None,
+                   radius: float | None = None):
     """`normale`: Bodennormale (Drehachsrichtung) in Kamerakoordinaten vorgeben, falls die
     automatische Wahl danebenliegt; mit `alle_pruefen` wird sie nur als zusätzlicher Kandidat
     genommen."""
@@ -240,6 +262,12 @@ def zusammensetzen(dateien: list[Path], leer: Path | None = None, voxel_m: float
     bester_rest = min(e[1][3] for e in ergebnisse)
     gut = [e for e in ergebnisse if e[1][3] <= 1.3 * bester_rest + 0.002]
     objekte, (punkt, achse, sinn, rest), boden = max(gut, key=lambda e: abs(e[2] @ e[1][1]))
+    if radius:  # nur Punkte nahe der Drehachse (Hintergrund neben dem Teller weg), dann nachrechnen
+        objekte = [o[np.linalg.norm(np.cross(o[:, :3] - punkt, achse), axis=1) <= radius]
+                   for o in objekte]
+        if min(len(o) for o in objekte) < 100:
+            raise SystemExit(f"Innerhalb von {radius} m um die Drehachse kaum Punkte.")
+        punkt, achse, sinn, rest = achse_finden(objekte, winkel, achse, dauerdrehung)
     teile = [zurueckdrehen(o, punkt, achse, sinn * (w - winkel[0]))
              for o, w in zip(objekte, winkel, strict=True)]
     wolke = ausreisser_weg(voxel(np.vstack(teile), voxel_m / 2))
@@ -332,6 +360,9 @@ def main():
     z.add_argument("ordner")
     z.add_argument("--stl", action="store_true", help="zusätzlich ein STL-Netz (grob)")
     z.add_argument("--voxel", type=float, default=0.01, help="Rasterweite [m] (Standard 1 cm)")
+    z.add_argument("--radius", type=float,
+                   help="nur Punkte bis zu diesem Abstand [m] von der Drehachse (Hintergrund weg), "
+                   "z. B. Tellerradius + Überstand des Objekts")
     z.add_argument("--umlaufzeit", type=float,
                    help="Dauerdrehung: Sekunden für eine Umdrehung (Stoppuhr, ±5 %% genügt)")
     z.add_argument("--normale", help="Drehachse/Bodennormale vorgeben, z. B. 0,-1,0 "
@@ -348,7 +379,7 @@ def main():
     leer = ordner / "leer.npy"
     normale = [float(x) for x in args.normale.split(",")] if args.normale else None
     wolke, info = zusammensetzen(dateien, leer if leer.exists() else None, args.voxel, normale,
-                                 umlaufzeit=args.umlaufzeit)
+                                 umlaufzeit=args.umlaufzeit, radius=args.radius)
     basis = ordner / f"{ordner.name}_gesamt"
     np.save(basis.with_suffix(".npy"), wolke.astype(np.float32))
     schreibe_ply(wolke[:, :3], basis.with_suffix(".ply"))
@@ -357,6 +388,11 @@ def main():
         schreibe_stl(wolke, basis.with_suffix(".stl"))
     print(f"{len(dateien)} Aufnahmen → {info['punkte']:,} Punkte: {basis}.npy/.ply/.pts")
     print(f"Passgenauigkeit: {info['rest'] * 1000:.0f} mm mittlerer Abstand (gut: < 10 mm)")
+    print(f"Grundriss (kleinstes Rechteck): {info['laenge'] * 1000:.0f} × "
+          f"{info['breite'] * 1000:.0f} mm")
+    if info["durchmesser"] > 2.5 and not args.radius:
+        print("Achtung: sehr groß – vermutlich ist Hintergrund dabei. Leeren Teller als Referenz "
+              "aufnehmen (leer.npy) oder --radius angeben, z. B. --radius 0.8.")
     print(f"Höhe entlang der Drehachse: {info['hoehe'] * 1000:.0f} mm, "
           f"größter Durchmesser: {info['durchmesser'] * 1000:.0f} mm")
 

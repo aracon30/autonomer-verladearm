@@ -60,6 +60,8 @@ def test_drehteller_setzt_objekt_zusammen(tmp_path):
     assert info["rest"] < 0.01
     assert abs(info["hoehe"] - 1.0) < 0.05  # Höhe 1,0 m
     assert abs(info["durchmesser"] - 0.9) < 0.06  # bis Außenkante Kasten (0,45 m Radius)
+    # nicht rund: Grundriss Zylinder Ø 0,6 m + Kasten bis 0,45 m → ca. 0,75 × 0,6 m
+    assert abs(info["laenge"] - 0.75) < 0.05 and abs(info["breite"] - 0.6) < 0.05
     # Hintergrund ist weg: nichts in Wand- oder Bodennähe
     assert (wolke[:, 2] > 3.5).mean() < 0.01
 

@@ -157,3 +157,8 @@ Der Winkel ergibt sich aus der Zeit; kleine Fehler der gestoppten Umlaufzeit (±
 Zusammensetzen aus, sofern das Objekt erkennbare Merkmale hat (Stutzen, Halter). Bei glatten,
 runden Gehäusen ist der Winkel für die Maße ohnehin unkritisch. Hilfreich: einen kleinen Klotz als
 Markierung an den Tellerrand stellen.
+
+**Nicht runde Teile** (Kastenfilter, Gehäuse mit Stutzen, außermittig): funktionieren genauso, die
+Merkmale helfen sogar beim Ausrichten. Ausgegeben werden zusätzlich **Länge × Breite** des
+Grundrisses (kleinstes umschließendes Rechteck senkrecht zur Drehachse). Verdeckte Bereiche
+(Innenseiten, Hinterschnitte, Unterseite) fehlen; ggf. zweiten Durchgang mit anderer Kamerahöhe.

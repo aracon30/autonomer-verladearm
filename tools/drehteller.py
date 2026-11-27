@@ -35,6 +35,7 @@ import time
 from pathlib import Path
 
 import numpy as np
+from scipy.ndimage import minimum_filter
 from scipy.optimize import minimize
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
@@ -90,6 +91,15 @@ def objekt_freistellen(bild: np.ndarray, leer: np.ndarray | None, boden_n: np.nd
         d, _ = cKDTree(leer[:, :3]).query(p[:, :3], distance_upper_bound=0.015)
         p = p[~np.isfinite(d)]
     p = p[np.abs(p[:, :3] @ boden_n - boden_d) > 0.015]  # Boden weg
+    p = hauptgruppe(p, abstand)
+    if leer is None:
+        p = teller_weg(p, boden_n, boden_d)
+    return p
+
+
+def hauptgruppe(p: np.ndarray, abstand: float = 0.03) -> np.ndarray:
+    """Die zusammenhängende Punktgruppe, die am ehesten in Bildmitte und nah an der Kamera liegt
+    (flache Gruppen wie Wände ausgenommen), samt Gruppen in ihrer Nähe."""
     if len(p) < 50:
         return p
     paare = cKDTree(p[:, :3]).query_pairs(abstand, output_type="ndarray")
@@ -106,9 +116,11 @@ def objekt_freistellen(bild: np.ndarray, leer: np.ndarray | None, boden_n: np.nd
         gruppen.append(m)
     if not gruppen:
         return p[:0]
+
     def wert(m):
         c = p[m, :3].mean(axis=0)
         return m.sum() / (1 + np.hypot(c[0], c[1]) / max(c[2], 0.1)) / max(c[2], 0.3) ** 2
+
     gruppen.sort(key=wert, reverse=True)
     # Steile Flächen sind aus der Ferne nur lückenhaft erfasst: das Objekt zerfällt dann in
     # mehrere Gruppen. Gruppen in der Nähe (< 8 cm) der gewählten gehören mit dazu.
@@ -122,10 +134,7 @@ def objekt_freistellen(bild: np.ndarray, leer: np.ndarray | None, boden_n: np.nd
         for m in nah:
             auswahl |= m
         rest = [m for m in rest if not any(m is x for x in nah)]
-    p = p[auswahl]
-    if leer is None:
-        p = teller_weg(p, boden_n, boden_d)
-    return p
+    return p[auswahl]
 
 
 def teller_weg(p: np.ndarray, boden_n: np.ndarray, boden_d: float) -> np.ndarray:
@@ -251,22 +260,42 @@ def ebenen(p: np.ndarray, anzahl: int = 3, min_anteil: float = 0.05) -> list:
     return out
 
 
-def stillstehend(objekte, winkel, tol: float = 0.015, anteil: float = 0.7) -> list:
-    """Je Bild: welche Punkte stehen still? Ein Punkt gilt als stillstehend, wenn er auch in den
-    meisten deutlich weitergedrehten Bildern (60–300°) an derselben Stelle ist. Das trifft
-    Gehäuse/Ständer des Drehtischs, aber auch drehsymmetrische Teile (Rohr, Teller)."""
-    baeume = [cKDTree(o[:, :3]) for o in objekte]
+def stillstehend(bilder, winkel, tol: float = 0.03, anteil: float = 0.7,
+                 zelle: float = 0.005) -> list:
+    """Je Bild: welche Punkte stehen still? Die Kamera steht fest, also wird je Blickrichtung
+    (Zelle `zelle` rad) verglichen: Ein Punkt bewegt sich, wenn deutlich weitergedrehte Bilder
+    (60–300°) an dieser Stelle dahinter freie Sicht haben (Hintergrund weiter weg). Liegt dort
+    dieselbe Fläche oder etwas davor (Verdeckung), passt er zu „still“. Still sind Hintergrund,
+    Gehäuse des Drehtischs und Teile, die um die Achse rund sind (Rohr, Teller)."""
+    uv = [np.floor(b[:, :2] / b[:, 2:3] / zelle).astype(np.int64) for b in bilder]
+    lo = np.min([u.min(axis=0) for u in uv], axis=0)
+    hi = np.max([u.max(axis=0) for u in uv], axis=0)
+    breite = int(hi[0] - lo[0] + 1)
+    groesse = breite * int(hi[1] - lo[1] + 1)
+    idx = [(u[:, 1] - lo[1]) * breite + (u[:, 0] - lo[0]) for u in uv]
+    tiefe = []
+    for b, i in zip(bilder, idx, strict=True):
+        t = np.full(groesse, np.inf)
+        np.minimum.at(t, i, b[:, 2])
+        # Nachbarzellen mitnehmen: kleine Lücken im Bild sind keine „freie Sicht“
+        t = minimum_filter(t.reshape(-1, breite), size=3, mode="nearest").ravel()
+        tiefe.append(t)
     masken = []
-    for i, o in enumerate(objekte):
-        dw = np.degrees(np.abs(np.asarray(winkel) - winkel[i])) % 360
-        andere = [j for j in range(len(objekte)) if 60 <= dw[j] <= 300]
+    for k, (b, i) in enumerate(zip(bilder, idx, strict=True)):
+        dw = np.degrees(np.abs(np.asarray(winkel) - winkel[k])) % 360
+        andere = [j for j in range(len(bilder)) if 60 <= dw[j] <= 300]
         if len(andere) < 3:
-            masken.append(np.zeros(len(o), bool))
+            masken.append(np.ones(len(b), bool))
             continue
-        andere = andere[:: max(1, len(andere) // 8)]
-        treffer = sum(np.isfinite(baeume[j].query(o[:, :3], distance_upper_bound=tol)[0])
-                      for j in andere)
-        masken.append(treffer >= anteil * len(andere))
+        andere = andere[:: max(1, len(andere) // 10)]
+        frei = np.zeros(len(b))
+        gesehen = np.zeros(len(b))
+        for j in andere:
+            t = tiefe[j][i]
+            ok = np.isfinite(t)
+            gesehen += ok
+            frei += ok & (t > b[:, 2] + tol)
+        masken.append(frei < (1 - anteil) * np.maximum(gesehen, 1))
     return masken
 
 
@@ -278,6 +307,84 @@ def drehsymmetrisch(p: np.ndarray, punkt, achse, baum, tol: float = 0.015) -> np
                                          distance_upper_bound=tol)[0])
                   for w in (-30, -20, -10, 10, 20, 30))
     return treffer >= 5
+
+
+def _ueber_bewegung(roh, winkel, dauerdrehung: bool, radius: float | None):
+    """Ohne leeren Teller (Werkstatt, Drehtisch mit Gehäuse): Kamera steht, also ist alles, was
+    in weitergedrehten Bildern an derselben Stelle bleibt, Hintergrund, Gehäuse oder rund um die
+    Achse. Was sich bewegt (Abzweig, Stutzen), legt die Achse fest – Richtung aus der Kreisbahn
+    seines Schwerpunkts, dann fein über das Zurückdrehen. Danach: Teller-Ebene und alles
+    darunter weg, Stillstehendes nur, wenn es um die Achse rund ist (Rohr, Flansch).
+    None, wenn sich zu wenig bewegt (rein drehsymmetrisches Teil)."""
+    winkel = np.asarray(winkel)
+    still = stillstehend(roh, winkel)
+    bew = [hauptgruppe(r[~m]) for r, m in zip(roh, still, strict=True)]
+    idx = [i for i, b in enumerate(bew) if len(b) >= 150]
+    if len(idx) < 3:
+        return None
+    bew, w_b = [bew[i] for i in idx], winkel[idx]
+    # Startrichtungen: Lot auf die Kreisbahn des Schwerpunkts und die größten Ebenen (Boden);
+    # genommen wird die, mit der die bewegten Teile am besten zurückgedreht übereinanderliegen
+    c = np.array([b[:, :3].mean(axis=0) for b in bew])
+    _, sv, vt = np.linalg.svd(c - c.mean(axis=0))
+    starts = ([vt[2]] if sv[1] > 0.02 else []) + [n for n, _ in ebenen(roh[0][:, :3])]
+    if not starts:
+        return None
+    punkt, achse, sinn, rest = min((achse_finden(bew, w_b, n0, dauerdrehung) for n0 in starts),
+                                   key=lambda e: e[3])
+    hb = np.concatenate([(b[:, :3] - punkt) @ achse for b in bew])
+    rb = np.concatenate([np.linalg.norm(np.cross(b[:, :3] - punkt, achse), axis=1) for b in bew])
+    r_max = radius or float(np.percentile(rb, 99.5)) + 0.1
+
+    def lage(r):
+        rel = r[:, :3] - punkt
+        h = rel @ achse
+        return h, np.linalg.norm(rel - np.outer(h, achse), axis=1)
+
+    # Teller: dichteste Schicht senkrecht zur Achse (nahe dem Bewegten). Oben ist die Seite, auf
+    # der sich das Bewegte befindet; der Teller und alles darunter (Gehäuse, Boden) fliegt raus.
+    hs, rs = zip(*(lage(r) for r in roh), strict=True)
+    h_alle = np.concatenate([h[r <= r_max] for h, r in zip(hs, rs, strict=True)])
+    lo, hi = np.percentile(hb, [1, 99])
+    kand = h_alle[(h_alle > lo - 1.0) & (h_alle < hi + 1.0)]
+    grenze = None
+    if len(kand) > 100:
+        z, k = np.histogram(kand, bins=np.arange(kand.min(), kand.max() + 0.01, 0.01))
+        if z.max() > 0.02 * len(h_alle):
+            mitte = k[:-1] + 0.005
+            oben = 1.0 if np.median(hb) > mitte[z.argmax()] else -1.0
+            # unter dem Teller liegt oft eine noch größere Platte (Gehäuse): die oberste dichte
+            # Schicht unterhalb des Bewegten ist der Teller
+            dicht = (z >= 0.3 * z.max()) & ((mitte - np.median(hb)) * oben < 0)
+            teller = float(mitte[dicht][np.argmax(mitte[dicht] * oben)])
+            if oben < 0:
+                achse, sinn, hs = -achse, -sinn, tuple(-h for h in hs)
+                teller = -teller
+            grenze = teller + 0.015
+    nah = [(r <= r_max) & (h > grenze if grenze is not None else True)
+           for h, r in zip(hs, rs, strict=True)]
+    baum = cKDTree(np.vstack([r[m & n, :3] for r, m, n in zip(roh, still, nah, strict=True)]))
+    objekte = []
+    for r, m, n in zip(roh, still, nah, strict=True):
+        s = r[m & n]
+        s = s[drehsymmetrisch(s, punkt, achse, baum, tol=0.02)]
+        objekte.append(ausreisser_weg(np.vstack([r[~m & n], s])))
+    if grenze is not None:
+        # Telleroberfläche je Bild als Ebene nachmessen (der Teller taumelt etwas) und alles bis
+        # 2 cm darüber und darunter weg
+        neu = []
+        for o in objekte:
+            h, r = lage(o)
+            m = (np.abs(h - grenze) < 0.06) & (r > 0.5 * r_max)
+            if m.sum() > 200:
+                n, d, _ = ebene(o[m, :3], tol=0.01)
+                if n is not None and abs(n @ achse) > 0.98:
+                    if n @ achse < 0:
+                        n, d = -n, -d
+                    o = o[o[:, :3] @ n - d > 0.02]
+            neu.append(o)
+        objekte = neu
+    return objekte, punkt, achse, sinn, rest, (None if grenze is None else grenze - 0.015)
 
 
 def zusammensetzen(dateien: list[Path], leer: Path | None = None, voxel_m: float = 0.01,
@@ -306,46 +413,36 @@ def zusammensetzen(dateien: list[Path], leer: Path | None = None, voxel_m: float
         basis = ref if ref is not None else roh[0]
         kandidaten = [(n, float(np.median(basis[:, :3] @ n)))] + kandidaten
         kandidaten = kandidaten[:1] if not alle_pruefen else kandidaten
+    if ref is None and normale is None:  # ohne leeren Teller: Achse aus dem, was sich dreht
+        erg = _ueber_bewegung(roh, winkel, dauerdrehung, radius)
+        if erg is not None:
+            objekte, punkt, achse, sinn, rest, teller = erg
+            teile = [zurueckdrehen(o, punkt, achse, sinn * (w - winkel[0]))
+                     for o, w in zip(objekte, winkel, strict=True)]
+            wolke = ausreisser_weg(voxel(np.vstack(teile), voxel_m / 2))
+            info = masse(wolke, punkt, achse) | {"rest": rest, "punkte": len(wolke),
+                                                 "achse": achse, "achspunkt": punkt,
+                                                 "boden": achse}
+            if teller is not None:  # Objekt steht auf dem Teller: Höhe ab Telleroberfläche
+                h = (wolke[:, :3] - punkt) @ achse
+                info["hoehe"] = float(np.percentile(h, 99.5) - teller)
+            return wolke, info
     ergebnisse = []
     for n0, d0 in kandidaten:
         objekte = [ausreisser_weg(objekt_freistellen(r, ref, n0, d0)) for r in roh]
         if min(len(o) for o in objekte) < 100:
             continue
-        still, bewegt, w_b = None, objekte, winkel
-        if ref is None:
-            # Ohne leeren Teller hängt oft Stillstehendes am Objekt (Gehäuse des Drehtischs). Es
-            # verfälscht die Achse (es „dreht“ nicht mit). Für die Achse nur die bewegten Punkte
-            # der Bilder nehmen, in denen genug davon zu sehen ist (Stutzen, Abzweig). Rein
-            # drehsymmetrische Teile bewegen sich sichtbar nicht: dann wie bisher alles.
-            still = stillstehend(objekte, winkel)
-            b = [o[~m] for o, m in zip(objekte, still, strict=True)]
-            idx = [i for i, x in enumerate(b) if len(x) >= 150]
-            if len(idx) >= 3:
-                bewegt, w_b = [b[i] for i in idx], np.asarray(winkel)[idx]
-        ergebnisse.append((objekte, achse_finden(bewegt, w_b, n0, dauerdrehung), n0, still,
-                           bewegt))
+        ergebnisse.append((objekte, achse_finden(objekte, winkel, n0, dauerdrehung), n0))
     if not ergebnisse:
         raise SystemExit("Objekt nicht gefunden: Boden im Bild? Objekt in Bildmitte?")
     # Unter den gut passenden Lösungen die, deren Ebene senkrecht zur gefundenen Achse steht
     # (der Boden liegt senkrecht zur Drehachse, eine Wand dagegen parallel)
     bester_rest = min(e[1][3] for e in ergebnisse)
     gut = [e for e in ergebnisse if e[1][3] <= 1.3 * bester_rest + 0.002]
-    objekte, (punkt, achse, sinn, rest), boden, still, bewegt = max(
-        gut, key=lambda e: abs(e[2] @ e[1][1]))
-    if still is not None and bewegt is not objekte:
-        # Stillstehendes nur behalten, wenn es um die gefundene Achse rund ist (Rohr, Teller);
-        # das Gehäuse des Drehtischs fliegt raus. Hier großzügiger als oben (30 % der Bilder),
-        # weil das sich drehende Objekt das Gehäuse zeitweise verdeckt.
-        still = stillstehend(objekte, winkel, anteil=0.3)
-        baum = cKDTree(np.vstack([o[m, :3] for o, m in zip(objekte, still, strict=True)]))
-        objekte = [np.vstack([o[~m], o[m][drehsymmetrisch(o[m], punkt, achse, baum)]])
-                   for o, m in zip(objekte, still, strict=True)]
-        if not radius:  # Achse mit den bereinigten Bildern nachrechnen
-            punkt, achse, sinn, rest = achse_finden(objekte, winkel, achse, dauerdrehung)
+    objekte, (punkt, achse, sinn, rest), boden = max(gut, key=lambda e: abs(e[2] @ e[1][1]))
     if radius:  # nur Punkte nahe der Drehachse (Hintergrund neben dem Teller weg), dann nachrechnen
-        nah = [np.linalg.norm(np.cross(o[:, :3] - punkt, achse), axis=1) <= radius
-               for o in objekte]
-        objekte = [o[m] for o, m in zip(objekte, nah, strict=True)]
+        objekte = [o[np.linalg.norm(np.cross(o[:, :3] - punkt, achse), axis=1) <= radius]
+                   for o in objekte]
         if min(len(o) for o in objekte) < 100:
             raise SystemExit(f"Innerhalb von {radius} m um die Drehachse kaum Punkte.")
         punkt, achse, sinn, rest = achse_finden(objekte, winkel, achse, dauerdrehung)

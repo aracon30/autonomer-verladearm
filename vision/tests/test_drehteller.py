@@ -25,7 +25,19 @@ def _objekt(rng):
     return np.vstack([zyl, kasten, seite]), np.vstack([nz, nk, ns])
 
 
-def _aufnahmen(schritt=15, anzahl=24, seed=0, kasten=True, wand_n=15000):
+def _gehaeuse(rng, mitte):
+    """Stillstehendes Gehäuse des Drehtischs: Platte unter dem Teller und senkrechte Front daneben,
+    mit dem Objekt verbunden (wie beim Schweißdrehtisch in der Werkstatt)."""
+    n = 12000
+    u = rng.uniform
+    platte = np.column_stack([u(-0.3, 0.9, n), np.full(n, 0.52), u(-0.6, 0.3, n)])
+    platte = platte[np.hypot(platte[:, 0], platte[:, 2]) > 0.31]
+    front = np.column_stack([u(0.55, 0.9, n), u(-0.5, 0.52, n), np.full(n, -0.6)])
+    seite = np.column_stack([np.full(n, 0.55), u(-0.5, 0.52, n), u(-0.6, 0.3, n)])
+    return np.vstack([platte, front, seite]) + mitte
+
+
+def _aufnahmen(schritt=15, anzahl=24, seed=0, kasten=True, wand_n=15000, gehaeuse=False):
     rng = np.random.default_rng(seed)
     p, nrm = _objekt(rng)
     if not kasten:  # rein drehsymmetrisch (Filtergehäuse ohne Stutzen)
@@ -41,7 +53,7 @@ def _aufnahmen(schritt=15, anzahl=24, seed=0, kasten=True, wand_n=15000):
         r = np.array([[np.cos(w), 0, np.sin(w)], [0, 1, 0], [-np.sin(w), 0, np.cos(w)]])
         q, nq = p @ r.T + mitte, nrm @ r.T
         sichtbar = (nq * -q).sum(axis=1) > 0  # Fläche zeigt zur Kamera
-        bild = np.vstack([q[sichtbar], wand, boden])
+        bild = np.vstack([q[sichtbar], wand, boden] + ([_gehaeuse(rng, mitte)] if gehaeuse else []))
         bilder.append(bild + rng.normal(0, 0.003, bild.shape))
     return bilder
 
@@ -100,3 +112,13 @@ def test_dauerdrehung_mit_ungefaehrer_umlaufzeit(tmp_path):
     assert info["rest"] < 0.012
     assert abs(info["hoehe"] - 1.0) < 0.05
     assert abs(info["durchmesser"] - 0.9) < 0.06
+
+
+def test_stillstehendes_gehaeuse_ohne_leeren_teller(tmp_path):
+    """Gehäuse des Drehtischs hängt am Objekt und steht still: wird erkannt und entfernt, die
+    Achse stimmt trotzdem (früher: Ringe/„Zähne“ und viel zu große Maße)."""
+    wolke, info = drehteller.zusammensetzen(_speichern(tmp_path, _aufnahmen(gehaeuse=True)))
+    assert info["rest"] < 0.012
+    assert abs(info["hoehe"] - 1.0) < 0.05
+    assert abs(info["durchmesser"] - 0.9) < 0.08
+    assert abs(info["laenge"] - 0.75) < 0.06 and abs(info["breite"] - 0.6) < 0.06

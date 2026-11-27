@@ -132,7 +132,7 @@ def masse(p: np.ndarray, punkt: np.ndarray, achse: np.ndarray) -> dict:
 
 
 # --- Zusammensetzen -------------------------------------------------------------------------
-def achse_finden(objekte, winkel, n0):
+def achse_finden(objekte, winkel, n0, faktor_frei: bool = False):
     """Drehachse (Punkt, Richtung) und Drehsinn so, dass die um ihre Winkel zurückgedrehten Bilder
     am besten auf dem jeweils nächsten liegen. Start: Achse senkrecht zum Boden durch die
     Objektmitte."""
@@ -155,9 +155,10 @@ def achse_finden(objekte, winkel, n0):
 
     def kosten(x, sinn, paare):
         punkt, achse = teile(x)
+        k = x[4] if len(x) > 4 else 1.0  # Faktor auf die Winkel (Drehzahl nur ungefähr bekannt)
         e = []
         for i in paare:
-            q = zurueckdrehen(proben[i + 1], punkt, achse, sinn * (winkel[i + 1] - winkel[i]))
+            q = zurueckdrehen(proben[i + 1], punkt, achse, sinn * k * (winkel[i + 1] - winkel[i]))
             d, _ = baeume[i].query(q[:, :3], distance_upper_bound=0.1)
             d = np.where(np.isfinite(d), d, 0.1)
             e.append(np.sort(d)[: int(0.8 * len(d))].mean())  # 80 %: Teilverdeckung erlaubt
@@ -176,11 +177,15 @@ def achse_finden(objekte, winkel, n0):
     _, x0, sinn = best
     fein = paare[:: max(1, len(paare) // 12)]
     schritt = np.diag([0.05, 0.05, 0.03, 0.03])
+    if faktor_frei:
+        x0 = np.append(x0, 1.0)
+        schritt = np.diag([0.05, 0.05, 0.03, 0.03, 0.05])
     erg = minimize(kosten, x0, args=(sinn, fein), method="Nelder-Mead",
                    options={"xatol": 2e-4, "fatol": 1e-6, "maxiter": 400,
-                            "initial_simplex": x0 + np.vstack([np.zeros(4), schritt])})
+                            "initial_simplex": x0 + np.vstack([np.zeros(len(x0)), schritt])})
     punkt, achse = teile(erg.x)
-    return punkt, achse, sinn, erg.fun
+    k = float(erg.x[4]) if faktor_frei else 1.0
+    return punkt, achse, sinn * k, erg.fun
 
 
 def ebenen(p: np.ndarray, anzahl: int = 3, min_anteil: float = 0.05) -> list:
@@ -198,13 +203,20 @@ def ebenen(p: np.ndarray, anzahl: int = 3, min_anteil: float = 0.05) -> list:
 
 
 def zusammensetzen(dateien: list[Path], leer: Path | None = None, voxel_m: float = 0.01,
-                   normale=None, alle_pruefen: bool = False):
+                   normale=None, alle_pruefen: bool = False, umlaufzeit: float | None = None):
     """`normale`: Bodennormale (Drehachsrichtung) in Kamerakoordinaten vorgeben, falls die
     automatische Wahl danebenliegt; mit `alle_pruefen` wird sie nur als zusätzlicher Kandidat
     genommen."""
     roh = [np.load(f, allow_pickle=False).astype(float) for f in dateien]
     roh = [voxel(r[np.isfinite(r[:, :3]).all(axis=1)], voxel_m) for r in roh]
-    winkel = np.radians([winkel_aus_name(f) for f in dateien])
+    zeiten = [zeit_aus_name(f) for f in dateien]
+    dauerdrehung = all(t is not None for t in zeiten)
+    if dauerdrehung:  # Teller dreht gleichmäßig: Winkel = 360° × t / Umlaufzeit (Faktor angepasst)
+        if not umlaufzeit:
+            raise SystemExit("Bei Dauerdrehung --umlaufzeit angeben (Sekunden für 360°, Stoppuhr).")
+        winkel = 2 * np.pi * np.asarray(zeiten) / umlaufzeit
+    else:
+        winkel = np.radians([winkel_aus_name(f) for f in dateien])
     ref = voxel(np.load(leer, allow_pickle=False).astype(float), voxel_m) if leer else None
     # Welche Ebene der Boden ist, steht nicht fest (eine große Wand oder Tischplatte kann mehr
     # Punkte haben). Daher die größten Ebenen bzw. eine vorgegebene Normale als Kandidaten
@@ -220,7 +232,7 @@ def zusammensetzen(dateien: list[Path], leer: Path | None = None, voxel_m: float
         objekte = [ausreisser_weg(objekt_freistellen(r, ref, n0, d0)) for r in roh]
         if min(len(o) for o in objekte) < 100:
             continue
-        ergebnisse.append((objekte, achse_finden(objekte, winkel, n0), n0))
+        ergebnisse.append((objekte, achse_finden(objekte, winkel, n0, dauerdrehung), n0))
     if not ergebnisse:
         raise SystemExit("Objekt nicht gefunden: Boden im Bild? Objekt in Bildmitte?")
     # Unter den gut passenden Lösungen die, deren Ebene senkrecht zur gefundenen Achse steht
@@ -236,8 +248,14 @@ def zusammensetzen(dateien: list[Path], leer: Path | None = None, voxel_m: float
     return wolke, info
 
 
+def zeit_aus_name(f: Path) -> float | None:
+    """Dauerdrehung: Dateiname t<Sekunden>, z. B. t012,35.npy → 12,35 s; sonst None."""
+    m = re.match(r"t(\d+(?:[.,]\d+)?)$", f.stem)
+    return float(m.group(1).replace(",", ".")) if m else None
+
+
 def winkel_aus_name(f: Path) -> float:
-    m = re.match(r"(\d+(?:[.,]\d+)?)", f.stem)
+    m = re.match(r"t?(\d+(?:[.,]\d+)?)", f.stem)
     return float(m.group(1).replace(",", ".")) if m else 0.0
 
 
@@ -249,6 +267,8 @@ def aufnahme(args):
 
     quickedit_aus()
     cfg = load_config(args.config)
+    if args.dauer:  # bei drehendem Objekt ein Bild je Aufnahme (kein Mitteln, keine Unschärfe)
+        cfg["source"]["frames"] = 1
     source = build_source(cfg["source"], cfg)
     print("Warte auf die Kamera …")
     for _ in range(60):
@@ -270,6 +290,21 @@ def aufnahme(args):
 
     if input("Leeren Teller zuerst aufnehmen? (j = ja, Enter = überspringen): ").strip() == "j":
         speichern("leer.npy")
+    if args.dauer:  # Dauerdrehung: in festen Zeitabständen aufnehmen
+        input(f"Teller gleichmäßig drehen lassen, Enter = Start ({args.dauer:g} s, "
+              f"alle {args.intervall:g} s, Strg+C = Abbruch): ")
+        t0 = time.monotonic()
+        try:
+            while (t := time.monotonic() - t0) < args.dauer:
+                speichern(f"t{t:06.2f}".replace(".", ",") + ".npy")
+                time.sleep(max(0.0, args.intervall - (time.monotonic() - t0 - t)))
+        except KeyboardInterrupt:
+            pass
+        if hasattr(source, "close"):
+            source.close()
+        print(f"Fertig. Umlaufzeit stoppen, dann: python tools/drehteller.py zusammensetzen "
+              f"{ordner} --umlaufzeit <Sekunden>")
+        return
     winkel = 0.0
     while winkel < 360 - 1e-6:
         e = input(f"Teller auf {winkel:g}° stellen, Enter = Aufnahme, q = Ende: ").strip().lower()
@@ -290,10 +325,15 @@ def main():
     a.add_argument("--name", required=True, help="Name des Objekts, z. B. Filter1")
     a.add_argument("--schritt", type=float, default=15.0, help="Winkelschritt in Grad (10–20)")
     a.add_argument("--ordner", default="data/drehteller")
+    a.add_argument("--dauer", type=float, default=0.0,
+                   help="Dauerdrehung: so viele Sekunden aufnehmen (etwas mehr als eine Umdrehung)")
+    a.add_argument("--intervall", type=float, default=1.0, help="Dauerdrehung: Abstand [s]")
     z = sub.add_parser("zusammensetzen")
     z.add_argument("ordner")
     z.add_argument("--stl", action="store_true", help="zusätzlich ein STL-Netz (grob)")
     z.add_argument("--voxel", type=float, default=0.01, help="Rasterweite [m] (Standard 1 cm)")
+    z.add_argument("--umlaufzeit", type=float,
+                   help="Dauerdrehung: Sekunden für eine Umdrehung (Stoppuhr, ±5 %% genügt)")
     z.add_argument("--normale", help="Drehachse/Bodennormale vorgeben, z. B. 0,-1,0 "
                    "(Kamerakoordinaten; nur nötig, wenn die automatische Wahl danebenliegt)")
     args = p.parse_args()
@@ -301,13 +341,14 @@ def main():
         return aufnahme(args)
     ordner = Path(args.ordner)
     dateien = sorted((f for f in ordner.glob("*.npy")
-                      if re.match(r"\d", f.name) and "_gesamt" not in f.name),
+                      if re.match(r"t?\d", f.name) and "_gesamt" not in f.name),
                      key=winkel_aus_name)
     if len(dateien) < 3:
         sys.exit(f"Mindestens 3 Aufnahmen in {ordner} nötig.")
     leer = ordner / "leer.npy"
     normale = [float(x) for x in args.normale.split(",")] if args.normale else None
-    wolke, info = zusammensetzen(dateien, leer if leer.exists() else None, args.voxel, normale)
+    wolke, info = zusammensetzen(dateien, leer if leer.exists() else None, args.voxel, normale,
+                                 umlaufzeit=args.umlaufzeit)
     basis = ordner / f"{ordner.name}_gesamt"
     np.save(basis.with_suffix(".npy"), wolke.astype(np.float32))
     schreibe_ply(wolke[:, :3], basis.with_suffix(".ply"))

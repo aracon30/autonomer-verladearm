@@ -143,3 +143,17 @@ Gehäusen ohne Merkmale), dreht alle Bilder zurück und gibt `Filter1_gesamt.npy
 Aufbau: Kamera 1–3 m entfernt, **30–45° schräg von oben** (sonst fehlt die Oberseite; die
 Unterseite fehlt immer), **Boden im Bild**, Winkel genau einstellen, 10–20° je Schritt
 (24 Bilder bei 15°), niemand im Bild. Genauigkeit ca. 1–2 cm.
+
+**Teller ohne Winkelskala, nur mit Drehzahl (Dauerdrehung):** Teller langsam und gleichmäßig drehen
+lassen (z. B. 1 Umdrehung/min), eine Umdrehung mit der Stoppuhr messen, dann
+
+```bat
+.venv\Scripts\python tools\drehteller.py aufnahme --name Filter1 --dauer 70 --intervall 2
+.venv\Scripts\python tools\drehteller.py zusammensetzen data\drehteller\Filter1 --umlaufzeit 60
+```
+
+Aufgenommen wird alle 2 s (ein Bild je Aufnahme, keine Mittelung), etwas länger als eine Umdrehung.
+Der Winkel ergibt sich aus der Zeit; kleine Fehler der gestoppten Umlaufzeit (±5 %) gleicht das
+Zusammensetzen aus, sofern das Objekt erkennbare Merkmale hat (Stutzen, Halter). Bei glatten,
+runden Gehäusen ist der Winkel für die Maße ohnehin unkritisch. Hilfreich: einen kleinen Klotz als
+Markierung an den Tellerrand stellen.

@@ -74,6 +74,17 @@ def test_http_schnittstelle(tmp_path):
                                      .encode(), {"Content-Type": "application/json"})
         r = json.loads(urllib.request.urlopen(req).read())
         assert r["ok"] and "neu_2" in r["files"]
+        # fremde Webseite (CSRF): anderes Format bzw. fremde Herkunft wird abgelehnt
+        for headers in ({"Content-Type": "text/plain"},
+                        {"Content-Type": "application/json", "Origin": "http://boese.example"}):
+            req = urllib.request.Request(base + "/api/save", json.dumps(
+                {"name": "boese", "data": d}).encode(), headers)
+            try:
+                urllib.request.urlopen(req)
+                raise AssertionError("nicht abgelehnt")
+            except urllib.error.HTTPError as e:
+                assert e.code == 403
+        assert not (tmp_path / "boese.yaml").exists()
     finally:
         server.shutdown()
 

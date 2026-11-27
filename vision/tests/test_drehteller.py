@@ -83,3 +83,18 @@ def test_grosse_wand_wird_nicht_fuer_den_boden_gehalten(tmp_path):
     assert abs(abs(info["boden"][1]) - 1) < 0.05  # Boden erkannt (Normale = Kamera-y), nicht Wand
     assert abs(abs(info["achse"][1]) - 1) < 0.05  # Achse senkrecht, nicht in Blickrichtung
     assert abs(info["hoehe"] - 1.0) < 0.06
+
+
+def test_dauerdrehung_mit_ungefaehrer_umlaufzeit(tmp_path):
+    """Teller dreht gleichmäßig (48 s je Umdrehung), Aufnahme alle 2 s, Stoppuhr sagt 50 s:
+    der Winkelfaktor wird angepasst, Maße stimmen."""
+    bilder = _aufnahmen(schritt=15, anzahl=24)  # 15° je 2 s → 48 s je Umdrehung
+    dateien = []
+    for k, b in enumerate(bilder):
+        f = tmp_path / (f"t{2.0 * k:06.2f}".replace(".", ",") + ".npy")
+        np.save(f, b.astype(np.float32))
+        dateien.append(f)
+    wolke, info = drehteller.zusammensetzen(dateien, umlaufzeit=50.0)
+    assert info["rest"] < 0.012
+    assert abs(info["hoehe"] - 1.0) < 0.05
+    assert abs(info["durchmesser"] - 0.9) < 0.06

@@ -163,11 +163,16 @@ Merkmale helfen sogar beim Ausrichten. Ausgegeben werden zusätzlich **Länge ×
 Grundrisses (kleinstes umschließendes Rechteck senkrecht zur Drehachse). Verdeckte Bereiche
 (Innenseiten, Hinterschnitte, Unterseite) fehlen; ggf. zweiten Durchgang mit anderer Kamerahöhe.
 
-**Drehtisch mit Gehäuse (Schweißdrehtisch, Positionierer):** Gehäuse und Ständer stehen still,
-hängen im Bild aber am Teller und damit am Objekt. Früher wurden sie mitgedreht (Ringe/„Zähne“,
-viel zu große Maße, Versuch 1 mit dem Y-Filter). Jetzt erkennt das Zusammensetzen stillstehende
-Teile selbst (in den meisten weitergedrehten Bildern an derselben Stelle) und behält davon nur, was
-um die Drehachse rund ist (Rohr, Teller). Die Achse wird aus den sich bewegenden Teilen (Abzweig,
-Stutzen) bestimmt. Am sichersten bleibt trotzdem die Aufnahme des **leeren Tellers** (`leer.npy`).
-Bei weit überstehenden Teilen `--radius` großzügig wählen (Y-Filter B0273-007: Abzweig-Flansch bis
-ca. 0,58 m von der Achse → `--radius 0.7`, nicht 0.45).
+**Drehtisch mit Gehäuse (Schweißdrehtisch, Positionierer), ohne leeren Teller:** Gehäuse und
+Ständer stehen still, hängen im Bild aber am Teller. Früher wurden sie mitgedreht (Ringe/„Zähne“,
+viel zu große Maße, Versuch 1 mit dem Y-Filter am 27.11.). Jetzt gilt ohne `leer.npy`: Da die
+Kamera fest steht, wird je Blickrichtung verglichen, was sich bewegt (Abzweig, Stutzen) und was
+stillsteht. Aus dem Bewegten folgt die Drehachse, die Bodenebene wird nicht mehr gebraucht.
+Stillstehendes bleibt nur, wenn es um die Achse rund ist (Rohr, Flansch). Teller und alles darunter
+fallen weg, die Höhe wird ab der Telleroberfläche gemessen. `--normale` ist nicht mehr nötig.
+
+Mit den echten Aufnahmen des Y-Filters B0273-007 (Dauerdrehung 74 s) kommen Hauptrohr (r ≈ 135 mm),
+Flansch und der 45°-Abzweig heraus, Höhe ca. 0,87 m (Soll 0,80 m). Der Grundriss ist durch
+Tellerreste noch zu groß. In der Simulation desselben Filters stimmen die Maße auf ca. 1 cm. Am
+sichersten bleibt die Aufnahme des **leeren Tellers**. Rein runde Teile ohne Stutzen bewegen sich
+sichtbar nicht; dann wird wie bisher über Bodenebene und Objektgruppe gearbeitet.

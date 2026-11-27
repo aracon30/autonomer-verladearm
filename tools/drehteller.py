@@ -128,7 +128,26 @@ def masse(p: np.ndarray, punkt: np.ndarray, achse: np.ndarray) -> dict:
     h = rel @ achse
     radial = np.linalg.norm(rel - np.outer(h, achse), axis=1)
     lo, hi = np.percentile(h, [0.5, 99.5])
-    return {"hoehe": float(hi - lo), "durchmesser": float(2 * np.percentile(radial, 99.5))}
+    # Grundriss (senkrecht zur Achse): kleinstes umschließendes Rechteck → Länge × Breite,
+    # sinnvoll für nicht runde Teile (Kastenfilter, Gehäuse mit Stutzen)
+    e1 = np.cross(achse, [1.0, 0, 0] if abs(achse[0]) < 0.9 else [0, 1.0, 0])
+    e1 /= np.linalg.norm(e1)
+    e2 = np.cross(achse, e1)
+    xy = np.column_stack([rel @ e1, rel @ e2])
+    m = np.ones(len(xy), bool)
+    for v in (xy[:, 0], xy[:, 1]):  # vereinzelte Ausreißer am Rand ignorieren
+        a, b = np.percentile(v, [0.2, 99.8])
+        m &= (v >= a) & (v <= b)
+    xy = xy[m]
+    best = (np.inf, 0.0, 0.0)
+    for w in np.radians(np.arange(0, 90, 0.5)):
+        c, s_ = np.cos(w), np.sin(w)
+        u, v = xy @ [c, s_], xy @ [-s_, c]
+        lu, lv = u.max() - u.min(), v.max() - v.min()
+        if lu * lv < best[0]:
+            best = (lu * lv, max(lu, lv), min(lu, lv))
+    return {"hoehe": float(hi - lo), "durchmesser": float(2 * np.percentile(radial, 99.5)),
+            "laenge": float(best[1]), "breite": float(best[2])}
 
 
 # --- Zusammensetzen -------------------------------------------------------------------------
@@ -357,6 +376,8 @@ def main():
         schreibe_stl(wolke, basis.with_suffix(".stl"))
     print(f"{len(dateien)} Aufnahmen → {info['punkte']:,} Punkte: {basis}.npy/.ply/.pts")
     print(f"Passgenauigkeit: {info['rest'] * 1000:.0f} mm mittlerer Abstand (gut: < 10 mm)")
+    print(f"Grundriss (kleinstes Rechteck): {info['laenge'] * 1000:.0f} × "
+          f"{info['breite'] * 1000:.0f} mm")
     print(f"Höhe entlang der Drehachse: {info['hoehe'] * 1000:.0f} mm, "
           f"größter Durchmesser: {info['durchmesser'] * 1000:.0f} mm")
 

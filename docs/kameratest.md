@@ -162,3 +162,12 @@ Markierung an den Tellerrand stellen.
 Merkmale helfen sogar beim Ausrichten. Ausgegeben werden zusätzlich **Länge × Breite** des
 Grundrisses (kleinstes umschließendes Rechteck senkrecht zur Drehachse). Verdeckte Bereiche
 (Innenseiten, Hinterschnitte, Unterseite) fehlen; ggf. zweiten Durchgang mit anderer Kamerahöhe.
+
+**Drehtisch mit Gehäuse (Schweißdrehtisch, Positionierer):** Gehäuse und Ständer stehen still,
+hängen im Bild aber am Teller und damit am Objekt. Früher wurden sie mitgedreht (Ringe/„Zähne“,
+viel zu große Maße, Versuch 1 mit dem Y-Filter). Jetzt erkennt das Zusammensetzen stillstehende
+Teile selbst (in den meisten weitergedrehten Bildern an derselben Stelle) und behält davon nur, was
+um die Drehachse rund ist (Rohr, Teller). Die Achse wird aus den sich bewegenden Teilen (Abzweig,
+Stutzen) bestimmt. Am sichersten bleibt trotzdem die Aufnahme des **leeren Tellers** (`leer.npy`).
+Bei weit überstehenden Teilen `--radius` großzügig wählen (Y-Filter B0273-007: Abzweig-Flansch bis
+ca. 0,58 m von der Achse → `--radius 0.7`, nicht 0.45).
